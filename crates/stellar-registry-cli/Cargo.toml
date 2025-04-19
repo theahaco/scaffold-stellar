@@ -1,0 +1,52 @@
+[package]
+name = "stellar-registry-cli"
+description = "Stellar CLI plugin for publishing and deploying contracts"
+homepage = "https://github.com/ahalabs/scaffold-stellar"
+authors = ["Aha Labs <hello@ahalabs.dev>"]
+license = "Apache-2.0"
+readme = "../../README.md"
+version = "0.14.4"
+edition = "2021"
+rust-version = "1.70"
+autobins = false
+repository = "https://github.com/ahalabs/stellar-scaffold/tree/main/crates/stellar-registry-cli"
+
+[[bin]]
+name = "stellar-registry"
+path = "src/bin/main.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/{ name }-v{ version }/{ name }-v{ version }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+
+
+[lib]
+name = "stellar_registry_cli"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+
+clap = { version = "4.1.8", features = [
+    "derive",
+    "env",
+    "deprecated",
+    "string",
+] }
+
+thiserror = "1.0.31"
+tokio = { version = "1", features = ["full"] }
+shlex = "1.1.0"
+loam-sdk = { workspace = true }
+soroban-spec = "20.0.3"
+soroban-spec-tools = "20.1.1"
+heck = "0.4.1"
+ed25519-dalek = "2.0.0"
+stellar-strkey = "0.0.8"
+dotenvy = "0.15.7"
+# soroban-rpc = "=20.3.3"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"
+assert_fs = "1.0.7"
+predicates = "2.1.5"

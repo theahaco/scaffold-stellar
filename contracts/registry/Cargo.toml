@@ -1,0 +1,28 @@
+[package]
+name = "stellar-registry-contract"
+description = "A crate for managing and deploying smart contracts on the Soroban blockchain."
+version = "0.1.0"
+authors = ["Aha Labs <hello@ahalabs.dev>"]
+license = "Apache-2.0"
+rust-version = "1.69"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+loam-sdk = { workspace = true }
+loam-subcontract-core = { workspace = true }
+
+
+[dev_dependencies]
+loam-sdk = { workspace = true, features = ["soroban-sdk-testutils"] }
+assert_matches = "1.5.0"
+
+[package.metadata.loam]
+contract = true
+
+# should add this here
+#[package.metadata.loam.dependencies]

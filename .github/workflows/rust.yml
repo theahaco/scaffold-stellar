@@ -1,0 +1,39 @@
+name: rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            crates/loam-cli/tests/fixtures/soroban-init-boilerplate/target/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update
+      - run: rustup target add wasm32-unknown-unknown
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@just
+      
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+      - name: build since clippy needs contracts to be built
+        run: just build
+      - name: Run cargo clippy
+        run: cargo clippy --all
+      - name: Unit Tests
+        run: just test
