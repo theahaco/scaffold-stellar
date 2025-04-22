@@ -53,6 +53,14 @@ impl TestEnv {
         }
     }
 
+    pub fn new_empty() -> Self {
+        let temp_dir = TempDir::new().unwrap();
+        Self {
+            cwd: temp_dir.path().to_path_buf(),
+            temp_dir,
+        }
+    }
+
     pub fn from<F: FnOnce(&TestEnv)>(template: &str, f: F) {
         let test_env = TestEnv::new(template);
         f(&test_env);
@@ -198,7 +206,7 @@ impl TestEnv {
         }
     }
 
-    pub fn scaffold_env(&self, env: &str, randomize_wasm: bool) -> Command {
+    pub fn stellar_scaffold_env(&self, env: &str, randomize_wasm: bool) -> Command {
         self.scaffold_build(env, randomize_wasm)
     }
 

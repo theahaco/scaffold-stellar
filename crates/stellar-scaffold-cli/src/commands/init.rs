@@ -2,17 +2,15 @@ use clap::Parser;
 use rust_embed::{EmbeddedFile, RustEmbed};
 use soroban_cli::commands::contract::init as soroban_init;
 use std::{
-    fs::{self, create_dir_all, metadata, read_to_string, remove_dir_all, write, Metadata},
+    fs::{self, create_dir_all, metadata, write, Metadata},
     io,
     path::{Path, PathBuf},
+    process::Command,
 };
-use toml_edit::{DocumentMut, TomlError};
+use tempfile::TempDir;
+use toml_edit::TomlError;
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/loambuild/frontend";
-
-#[derive(RustEmbed)]
-#[folder = "./src/examples/soroban/core"]
-struct ExampleCore;
+const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
 
 #[derive(RustEmbed)]
 #[folder = "./src/examples/soroban/status_message"]
@@ -24,7 +22,7 @@ pub struct Cmd {
     /// The path to the project must be provided to initialize
     pub project_path: PathBuf,
     /// The name of the project
-    #[arg(default_value = "loam-example")]
+    #[arg(default_value = "stellar-example")]
     pub name: String,
 }
 /// Errors that can occur during initialization
@@ -38,6 +36,10 @@ pub enum Error {
     ConverBytesToStringErr(#[from] std::str::Utf8Error),
     #[error("Failed to parse toml file: {0}")]
     TomlParseError(#[from] TomlError),
+    #[error("Failed to copy frontend files: {0}")]
+    FrontendCopyError(String),
+    #[error("Git clone failed: {0}")]
+    GitCloneError(String),
 }
 
 impl Cmd {
@@ -47,7 +49,7 @@ impl Cmd {
     ///
     /// ```
     /// /// From the command line
-    /// loam init /path/to/project
+    /// stellar-scaffold init /path/to/project
     /// ```
     #[allow(clippy::unused_self)]
     pub fn run(&self) -> Result<(), Error> {
@@ -58,61 +60,27 @@ impl Cmd {
             project_path: self.project_path.to_string_lossy().to_string(),
             name: self.name.clone(),
             with_example: None,
-            frontend_template: Some(FRONTEND_TEMPLATE.to_string()),
             overwrite: true,
+            frontend_template: None,
         }
         .run(&soroban_cli::commands::global::Args::default())?;
 
-        // remove soroban hello_world default contract
-        remove_dir_all(self.project_path.join("contracts/hello_world/")).map_err(|e| {
-            eprintln!("Error removing directory");
-            e
+        // Clone frontend template
+        let fe_template_dir = tempfile::tempdir().map_err(|e| {
+            eprintln!("Error creating temp dir for frontend template");
+            Error::IoError(e)
         })?;
 
+        clone_repo(FRONTEND_TEMPLATE, fe_template_dir.path())?;
+        copy_frontend_files(&fe_template_dir, &self.project_path)?;
+
         copy_example_contracts(&self.project_path)?;
-        rename_cargo_toml_remove(&self.project_path, "core")?;
         rename_cargo_toml_remove(&self.project_path, "status_message")?;
-        update_workspace_cargo_toml(&self.project_path.join("Cargo.toml"))?;
         Ok(())
     }
 }
 
-// update a soroban project to a loam project
-fn update_workspace_cargo_toml(cargo_path: &Path) -> Result<(), Error> {
-    let cargo_toml_str = read_to_string(cargo_path).map_err(|e| {
-        eprintln!("Error reading Cargo.toml file in: {cargo_path:?}");
-        e
-    })?;
-
-    let cargo_toml_str = regex::Regex::new(r#"soroban-sdk = "[^\"]+""#)
-        .unwrap()
-        .replace_all(
-            cargo_toml_str.as_str(),
-            r#"loam-sdk = "0.6.12"
-loam-subcontract-core = "0.7.5""#,
-        );
-
-    let doc = cargo_toml_str.parse::<DocumentMut>().map_err(|e| {
-        eprintln!("Error parsing Cargo.toml file in: {cargo_path:?}");
-        e
-    })?;
-
-    write(cargo_path, doc.to_string()).map_err(|e| {
-        eprintln!("Error writing to Cargo.toml file in: {cargo_path:?}");
-        e
-    })?;
-
-    Ok(())
-}
-
 fn copy_example_contracts(to: &Path) -> Result<(), Error> {
-    for item in ExampleCore::iter() {
-        copy_file(
-            &to.join("contracts/core"),
-            item.as_ref(),
-            ExampleCore::get(&item),
-        )?;
-    }
     for item in ExampleStatusMessage::iter() {
         copy_file(
             &to.join("contracts/status_message"),
@@ -160,7 +128,6 @@ fn copy_file(
     Ok(())
 }
 
-// TODO: import from stellar-cli init (not currently pub there)
 fn file_exists(file_path: &Path) -> bool {
     metadata(file_path)
         .as_ref()
@@ -173,5 +140,36 @@ fn rename_cargo_toml_remove(project: &Path, name: &str) -> Result<(), Error> {
     let to = from.with_extension("");
     println!("Renaming to {from:?} to {to:?}");
     fs::rename(from, to)?;
+    Ok(())
+}
+
+fn clone_repo(repo_url: &str, dest: &Path) -> Result<(), Error> {
+    let status = Command::new("git")
+        .args(["clone", repo_url, dest.to_str().unwrap()])
+        .status()
+        .map_err(|e| Error::GitCloneError(format!("Failed to execute git clone: {e}")))?;
+
+    if !status.success() {
+        return Err(Error::GitCloneError("Git clone command failed".to_string()));
+    }
+    Ok(())
+}
+
+fn copy_frontend_files(temp_dir: &TempDir, project_path: &Path) -> Result<(), Error> {
+    let entries = std::fs::read_dir(temp_dir.path())?
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_name() != ".git");
+
+    for entry in entries {
+        fs_extra::copy_items(
+            &[entry.path()], 
+            project_path,
+            &fs_extra::dir::CopyOptions::new()
+                .overwrite(true)
+                .skip_exist(false)
+        )
+        .map_err(|e| Error::FrontendCopyError(e.to_string()))?;
+    }
+
     Ok(())
 }

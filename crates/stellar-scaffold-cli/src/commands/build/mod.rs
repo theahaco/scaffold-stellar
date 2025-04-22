@@ -59,7 +59,7 @@ pub struct Cmd {
     /// If provided, wasm files can be found in the cargo target directory, and
     /// the specified directory.
     ///
-    /// If ommitted, wasm files are written only to `target/loam`.
+    /// If ommitted, wasm files are written only to `target/stellar`.
     #[arg(long)]
     pub out_dir: Option<std::path::PathBuf>,
     /// Print commands to build without executing them
@@ -89,7 +89,7 @@ pub enum Error {
     #[error("getting the current directory: {0}")]
     GettingCurrentDir(io::Error),
     #[error(transparent)]
-    Loam(#[from] loam_build::deps::Error),
+    StellarBuild(#[from] stellar_build::deps::Error),
     #[error(transparent)]
     BuildClients(#[from] clients::Error),
 }
@@ -98,7 +98,7 @@ impl Cmd {
     pub fn list_packages(&self) -> Result<Vec<Package>, Error> {
         let metadata = self.metadata()?;
         let packages = self.packages(&metadata)?;
-        Ok(loam_build::deps::get_workspace(&packages)?)
+        Ok(stellar_build::deps::get_workspace(&packages)?)
     }
 
     pub async fn run(&self) -> Result<(), Error> {
@@ -175,7 +175,7 @@ impl Cmd {
                 let out_dir = self
                     .out_dir
                     .clone()
-                    .unwrap_or_else(|| Path::new(target_dir).join("loam"));
+                    .unwrap_or_else(|| Path::new(target_dir).join("stellar"));
 
                 fs::create_dir_all(&out_dir).map_err(Error::CreatingOutDir)?;
                 let file = format!("{}.wasm", p.name.replace('-', "_"));
@@ -217,7 +217,7 @@ impl Cmd {
                 })?
                 .clone();
             let manifest_path = package.manifest_path.clone().into_std_path_buf();
-            let mut contracts = loam_build::deps::contract(&manifest_path)?;
+            let mut contracts = stellar_build::deps::contract(&manifest_path)?;
             contracts.push(package);
             return Ok(contracts);
         }

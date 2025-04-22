@@ -2352,17 +2352,6 @@ checksum = "23fb14cb19457329c82206317a5663005a4d404783dc74f4252769b0d5f42856"
 [[package]]
 name = "loam-build"
 version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe8001c87529b6066e49796579a1ca66d4bb1936c4f00833e50e97e396eeb4f"
-dependencies = [
- "cargo_metadata 0.18.1",
- "thiserror 1.0.69",
- "topological-sort",
-]
-
-[[package]]
-name = "loam-build"
-version = "0.7.3"
 source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
 dependencies = [
  "cargo_metadata 0.18.1",
@@ -2389,7 +2378,7 @@ dependencies = [
  "darling",
  "heck 0.5.0",
  "itertools 0.13.0",
- "loam-build 0.7.3 (git+https://github.com/loambuild/loam)",
+ "loam-build",
  "proc-macro2",
  "quote",
  "regex",
@@ -4245,49 +4234,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
-name = "stelalr-scaffold-cli"
-version = "0.14.4"
-dependencies = [
- "assert_cmd",
- "assert_fs",
- "cargo_metadata 0.18.1",
- "clap",
- "clap-cargo-extra",
- "dirs",
- "fs_extra",
- "heck 0.5.0",
- "hex",
- "ignore",
- "indexmap 1.9.3",
- "itertools 0.12.1",
- "loam-build 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "notify",
- "pathdiff",
- "predicates 3.1.3",
- "rand 0.8.5",
- "regex",
- "reqwest",
- "rust-embed",
- "serde",
- "serde_derive",
- "serde_json",
- "sha2 0.10.8",
- "shlex",
- "soroban-cli",
- "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
- "strsim",
- "symlink",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
- "toml",
- "toml_edit",
- "walkdir",
- "wasm-gen",
-]
-
-[[package]]
 name = "stellar-build"
 version = "0.7.3"
 dependencies = [
@@ -4376,6 +4322,50 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "stellar-scaffold-cli"
+version = "0.14.4"
+dependencies = [
+ "assert_cmd",
+ "assert_fs",
+ "cargo_metadata 0.18.1",
+ "clap",
+ "clap-cargo-extra",
+ "dirs",
+ "fs_extra",
+ "heck 0.5.0",
+ "hex",
+ "ignore",
+ "indexmap 1.9.3",
+ "itertools 0.12.1",
+ "notify",
+ "pathdiff",
+ "predicates 3.1.3",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "rust-embed",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "sha2 0.10.8",
+ "shlex",
+ "soroban-cli",
+ "stellar-build",
+ "stellar-strkey 0.0.11",
+ "stellar-xdr 22.1.0",
+ "strsim",
+ "symlink",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-stream",
+ "toml",
+ "toml_edit",
+ "walkdir",
+ "wasm-gen",
 ]
 
 [[package]]

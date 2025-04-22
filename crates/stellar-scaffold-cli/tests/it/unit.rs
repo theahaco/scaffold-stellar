@@ -73,3 +73,29 @@ soroban_token_contract.client = false
         assert!(stderr.contains("🌐 using network at http://localhost:8000/rpc\n"));
     });
 }
+
+#[test]
+fn init_copies_contracts_and_frontend_template() {
+    let env = TestEnv::new_empty();
+
+    // Run loam init with project path
+    let project_path = env.cwd.join("my-project");
+    env.stellar("init")
+        .args([project_path.to_str().unwrap()])
+        .assert()
+        .success();
+    // Verify contract files exist
+    assert!(project_path.join("contracts/core/src/lib.rs").exists());
+    assert!(project_path
+        .join("contracts/status_message/src/lib.rs")
+        .exists());
+    assert!(project_path.join("contracts/core/Cargo.toml").exists());
+    assert!(project_path
+        .join("contracts/status_message/Cargo.toml")
+        .exists());
+
+    // Verify frontend template files exist
+    assert!(project_path.join("package.json").exists());
+    assert!(project_path.join("src").exists());
+    assert!(project_path.join("tsconfig.json").exists());
+}

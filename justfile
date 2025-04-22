@@ -10,6 +10,9 @@ export CONFIG_DIR := 'target/'
 path:
     just --list
 
+stellar-scaffold +args:
+    @cargo run --bin stellar-scaffold -- {{args}}
+
 s +args:
     @stellar {{args}}
 
@@ -20,16 +23,16 @@ build_contract p:
     stellar contract build --profile contracts --package {{p}}
 
 # build contracts
-# build:
-#     just loam build
+build:
+    just stellar-scaffold build
 
 # Setup the project to use a pinned version of the CLI
 setup:
     -cargo binstall -y --install-path ./target/bin stellar-cli --version 22.0.1
 
-# Build loam-cli test contracts to speed up testing
+# Build stellar-scaffold-cli test contracts to speed up testing
 build-cli-test-contracts:
-    just loam build --manifest-path crates/loam-cli/tests/fixtures/soroban-init-boilerplate/Cargo.toml
+    just stellar-scaffold build --manifest-path crates/stellar-scaffold-cli/tests/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
     cargo nextest run --workspace
@@ -40,7 +43,7 @@ test-integration: build-cli-test-contracts
 create: build
     rm -rf .soroban
     stellar keys generate default
-    just stellar contract deploy --wasm ./target/loam/example_core.wasm --alias core
+    just stellar contract deploy --wasm ./target/stellar/example_core.wasm --alias core
 
 # # Builds contracts. Deploys core subcontract and then redeploys to status message.
 
