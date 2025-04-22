@@ -30,7 +30,7 @@ mint --amount 2000000 --to alice
         );
 
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -71,7 +71,7 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
 "#,
         );
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -120,7 +120,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
         ));
 
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -180,7 +180,7 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         ));
 
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -231,7 +231,7 @@ test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contr
 "#));
 
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 

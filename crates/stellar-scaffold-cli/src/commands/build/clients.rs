@@ -31,7 +31,7 @@ impl std::fmt::Display for ScaffoldEnv {
 
 #[derive(clap::Args, Debug, Clone, Copy)]
 pub struct Args {
-    #[arg(env = "LOAM_ENV", value_enum)]
+    #[arg(env = "STELLAR_SCAFFOLD_ENV", value_enum)]
     pub env: Option<ScaffoldEnv>,
 }
 
@@ -90,7 +90,7 @@ impl Args {
         package_names: Vec<String>,
     ) -> Result<(), Error> {
         let Some(current_env) =
-            env_toml::Environment::get(workspace_root, &self.loam_env(ScaffoldEnv::Production))?
+            env_toml::Environment::get(workspace_root, &self.stellar_scaffold_env(ScaffoldEnv::Production))?
         else {
             return Ok(());
         };
@@ -111,7 +111,7 @@ impl Args {
         Ok(())
     }
 
-    fn loam_env(self, default: ScaffoldEnv) -> String {
+    fn stellar_scaffold_env(self, default: ScaffoldEnv) -> String {
         self.env.unwrap_or(default).to_string().to_lowercase()
     }
 
@@ -236,7 +236,7 @@ impl Args {
         name: &str,
         contract_id: &str,
     ) -> Result<(), Error> {
-        let allow_http = if self.loam_env(ScaffoldEnv::Production) == "development" {
+        let allow_http = if self.stellar_scaffold_env(ScaffoldEnv::Production) == "development" {
             "\n  allowHttp: true,"
         } else {
             ""
@@ -389,7 +389,7 @@ export default new Client.Client({{
         if package_names.is_empty() {
             return Ok(());
         }
-        let env = self.loam_env(ScaffoldEnv::Production);
+        let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
             if let Some(contracts) = contracts {
                 self.handle_production_contracts(workspace_root, contracts)
@@ -401,7 +401,7 @@ export default new Client.Client({{
         // ensure contract names are valid
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
-                let wasm_path = workspace_root.join(format!("target/loam/{name}.wasm"));
+                let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
                 if !wasm_path.exists() {
                     return Err(Error::BadContractName(name.to_string()));
                 }
@@ -429,7 +429,7 @@ export default new Client.Client({{
                 Contract::from_string(&id).map_err(|_| Error::InvalidContractID(id.clone()))?
             } else {
                 // If we don't have a contract ID, proceed with installation and deployment
-                let wasm_path = workspace_root.join(format!("target/loam/{name}.wasm"));
+                let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
                 if !wasm_path.exists() {
                     return Err(Error::BadContractName(name.to_string()));
                 }

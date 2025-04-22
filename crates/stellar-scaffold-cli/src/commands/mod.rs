@@ -9,14 +9,10 @@ pub mod update_env;
 
 const ABOUT: &str = "Build contracts and generate front ends";
 
-// long_about is shown when someone uses `--help`
-const LONG_ABOUT: &str = "loam-sdk also helps when writing smart contracts.";
-
 #[derive(Parser, Debug)]
 #[command(
-    name = "loam",
+    name = "stellar-scaffold",
     about = ABOUT,
-    long_about = ABOUT.to_string() + LONG_ABOUT,
     disable_help_subcommand = true,
 )]
 pub struct Root {
@@ -61,7 +57,7 @@ pub enum Cmd {
     /// Initialize the project
     Init(init::Cmd),
 
-    /// Build contracts, resolving Loam dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `LOAM_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
+    /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
     Build(build::Cmd),
 
     /// Update an environment variable in a .env file

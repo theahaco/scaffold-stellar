@@ -11,8 +11,7 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-loam-sdk = { workspace = true, features = ["loam-soroban-sdk"] }
-loam-subcontract-core = { workspace = true }
+soroban-sdk = { workspace = true }
 
 [dev-dependencies]
-loam-sdk = { workspace = true, features = ["soroban-sdk-testutils"] }
+soroban-sdk = { workspace = true, features = ["testutils"] }

@@ -10,7 +10,7 @@ pub const ENV_FILE: &str = "environments.toml";
 pub enum Error {
     #[error("⛔ ️parsing environments.toml: {0}")]
     ParsingToml(#[from] toml::de::Error),
-    #[error("⛔ ️no settings for current LOAM_ENV ({0:?}) found in environments.toml")]
+    #[error("⛔ ️no settings for current STELLAR_SCAFFOLD_ENV ({0:?}) found in environments.toml")]
     NoSettingsForCurrentEnv(String),
     #[error("⛔ ️reading environments.toml as a string: {0}")]
     ParsingString(#[from] std::io::Error),
@@ -124,7 +124,7 @@ fn default_client() -> bool {
 }
 
 impl Environment {
-    pub fn get(workspace_root: &Path, loam_env: &str) -> Result<Option<Environment>, Error> {
+    pub fn get(workspace_root: &Path, scaffold_env: &str) -> Result<Option<Environment>, Error> {
         let env_toml = workspace_root.join(ENV_FILE);
 
         if !env_toml.exists() {
@@ -133,9 +133,9 @@ impl Environment {
 
         let toml_str = std::fs::read_to_string(env_toml)?;
         let mut parsed_toml: Environments = toml::from_str(&toml_str)?;
-        let current_env = parsed_toml.remove(loam_env);
+        let current_env = parsed_toml.remove(scaffold_env);
         if current_env.is_none() {
-            return Err(Error::NoSettingsForCurrentEnv(loam_env.to_string()));
+            return Err(Error::NoSettingsForCurrentEnv(scaffold_env.to_string()));
         };
         Ok(current_env)
     }

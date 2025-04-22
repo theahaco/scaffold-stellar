@@ -139,7 +139,7 @@ soroban_token_contract.client = false
         );
 
         let output = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -149,7 +149,7 @@ soroban_token_contract.client = false
             .contains("🍽️ importing \"hello_world\" contract"));
 
         let output2 = env
-            .scaffold_env("development", false)
+            .stellar_scaffold_env("development", false)
             .output()
             .expect("Failed to execute command");
 
@@ -159,7 +159,7 @@ soroban_token_contract.client = false
             .contains("✅ Contract \"hello_world\" is up to date"));
 
         let output3 = env
-            .scaffold_env("development", true)
+            .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -253,7 +253,7 @@ soroban_token_contract.client = false
     );
 
     let output = env
-        .scaffold_env("development", false)
+        .stellar_scaffold_env("development", false)
         .output()
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -288,7 +288,7 @@ soroban_token_contract.client = false
 
     // Run build in the new directory
     let output = env
-        .scaffold_env("development", false)
+        .stellar_scaffold_env("development", false)
         .output()
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
