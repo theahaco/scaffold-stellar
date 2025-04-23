@@ -3916,7 +3916,7 @@ dependencies = [
  "soroban-spec 22.0.4",
  "soroban-spec-json",
  "soroban-spec-rust",
- "soroban-spec-tools 22.6.0",
+ "soroban-spec-tools",
  "soroban-spec-typescript",
  "stellar-ledger",
  "stellar-rpc-client",
@@ -4138,24 +4138,6 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-tools"
-version = "20.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3f2daba1eceaa5981bb77b6e7fc440dd472c41d8a7cd2a39058f15a09bf497c"
-dependencies = [
- "base64 0.21.7",
- "ethnum",
- "hex",
- "itertools 0.10.5",
- "serde_json",
- "soroban-spec 20.3.1",
- "stellar-strkey 0.0.7",
- "stellar-xdr 20.1.0",
- "thiserror 1.0.69",
- "wasmparser 0.90.0",
-]
-
-[[package]]
-name = "soroban-spec-tools"
 version = "22.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "021395b06df93aecbf88eb46a1adcdec217a2d7d29772c9360b5bff8fe4d2037"
@@ -4282,9 +4264,12 @@ dependencies = [
  "loam-sdk",
  "predicates 2.1.5",
  "shlex",
+ "soroban-cli",
  "soroban-spec 20.3.1",
- "soroban-spec-tools 20.3.0",
- "stellar-strkey 0.0.8",
+ "soroban-spec-tools",
+ "stellar-build",
+ "stellar-rpc-client",
+ "stellar-strkey 0.0.11",
  "thiserror 1.0.69",
  "tokio",
 ]
@@ -4376,16 +4361,6 @@ dependencies = [
  "quote",
  "stellar-build",
  "syn 2.0.100",
-]
-
-[[package]]
-name = "stellar-strkey"
-version = "0.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c0689070126ca7f2effc2c5726584446db52190f0cef043c02eb4040a711c11"
-dependencies = [
- "base32",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -5240,15 +5215,6 @@ name = "wasmparser"
 version = "0.88.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb8cf7dd82407fe68161bedcd57fde15596f32ebf6e9b3bdbf3ae1da20e38e5e"
-dependencies = [
- "indexmap 1.9.3",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.90.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b62c8d843f4423efee314dc75a1049886deba3214f7e7f9ff0e4e58b4d618581"
 dependencies = [
  "indexmap 1.9.3",
 ]

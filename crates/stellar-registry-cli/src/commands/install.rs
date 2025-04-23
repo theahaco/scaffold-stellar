@@ -2,10 +2,12 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-use smartdeploy_build::{target_dir, wasm_location};
-use soroban_cli::commands::{
-    contract::{fetch, invoke},
-    global, network,
+use stellar_cli::{
+    commands::{
+        contract::{fetch, invoke},
+        global,
+    },
+    config::{self, network, UnresolvedContract},
 };
 
 use crate::testnet;
@@ -26,7 +28,7 @@ pub enum Error {
     #[error(transparent)]
     Invoke(#[from] invoke::Error),
     #[error(transparent)]
-    SmartdeployBuild(#[from] smartdeploy_build::Error),
+    SmartdeployBuild(#[from] stellar_build::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -37,34 +39,29 @@ impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         let contract_id = testnet::contract_id();
         let network = testnet::network();
-        let id = self.get_contract_id(&contract_id, &network).await?;
-        let contract_id = id.trim_matches('"');
-        let out_dir = if let Some(out_dir) = self.out_dir.clone() {
-            out_dir
-        } else {
-            target_dir()?
-        };
-        let out_file = wasm_location(&self.deployed_name, Some(&out_dir))?;
+        let out_dir = self.out_dir.as_ref().unwrap();
+        let mut out_file = out_dir.join(&self.deployed_name);
+        out_file.set_extension("wasm");
         let id_file = out_file.parent().unwrap().join("contract_id.txt");
         let fetch_cmd = fetch::Cmd {
-            contract_id: contract_id.to_owned(),
+            contract_id,
             out_file: Some(out_file),
             network,
             ..Default::default()
         };
         fetch_cmd.run().await?;
-        std::fs::write(id_file, contract_id)?;
+        std::fs::write(id_file, testnet::contract_id_strkey().to_string())?;
         Ok(())
     }
 
     pub async fn get_contract_id(
         &self,
-        smartdeploy_contract_id: &str,
+        contract_id: &UnresolvedContract,
         network: &network::Args,
     ) -> Result<String, Error> {
         let mut cmd = invoke::Cmd {
-            contract_id: smartdeploy_contract_id.to_string(),
-            config: soroban_cli::commands::config::Args {
+            contract_id: contract_id.clone(),
+            config: config::Args {
                 network: network.clone(),
                 ..Default::default()
             },
@@ -76,7 +73,7 @@ impl Cmd {
             .map(Into::into)
             .collect::<Vec<_>>();
         println!("Fetching contract ID...\n{cmd:#?}");
-        Ok(cmd.invoke(&global::Args::default()).await?)
+        Ok(cmd.invoke(&global::Args::default()).await?.into_result().unwrap())
     }
 }
 

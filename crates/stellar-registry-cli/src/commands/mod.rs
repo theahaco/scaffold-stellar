@@ -2,11 +2,9 @@ use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
-pub mod call;
 pub mod deploy;
 pub mod install;
 
-use std::collections::HeapMap;
 
 
 
@@ -45,7 +43,6 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Call(call_info) => call_info.run().await?,
             Cmd::Install(i) => i.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
         };
@@ -63,8 +60,6 @@ impl FromStr for Root {
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
-    /// call deployed contracts
-    Call(Box<call::Cmd>),
     /// deploy contract from deployed Wasm
     Deploy(Box<deploy::Cmd>),
     /// install contracts
@@ -74,9 +69,6 @@ pub enum Cmd {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    // TODO: stop using Debug for displaying errors
-    #[error(transparent)]
-    Call(#[from] call::Error),
     #[error(transparent)]
     Deploy(#[from] deploy::Error),
     #[error(transparent)]

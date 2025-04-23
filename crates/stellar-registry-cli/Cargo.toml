@@ -33,16 +33,20 @@ clap = { version = "4.1.8", features = [
     "deprecated",
     "string",
 ] }
+stellar-cli = { workspace = true }
+loam-sdk = { workspace = true }
+soroban-spec = "20.0.3"
+soroban-spec-tools = "22.6.0"
+soroban-rpc = { workspace = true }
+stellar-build = { path = "../stellar-build" }
+stellar-strkey = { workspace = true }
 
 thiserror = "1.0.31"
 tokio = { version = "1", features = ["full"] }
 shlex = "1.1.0"
-loam-sdk = { workspace = true }
-soroban-spec = "20.0.3"
-soroban-spec-tools = "20.1.1"
 heck = "0.4.1"
 ed25519-dalek = "2.0.0"
-stellar-strkey = "0.0.8"
+
 dotenvy = "0.15.7"
 # soroban-rpc = "=20.3.3"
 
