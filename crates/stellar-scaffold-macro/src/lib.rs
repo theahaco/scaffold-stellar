@@ -23,7 +23,7 @@ pub(crate) fn manifest() -> std::path::PathBuf {
 /// - If the directory path cannot be canonicalized
 /// - If the canonical path cannot be converted to a string
 #[proc_macro]
-pub fn import_contract(tokens: TokenStream) -> TokenStream {
+pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
     let cargo_file = manifest();
     let mut dir = stellar_build::get_target_dir(&cargo_file)
         .unwrap()
