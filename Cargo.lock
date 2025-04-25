@@ -4369,6 +4369,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-scaffold-macro"
+version = "0.8.6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "stellar-build",
+ "syn 2.0.100",
+]
+
+[[package]]
 name = "stellar-strkey"
 version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
