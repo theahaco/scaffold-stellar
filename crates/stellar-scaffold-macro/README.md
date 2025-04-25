@@ -1,13 +1,14 @@
-# loam-sdk-macro
+# stellar-scaffold-macro
 
-This crate contains the source for the macros that all subcontracts depend on, such as the `#[subcontract]` macro itself. Rust macros generate code, allowing users to write less. These macros generate the code necessary for all Subcontracts, and do so in a way that makes it easy to author your own Subcontracts.
+This crate contains a utility macro for importing Soroban smart contracts. The main functionality is provided through the `import_contract!` macro which generates the necessary client code for interacting with Soroban contracts.
 
-`#[subcontract]` is an [attribute procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html#:~:text=Attribute%20macros%20are%20defined%20by,not%20including%20the%20outer%20delimiters.) (proc macro) that you need when you create your own subcontracts.
+`import_contract!` is a [procedural macro](https://doc.rust-lang.org/reference/procedural-macros.html) that automatically generates a contract client for a given contract. It expects the contract name to match either a published contract or a contract in your current workspace. The macro will locate the contract's WASM file and generate the appropriate Rust bindings for interacting with it.
 
-Aside from `#[subcontract]`, this crate also contains the implementation for `#[loamstorage]`, an attribute procedural macro that generates the interface for different `Soroban` storage types such as `Persistent`, `Instance`, and `Temporary`. It provides both `Map` and `Store` types for key-value pair storage or singletons. These are accessed via the loam `PersistentMap`, `InstanceMap`, `TemporaryMap`, `PersistentItem`, `InstanceItem`, and `TemporaryItem` types. 
+For example:
+```rust
+import_contract!(my_contract);
+```
 
-*Deprecated* The crate also contains the implementation for some [derive macros](https://veykril.github.io/tlborm/proc-macros/methodical/derive.html) such as `IntoKey`, which structs in the subcontract need to derive in order to lazily load and store their state on the blockchain. Deprecated in favor of `#[loamstorage]`.
+This will generate a module containing the client code needed to interact with `my_contract`.
 
-For more information about how to use and author Subcontracts, see the [loam-sdk README](../loam-sdk/README.md).
-
-See [lib.rs](src/lib.rs) for the implementations of `subcontract`, `IntoKey`, and other macros.
+See lib.rs for the implementation details of the import_contract macro.
