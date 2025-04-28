@@ -73,7 +73,11 @@ impl Cmd {
             .map(Into::into)
             .collect::<Vec<_>>();
         println!("Fetching contract ID...\n{cmd:#?}");
-        Ok(cmd.invoke(&global::Args::default()).await?.into_result().unwrap())
+        Ok(cmd
+            .invoke(&global::Args::default())
+            .await?
+            .into_result()
+            .unwrap())
     }
 }
 

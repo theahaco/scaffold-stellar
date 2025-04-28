@@ -5,9 +5,6 @@ use clap::{command, CommandFactory, FromArgMatches, Parser};
 pub mod deploy;
 pub mod install;
 
-
-
-
 const ABOUT: &str = "Publish and install Soroban contracts";
 
 // long_about is shown when someone uses `--help`; short help when using `-h`
@@ -23,7 +20,6 @@ const LONG_ABOUT: &str = "LONG ABOUT";
 pub struct Root {
     // #[clap(flatten)]
     // pub global_args: global::Args,
-
     #[command(subcommand)]
     pub cmd: Cmd,
 }
@@ -64,7 +60,6 @@ pub enum Cmd {
     Deploy(Box<deploy::Cmd>),
     /// install contracts
     Install(install::Cmd),
-    
 }
 
 #[derive(thiserror::Error, Debug)]

@@ -6,9 +6,8 @@
 pub mod commands;
 pub mod testnet;
 
-
-use std::path::Path;
 pub use commands::Root;
+use std::path::Path;
 
 pub fn parse_cmd<T>(s: &str) -> Result<T, clap::Error>
 where
