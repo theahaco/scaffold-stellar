@@ -35,7 +35,7 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
     quote! {
         pub(crate) mod #name {
             #![allow(clippy::ref_option, clippy::too_many_arguments)]
-            use soroban_sdk;
+            use super::soroban_sdk;
             soroban_sdk::contractimport!(file = #file);
         }
     }
