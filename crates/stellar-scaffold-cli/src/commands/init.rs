@@ -162,11 +162,11 @@ fn copy_frontend_files(temp_dir: &TempDir, project_path: &Path) -> Result<(), Er
 
     for entry in entries {
         fs_extra::copy_items(
-            &[entry.path()], 
+            &[entry.path()],
             project_path,
             &fs_extra::dir::CopyOptions::new()
                 .overwrite(true)
-                .skip_exist(false)
+                .skip_exist(false),
         )
         .map_err(|e| Error::FrontendCopyError(e.to_string()))?;
     }

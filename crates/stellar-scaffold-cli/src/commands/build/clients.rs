@@ -89,8 +89,10 @@ impl Args {
         workspace_root: &std::path::Path,
         package_names: Vec<String>,
     ) -> Result<(), Error> {
-        let Some(current_env) =
-            env_toml::Environment::get(workspace_root, &self.stellar_scaffold_env(ScaffoldEnv::Production))?
+        let Some(current_env) = env_toml::Environment::get(
+            workspace_root,
+            &self.stellar_scaffold_env(ScaffoldEnv::Production),
+        )?
         else {
             return Ok(());
         };

@@ -3,7 +3,7 @@ use loam_sdk::{
     loamstorage,
     soroban_sdk::{
         self, contracttype, env, symbol_short, Address, BytesN, Env, IntoVal, PersistentMap,
-        String, Symbol, Val
+        String, Symbol, Val,
     },
 };
 
