@@ -7,6 +7,7 @@ members = ["crates/*", "contracts/*"]
 repository = "https://github.com/ahalabs/scaffold-stellar"
 
 [workspace.dependencies]
+stellar-scaffold-macro = { path = "crates/stellar-scaffold-macro" }
 loam-sdk = { git = "https://github.com/loambuild/loam", version = "0.6.16" }
 loam-build = { git = "https://github.com/loambuild/loam", version = "0.7.3" }
 loam-subcontract-core = { git = "https://github.com/loambuild/loam", version = "0.7.9" }

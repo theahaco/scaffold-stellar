@@ -19,6 +19,7 @@ loam-subcontract-core = { workspace = true }
 
 [dev-dependencies]
 loam-sdk = { workspace = true, features = ["soroban-sdk-testutils"] }
+stellar-scaffold-macro = { workspace = true }
 assert_matches = "1.5.0"
 
 [package.metadata.loam]
