@@ -80,8 +80,7 @@ impl Cmd {
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res =
-            invoke_registry(&["fetch_hash", "--contract_name", &self.published_name]).await?;
+        let res = invoke_registry(&["fetch_hash", "--contract_name", &self.published_name]).await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
@@ -155,12 +154,13 @@ impl Cmd {
         let sequence: i64 = account_details.seq_num.into();
         let tx = build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
         let assembled = simulate_and_assemble_transaction(&client, &tx).await?;
-        let mut txn = Box::new(assembled.transaction().clone());
-        if let Some(tx) = config.sign_soroban_authorizations(&txn, &signers).await? {
-            txn = Box::new(tx);
-        }
+        let mut txn = assembled.transaction().clone();
+        txn = config
+            .sign_soroban_authorizations(&txn, &signers)
+            .await?
+            .unwrap_or(txn);
         let res = client
-            .send_transaction_polling(&config.sign_with_local_key(*txn).await?)
+            .send_transaction_polling(&config.sign_with_local_key(txn).await?)
             .await?;
 
         let return_value = res.return_value()?;
