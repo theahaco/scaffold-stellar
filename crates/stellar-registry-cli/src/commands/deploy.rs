@@ -16,7 +16,7 @@ use stellar_cli::{
 use soroban_rpc as rpc;
 pub use soroban_spec_tools::contract as contract_spec;
 
-use crate::testnet::{self, contract_address, invoke_smartdeploy};
+use crate::testnet::{self, contract_address, invoke_registry};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -43,7 +43,7 @@ pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
-    SmartdeployBuild(#[from] stellar_build::Error),
+    StellarBuild(#[from] stellar_build::Error),
     #[error(transparent)]
     Install(#[from] super::install::Error),
     #[error(transparent)]
@@ -81,7 +81,7 @@ impl Cmd {
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
         let res =
-            invoke_smartdeploy(&["fetch_hash", "--contract_name", &self.published_name]).await?;
+            invoke_registry(&["fetch_hash", "--contract_name", &self.published_name]).await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }

@@ -12,7 +12,7 @@ use soroban_rpc as rpc;
 const CONTRACT_ID: &str = include_str!("./stellar-registry.json");
 
 pub fn contract_id() -> UnresolvedContract {
-    if let Ok(contract_id) = env::var("SMARTDEPLOY_CONTRACT_ID") {
+    if let Ok(contract_id) = env::var("STELLAR_REGISTRY_CONTRACT_ID") {
         contract_id.parse()
     } else {
         CONTRACT_ID.trim_end().trim_matches('"').to_owned().parse()
@@ -69,7 +69,7 @@ pub fn build_invoke_cmd(slop: &[&str]) -> invoke::Cmd {
     }
 }
 
-pub async fn invoke_smartdeploy(slop: &[&str]) -> Result<String, invoke::Error> {
+pub async fn invoke_registry(slop: &[&str]) -> Result<String, invoke::Error> {
     Ok(build_invoke_cmd(slop)
         .run_against_rpc_server(Some(&stellar_cli::commands::global::Args::default()), None)
         .await?

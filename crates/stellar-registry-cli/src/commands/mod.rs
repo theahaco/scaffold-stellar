@@ -15,7 +15,7 @@ const LONG_ABOUT: &str = "LONG ABOUT";
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "smartdeploy",
+    name = "stellar-registry",
     about = ABOUT,
     long_about = ABOUT.to_string() + LONG_ABOUT,
     disable_help_subcommand = true,

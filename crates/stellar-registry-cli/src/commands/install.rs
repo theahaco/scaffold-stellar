@@ -16,7 +16,7 @@ use crate::testnet;
 pub struct Cmd {
     /// Name of deployed contract
     pub deployed_name: String,
-    /// Where to place the Wasm file. Default `<root>/target/smartdeploy/<deployed_name>/index.wasm`
+    /// Where to place the Wasm file. Default `<root>/target/soroban/<deployed_name>/index.wasm`
     #[arg(long, short = 'o')]
     pub out_dir: Option<PathBuf>,
 }
@@ -28,7 +28,7 @@ pub enum Error {
     #[error(transparent)]
     Invoke(#[from] invoke::Error),
     #[error(transparent)]
-    SmartdeployBuild(#[from] stellar_build::Error),
+    StellarBuild(#[from] stellar_build::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -86,7 +86,7 @@ mod tests {
     async fn test_run() {
         std::env::set_var("SOROBAN_NETWORK", "local");
         let cmd = Cmd {
-            deployed_name: "smartdeploy".to_owned(),
+            deployed_name: "stellar_registry".to_owned(),
             out_dir: None,
         };
         let contract_id = testnet::contract_id();
