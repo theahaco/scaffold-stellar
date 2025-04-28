@@ -39,8 +39,6 @@ cargo_metadata = { workspace = true }
 sha2 = { workspace = true }
 
 
-clap-cargo-extra = "0.3.0"
-
 reqwest = { version = "0.12.9", features = ["json"] }
 thiserror = "1.0.31"
 serde = "1.0.82"
@@ -49,7 +47,6 @@ serde_json = "1.0.82"
 
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
-dirs = "5.0.1"
 itertools = "0.12.1"
 ignore = "0.4"
 strsim = "0.11.1"

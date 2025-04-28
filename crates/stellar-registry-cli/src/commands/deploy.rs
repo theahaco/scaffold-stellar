@@ -3,7 +3,7 @@ use std::{ffi::OsString, path::PathBuf};
 use clap::Parser;
 use ed25519_dalek::SigningKey;
 
-use loam_sdk::soroban_sdk::xdr::{
+use soroban_sdk::xdr::{
     self, AccountId, HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo, MuxedAccount,
     Operation, OperationBody, Preconditions, ScSpecEntry, ScString, ScVal, SequenceNumber,
     Transaction, TransactionExt, Uint256, VecM,

@@ -34,8 +34,8 @@ clap = { version = "4.1.8", features = [
     "string",
 ] }
 stellar-cli = { workspace = true }
-loam-sdk = { workspace = true }
-soroban-spec = "20.0.3"
+soroban-sdk = { workspace = true }
+
 soroban-spec-tools = "22.6.0"
 soroban-rpc = { workspace = true }
 stellar-build = { path = "../stellar-build" }

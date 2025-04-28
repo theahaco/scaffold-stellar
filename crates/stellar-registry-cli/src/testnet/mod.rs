@@ -1,6 +1,6 @@
 use std::env;
 
-use loam_sdk::soroban_sdk::xdr::{Hash, ScAddress};
+use soroban_sdk::xdr::{Hash, ScAddress};
 use stellar_cli::{
     commands::{contract::invoke, NetworkRunnable},
     config::{locator, network, UnresolvedContract},
