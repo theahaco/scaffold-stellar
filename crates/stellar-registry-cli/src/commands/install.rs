@@ -16,7 +16,7 @@ use crate::testnet;
 pub struct Cmd {
     /// Name of deployed contract
     pub deployed_name: String,
-    /// Where to place the Wasm file. Default `<root>/target/soroban/<deployed_name>/index.wasm`
+    /// Where to place the Wasm file. Default `<root>/target/stellar/<deployed_name>/index.wasm`
     #[arg(long, short = 'o')]
     pub out_dir: Option<PathBuf>,
 }
