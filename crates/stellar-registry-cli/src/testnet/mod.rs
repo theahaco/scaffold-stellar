@@ -1,23 +1,29 @@
 use std::env;
 
-use loam_sdk::soroban_sdk::xdr::{Hash, ScAddress};
-use soroban_cli::commands::{contract::invoke, network, NetworkRunnable};
+use soroban_sdk::xdr::{Hash, ScAddress};
+use stellar_cli::{
+    commands::{contract::invoke, NetworkRunnable},
+    config::{locator, network, UnresolvedContract},
+};
 
 use rpc::Client;
 use soroban_rpc as rpc;
 
-const CONTRACT_ID: &str = include_str!("./smartdeploy.json");
+const CONTRACT_ID: &str = include_str!("./stellar-registry.json");
 
-pub fn contract_id() -> String {
-    if let Ok(contract_id) = env::var("SMARTDEPLOY_CONTRACT_ID") {
-        contract_id
+pub fn contract_id() -> UnresolvedContract {
+    if let Ok(contract_id) = env::var("STELLAR_REGISTRY_CONTRACT_ID") {
+        contract_id.parse()
     } else {
-        CONTRACT_ID.trim_end().trim_matches('"').to_owned()
+        CONTRACT_ID.trim_end().trim_matches('"').to_owned().parse()
     }
+    .unwrap()
 }
 
 pub fn contract_id_strkey() -> stellar_strkey::Contract {
-    stellar_strkey::Contract::from_string(&contract_id()).unwrap()
+    contract_id()
+        .resolve_contract_id(&locator::Args::default(), &network_passphrase())
+        .unwrap()
 }
 
 pub fn contract_address() -> ScAddress {
@@ -36,8 +42,7 @@ pub fn network() -> network::Args {
     if let Ok(network) = env::var("SOROBAN_NETWORK") {
         network::Args {
             network: Some(network),
-            rpc_url: None,
-            network_passphrase: None,
+            ..Default::default()
         }
     } else {
         let rpc_url = env::var("SOROBAN_RPC_URL").ok().or_else(|| Some(rpc_url()));
@@ -45,9 +50,9 @@ pub fn network() -> network::Args {
             .ok()
             .or_else(|| Some(network_passphrase()));
         network::Args {
-            network: None,
             rpc_url,
             network_passphrase,
+            ..Default::default()
         }
     }
 }
@@ -56,7 +61,7 @@ pub fn build_invoke_cmd(slop: &[&str]) -> invoke::Cmd {
     invoke::Cmd {
         contract_id: contract_id(),
         slop: slop.iter().map(Into::into).collect(),
-        config: soroban_cli::commands::config::Args {
+        config: stellar_cli::config::Args {
             network: network(),
             ..Default::default()
         },
@@ -64,10 +69,12 @@ pub fn build_invoke_cmd(slop: &[&str]) -> invoke::Cmd {
     }
 }
 
-pub async fn invoke_smartdeploy(slop: &[&str]) -> Result<String, invoke::Error> {
-    build_invoke_cmd(slop)
-        .run_against_rpc_server(Some(&soroban_cli::commands::global::Args::default()), None)
-        .await
+pub async fn invoke_registry(slop: &[&str]) -> Result<String, invoke::Error> {
+    Ok(build_invoke_cmd(slop)
+        .run_against_rpc_server(Some(&stellar_cli::commands::global::Args::default()), None)
+        .await?
+        .into_result()
+        .expect("Failed to parse JSON"))
 }
 
 pub fn client() -> Result<Client, rpc::Error> {

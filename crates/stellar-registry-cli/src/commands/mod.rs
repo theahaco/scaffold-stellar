@@ -2,13 +2,8 @@ use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
-pub mod call;
 pub mod deploy;
 pub mod install;
-
-use std::collections::HeapMap;
-
-
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
@@ -17,7 +12,7 @@ const LONG_ABOUT: &str = "LONG ABOUT";
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "smartdeploy",
+    name = "stellar-registry",
     about = ABOUT,
     long_about = ABOUT.to_string() + LONG_ABOUT,
     disable_help_subcommand = true,
@@ -25,7 +20,6 @@ const LONG_ABOUT: &str = "LONG ABOUT";
 pub struct Root {
     // #[clap(flatten)]
     // pub global_args: global::Args,
-
     #[command(subcommand)]
     pub cmd: Cmd,
 }
@@ -45,7 +39,6 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Call(call_info) => call_info.run().await?,
             Cmd::Install(i) => i.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
         };
@@ -63,20 +56,14 @@ impl FromStr for Root {
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
-    /// call deployed contracts
-    Call(Box<call::Cmd>),
     /// deploy contract from deployed Wasm
     Deploy(Box<deploy::Cmd>),
     /// install contracts
     Install(install::Cmd),
-    
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    // TODO: stop using Debug for displaying errors
-    #[error(transparent)]
-    Call(#[from] call::Error),
     #[error(transparent)]
     Deploy(#[from] deploy::Error),
     #[error(transparent)]

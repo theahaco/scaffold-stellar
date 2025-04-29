@@ -537,20 +537,6 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7daec1a2a2129eeba1644b220b4647ec537b0b5d4bfd6876fcc5a540056b592"
-dependencies = [
- "camino",
- "cargo-platform",
- "semver",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "cargo_metadata"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
@@ -607,30 +593,6 @@ checksum = "d8aa86934b44c19c50f87cc2790e19f54f7a67aedb64101c2e1a2e5ecfb73944"
 dependencies = [
  "clap_builder",
  "clap_derive",
-]
-
-[[package]]
-name = "clap-cargo"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25122ca6ebad5f53578c26638afd9f0160426969970dc37ec6c363ff6b082ebd"
-dependencies = [
- "cargo_metadata 0.17.0",
- "clap",
- "doc-comment",
-]
-
-[[package]]
-name = "clap-cargo-extra"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e15177069737cf3e20a985f6f6a0171577cba3314b0f7f9d69238d0efcaaee5"
-dependencies = [
- "anyhow",
- "cargo_metadata 0.17.0",
- "clap",
- "clap-cargo",
- "heck 0.4.1",
 ]
 
 [[package]]
@@ -1002,15 +964,6 @@ name = "directories"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a49173b84e034382284f27f1af4dcbbd231ffa358c0fe316541a7337f376a35"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs"
-version = "5.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
  "dirs-sys",
 ]
@@ -2354,7 +2307,7 @@ name = "loam-build"
 version = "0.7.3"
 source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
 dependencies = [
- "cargo_metadata 0.18.1",
+ "cargo_metadata",
  "thiserror 1.0.69",
  "topological-sort",
 ]
@@ -2374,7 +2327,7 @@ version = "0.8.6"
 source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
 dependencies = [
  "Inflector",
- "cargo_metadata 0.18.1",
+ "cargo_metadata",
  "darling",
  "heck 0.5.0",
  "itertools 0.13.0",
@@ -2384,7 +2337,7 @@ dependencies = [
  "regex",
  "sha2 0.10.8",
  "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "syn 2.0.100",
  "syn-file-expand",
  "thiserror 1.0.69",
@@ -3870,7 +3823,7 @@ dependencies = [
  "base64 0.21.7",
  "bollard",
  "bytesize",
- "cargo_metadata 0.18.1",
+ "cargo_metadata",
  "chrono",
  "clap",
  "clap_complete",
@@ -3913,15 +3866,15 @@ dependencies = [
  "shlex",
  "soroban-ledger-snapshot",
  "soroban-sdk",
- "soroban-spec 22.0.4",
+ "soroban-spec",
  "soroban-spec-json",
  "soroban-spec-rust",
- "soroban-spec-tools 22.6.0",
+ "soroban-spec-tools",
  "soroban-spec-typescript",
  "stellar-ledger",
  "stellar-rpc-client",
  "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "strsim",
  "strum",
  "strum_macros",
@@ -3939,7 +3892,7 @@ dependencies = [
  "ulid",
  "url",
  "wasm-gen",
- "wasmparser 0.116.1",
+ "wasmparser",
  "which",
  "whoami",
  "zeroize",
@@ -3960,8 +3913,8 @@ dependencies = [
  "soroban-env-macros",
  "soroban-wasmi",
  "static_assertions",
- "stellar-xdr 22.1.0",
- "wasmparser 0.116.1",
+ "stellar-xdr",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4007,7 +3960,7 @@ dependencies = [
  "soroban-wasmi",
  "static_assertions",
  "stellar-strkey 0.0.9",
- "wasmparser 0.116.1",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4021,7 +3974,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "syn 2.0.100",
 ]
 
@@ -4075,22 +4028,10 @@ dependencies = [
  "rustc_version",
  "sha2 0.10.8",
  "soroban-env-common",
- "soroban-spec 22.0.4",
+ "soroban-spec",
  "soroban-spec-rust",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "syn 2.0.100",
-]
-
-[[package]]
-name = "soroban-spec"
-version = "20.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01f31b81de71543d314ef9252e11f2194606d6a4c8c350fbc701eeaa45a8e2d9"
-dependencies = [
- "base64 0.13.1",
- "stellar-xdr 20.1.0",
- "thiserror 1.0.69",
- "wasmparser 0.88.0",
 ]
 
 [[package]]
@@ -4100,9 +4041,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413559f8b6c77af0cc97cd52cca0ecb59ad81004d3fd064711d91ea50274965a"
 dependencies = [
  "base64 0.13.1",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "thiserror 1.0.69",
- "wasmparser 0.116.1",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4115,8 +4056,8 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sha2 0.9.9",
- "soroban-spec 22.0.4",
- "stellar-xdr 22.1.0",
+ "soroban-spec",
+ "stellar-xdr",
  "thiserror 1.0.69",
 ]
 
@@ -4130,28 +4071,10 @@ dependencies = [
  "proc-macro2",
  "quote",
  "sha2 0.10.8",
- "soroban-spec 22.0.4",
- "stellar-xdr 22.1.0",
+ "soroban-spec",
+ "stellar-xdr",
  "syn 2.0.100",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "soroban-spec-tools"
-version = "20.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3f2daba1eceaa5981bb77b6e7fc440dd472c41d8a7cd2a39058f15a09bf497c"
-dependencies = [
- "base64 0.21.7",
- "ethnum",
- "hex",
- "itertools 0.10.5",
- "serde_json",
- "soroban-spec 20.3.1",
- "stellar-strkey 0.0.7",
- "stellar-xdr 20.1.0",
- "thiserror 1.0.69",
- "wasmparser 0.90.0",
 ]
 
 [[package]]
@@ -4165,11 +4088,11 @@ dependencies = [
  "hex",
  "itertools 0.10.5",
  "serde_json",
- "soroban-spec 22.0.4",
+ "soroban-spec",
  "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "thiserror 1.0.69",
- "wasmparser 0.116.1",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4187,8 +4110,8 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "sha2 0.9.9",
- "soroban-spec 22.0.4",
- "stellar-xdr 22.1.0",
+ "soroban-spec",
+ "stellar-xdr",
  "thiserror 1.0.69",
 ]
 
@@ -4237,7 +4160,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 name = "stellar-build"
 version = "0.7.3"
 dependencies = [
- "cargo_metadata 0.18.1",
+ "cargo_metadata",
  "thiserror 1.0.69",
  "topological-sort",
 ]
@@ -4263,7 +4186,7 @@ dependencies = [
  "sha2 0.10.8",
  "slipped10",
  "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
@@ -4279,12 +4202,14 @@ dependencies = [
  "dotenvy",
  "ed25519-dalek",
  "heck 0.4.1",
- "loam-sdk",
  "predicates 2.1.5",
  "shlex",
- "soroban-spec 20.3.1",
- "soroban-spec-tools 20.3.0",
- "stellar-strkey 0.0.8",
+ "soroban-cli",
+ "soroban-sdk",
+ "soroban-spec-tools",
+ "stellar-build",
+ "stellar-rpc-client",
+ "stellar-strkey 0.0.11",
  "thiserror 1.0.69",
  "tokio",
 ]
@@ -4296,6 +4221,7 @@ dependencies = [
  "assert_matches",
  "loam-sdk",
  "loam-subcontract-core",
+ "stellar-scaffold-macro",
 ]
 
 [[package]]
@@ -4316,7 +4242,7 @@ dependencies = [
  "serde_with",
  "sha2 0.10.8",
  "stellar-strkey 0.0.9",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "termcolor",
  "termcolor_output",
  "thiserror 1.0.69",
@@ -4330,10 +4256,8 @@ version = "0.14.4"
 dependencies = [
  "assert_cmd",
  "assert_fs",
- "cargo_metadata 0.18.1",
+ "cargo_metadata",
  "clap",
- "clap-cargo-extra",
- "dirs",
  "fs_extra",
  "heck 0.5.0",
  "hex",
@@ -4355,7 +4279,7 @@ dependencies = [
  "soroban-cli",
  "stellar-build",
  "stellar-strkey 0.0.11",
- "stellar-xdr 22.1.0",
+ "stellar-xdr",
  "strsim",
  "symlink",
  "tempfile",
@@ -4376,16 +4300,6 @@ dependencies = [
  "quote",
  "stellar-build",
  "syn 2.0.100",
-]
-
-[[package]]
-name = "stellar-strkey"
-version = "0.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c0689070126ca7f2effc2c5726584446db52190f0cef043c02eb4040a711c11"
-dependencies = [
- "base32",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -4418,20 +4332,6 @@ checksum = "0989c9a05eccbd08b60e603a1c7e3ed3ec92c0de73b8681fc964d272ab2b2697"
 dependencies = [
  "crate-git-revision",
  "data-encoding",
-]
-
-[[package]]
-name = "stellar-xdr"
-version = "20.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e59cdf3eb4467fb5a4b00b52e7de6dca72f67fac6f9b700f55c95a5d86f09c9d"
-dependencies = [
- "crate-git-revision",
- "escape-bytes",
- "hex",
- "serde",
- "serde_with",
- "stellar-strkey 0.0.8",
 ]
 
 [[package]]
@@ -5233,24 +5133,6 @@ dependencies = [
  "libm",
  "num-traits",
  "paste",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.88.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb8cf7dd82407fe68161bedcd57fde15596f32ebf6e9b3bdbf3ae1da20e38e5e"
-dependencies = [
- "indexmap 1.9.3",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.90.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b62c8d843f4423efee314dc75a1049886deba3214f7e7f9ff0e4e58b4d618581"
-dependencies = [
- "indexmap 1.9.3",
 ]
 
 [[package]]

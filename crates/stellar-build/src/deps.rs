@@ -7,10 +7,10 @@ use std::{
 use cargo_metadata::{Package, PackageId};
 use topological_sort::TopologicalSort;
 
-/// Retrieves the target directory for a Cargo project and appends "soroban" to it.
+/// Retrieves the target directory for a Cargo project and appends "stellar" to it.
 ///
 /// This function uses `cargo_metadata` to get the target directory of a Cargo project
-/// specified by the given manifest path. It then appends "soroban" to this path.
+/// specified by the given manifest path. It then appends "stellar" to this path.
 ///
 /// # Arguments
 ///
@@ -19,7 +19,7 @@ use topological_sort::TopologicalSort;
 /// # Returns
 ///
 /// Returns a `Result` containing:
-/// - `Ok(PathBuf)`: The path to the target directory with "soroban" appended.
+/// - `Ok(PathBuf)`: The path to the target directory with "stellar" appended.
 /// - `Err(cargo_metadata::Error)`: If there's an error retrieving the metadata.
 ///
 /// # Errors
@@ -35,7 +35,7 @@ pub fn get_target_dir(manifest_path: &Path) -> Result<PathBuf, cargo_metadata::E
         .target_directory
         .to_path_buf()
         .into_std_path_buf()
-        .join("soroban"))
+        .join("stellar"))
 }
 
 pub trait PackageExt {
@@ -48,7 +48,7 @@ impl PackageExt for Package {
         #[allow(clippy::redundant_closure_for_method_calls)]
         self.metadata
             .as_object()
-            .and_then(|metadata| metadata.get("soroban"))
+            .and_then(|metadata| metadata.get("stellar"))
             .and_then(|subcontract| subcontract.as_object())
             .and_then(|subcontract_object| subcontract_object.get("contract"))
             .and_then(|export| export.as_bool())
@@ -141,7 +141,7 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
 
 #[must_use]
 pub fn out_dir(target_dir: &Path, name: &str) -> PathBuf {
-    target_dir.join("soroban").join(name.replace('-', "_"))
+    target_dir.join("stellar").join(name.replace('-', "_"))
 }
 
 // /// Retrieves a list of source and output paths for dependencies of a specified kind.

@@ -175,7 +175,7 @@ impl Cmd {
                 let out_dir = self
                     .out_dir
                     .clone()
-                    .unwrap_or_else(|| Path::new(target_dir).join("stellar"));
+                    .map_or_else(|| stellar_build::deps::get_target_dir(&manifest_path), Ok)?;
 
                 fs::create_dir_all(&out_dir).map_err(Error::CreatingOutDir)?;
                 let file = format!("{}.wasm", p.name.replace('-', "_"));
