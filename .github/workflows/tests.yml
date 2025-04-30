@@ -14,6 +14,7 @@ jobs:
         STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
         STELLAR_ACCOUNT: default
         STELLAR_CONTRACT_ID: core
+        PKG_CONFIG_PATH: /usr/lib/pkgconfig
     services:
       rpc:
         image: stellar/quickstart:testing
