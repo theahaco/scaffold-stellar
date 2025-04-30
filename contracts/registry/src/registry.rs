@@ -18,19 +18,10 @@ pub trait IsPublishable {
         &self,
         wasm_name: soroban_sdk::String,
         version: Option<Version>,
-    ) -> Result<soroban_sdk::BytesN<32>, Error> {
-        Ok(self.fetch(wasm_name, version)?.hash)
-    }
+    ) -> Result<soroban_sdk::BytesN<32>, Error>;
 
     /// Most recent version of the published Wasm binary
     fn current_version(&self, wasm_name: soroban_sdk::String) -> Result<Version, Error>;
-
-    /// Fetch details of the published binary
-    fn fetch(
-        &self,
-        wasm_name: soroban_sdk::String,
-        version: Option<Version>,
-    ) -> Result<crate::metadata::PublishedWasm, Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
     fn publish(
@@ -38,8 +29,7 @@ pub trait IsPublishable {
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm: soroban_sdk::Bytes,
-        repo: Option<soroban_sdk::String>,
-        kind: Option<version::Update>,
+        version: version::Version,
     ) -> Result<(), Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
@@ -48,8 +38,7 @@ pub trait IsPublishable {
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm_hash: soroban_sdk::BytesN<32>,
-        repo: Option<soroban_sdk::String>,
-        kind: Option<version::Update>,
+        version: version::Version,
     ) -> Result<(), Error>;
 }
 

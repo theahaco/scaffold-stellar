@@ -1,4 +1,4 @@
-use crate::{error::Error, SorobanContract__Client as SorobanContractClient};
+use crate::{error::Error, version::Version, SorobanContract__Client as SorobanContractClient};
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
     self, env, set_env,
@@ -37,8 +37,8 @@ fn handle_error_cases() {
 
     let name = &to_string("publisher");
     assert_matches!(
-        client.try_fetch(name, &None).unwrap_err(),
-        Ok(Error::NoSuchVersion)
+        client.try_fetch_hash(name, &None).unwrap_err(),
+        Ok(Error::NoSuchContractPublished)
     );
 
     let wasm_hash = env
@@ -46,15 +46,20 @@ fn handle_error_cases() {
         .upload_contract_wasm(stellar_registry_contract::WASM);
 
     assert_matches!(
-        client.try_fetch(name, &None).unwrap_err(),
-        Ok(Error::NoSuchVersion)
+        client.try_fetch_hash(name, &None).unwrap_err(),
+        Ok(Error::NoSuchContractPublished)
     );
-
+    
     let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
     env.mock_all_auths();
-    client.publish(name, address, &bytes, &None, &None);
-    assert_eq!(client.fetch(name, &None).hash, wasm_hash);
-
+    let version = Version::default();
+    client.publish(name, address, &bytes, &version);
+    assert_eq!(client.fetch_hash(name, &None), wasm_hash);
+    
+    assert_matches!(
+        client.try_fetch_hash(name, &Some(version.publish_patch())).unwrap_err(),
+        Ok(Error::NoSuchVersion)
+    );
     // let other_address = Address::generate(env);
     // let res = client
     //     .try_publish(name, &other_address, &bytes, &None, &None)
@@ -71,16 +76,22 @@ fn returns_most_recent_version() {
     // client.register_name(address, name);
     let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
     env.mock_all_auths();
-    client.publish(name, address, &bytes, &None, &None);
-    let fetched_hash = client.fetch(name, &None).hash;
+    let version = Version::default();
+    client.publish(name, address, &bytes, &version);
+    let fetched_hash = client.fetch_hash(name, &None);
     let wasm_hash = env
         .deployer()
         .upload_contract_wasm(stellar_registry_contract::WASM);
     assert_eq!(fetched_hash, wasm_hash);
 
     let second_hash: BytesN<32> = BytesN::random(env);
-    client.publish_hash(name, address, &second_hash.into_val(env), &None, &None);
-    let res = client.fetch(name, &None).hash;
+    client.publish_hash(
+        name,
+        address,
+        &second_hash.into_val(env),
+        &version.publish_patch(),
+    );
+    let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
 
     // let third_hash: BytesN<32> = BytesN::random(env);

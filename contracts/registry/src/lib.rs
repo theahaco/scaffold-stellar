@@ -7,7 +7,6 @@ use registry::{
 };
 
 pub mod error;
-pub mod metadata;
 pub mod registry;
 pub mod util;
 pub mod version;
