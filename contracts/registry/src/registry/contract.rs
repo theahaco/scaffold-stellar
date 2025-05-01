@@ -35,9 +35,9 @@ impl Contract {
         wasm_hash: &BytesN<32>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
-        let contract_id = self.fetch_contract_id(name)?;
+        let contract_id = self.fetch_contract_id(name.clone())?;
         let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("redeploy"));
-        env().invoke_contract(&contract_id, &fn_name, &vec![wasm_hash])?;
+        env().invoke_contract::<()>(&contract_id, &fn_name, vec![wasm_hash.into_val(env())]);
         Ok(contract_id)
     }
 }
@@ -58,8 +58,8 @@ impl IsDeployable for Contract {
         // signed by owner
         owner.require_auth();
         let hash = Contract_::fetch_hash(wasm_name.clone(), version.clone())?;
-        let salt: BytesN<32> = hash_string(&contract_name);
-        let address = deploy_and_init(salt, hash, init)?;
+        let salt: BytesN<32> = hash_string(&contract_name).into();
+        let address = deploy_and_init(salt, hash, init);
         self.registry.set(contract_name.clone(), &address);
 
         // Publish a deploy event
