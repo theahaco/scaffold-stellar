@@ -49,15 +49,17 @@ fn handle_error_cases() {
         client.try_fetch_hash(name, &None).unwrap_err(),
         Ok(Error::NoSuchContractPublished)
     );
-    
+
     let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
     env.mock_all_auths();
     let version = Version::default();
     client.publish(name, address, &bytes, &version);
     assert_eq!(client.fetch_hash(name, &None), wasm_hash);
-    
+
     assert_matches!(
-        client.try_fetch_hash(name, &Some(version.publish_patch())).unwrap_err(),
+        client
+            .try_fetch_hash(name, &Some(version.publish_patch()))
+            .unwrap_err(),
         Ok(Error::NoSuchVersion)
     );
     // let other_address = Address::generate(env);
