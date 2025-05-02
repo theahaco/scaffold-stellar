@@ -17,20 +17,11 @@ pub trait IsPublishable {
     fn fetch_hash(
         &self,
         wasm_name: soroban_sdk::String,
-        version: Option<Version>,
-    ) -> Result<soroban_sdk::BytesN<32>, Error> {
-        Ok(self.fetch(wasm_name, version)?.hash)
-    }
+        version: Option<version::Version>,
+    ) -> Result<soroban_sdk::BytesN<32>, Error>;
 
     /// Most recent version of the published Wasm binary
     fn current_version(&self, wasm_name: soroban_sdk::String) -> Result<Version, Error>;
-
-    /// Fetch details of the published binary
-    fn fetch(
-        &self,
-        wasm_name: soroban_sdk::String,
-        version: Option<Version>,
-    ) -> Result<crate::metadata::PublishedWasm, Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
     fn publish(
@@ -38,8 +29,7 @@ pub trait IsPublishable {
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm: soroban_sdk::Bytes,
-        repo: Option<soroban_sdk::String>,
-        kind: Option<version::Update>,
+        version: version::Version,
     ) -> Result<(), Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
@@ -48,8 +38,7 @@ pub trait IsPublishable {
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm_hash: soroban_sdk::BytesN<32>,
-        repo: Option<soroban_sdk::String>,
-        kind: Option<version::Update>,
+        version: version::Version,
     ) -> Result<(), Error>;
 }
 
@@ -63,11 +52,10 @@ pub trait IsDeployable {
         version: Option<Version>,
         contract_name: soroban_sdk::String,
         admin: soroban_sdk::Address,
-        salt: Option<soroban_sdk::BytesN<32>>,
-        init: Option<(soroban_sdk::Symbol, soroban_sdk::Vec<soroban_sdk::Val>)>,
+        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<soroban_sdk::Address, Error>;
 
-    /// Fetch contract id
+    /// Look up the contract id of a deployed contract
     fn fetch_contract_id(
         &self,
         contract_name: soroban_sdk::String,
@@ -75,12 +63,22 @@ pub trait IsDeployable {
 }
 
 #[loam_sdk::subcontract]
-pub trait IsDevDeployable {
+pub trait IsRedeployable {
     /// Skips the publish step to deploy a contract directly, keeping the name
     fn dev_deploy(
         &mut self,
         name: soroban_sdk::String,
-        owner: soroban_sdk::Address,
         wasm: soroban_sdk::Bytes,
+        upgrade_fn: Option<soroban_sdk::Symbol>,
+    ) -> Result<soroban_sdk::Address, Error>;
+
+    /// Upgrades a contract by calling the upgrade function.
+    /// Default is 'redeploy' and expects that first arg is the corresponding wasm hash
+    fn upgrade_contract(
+        &mut self,
+        name: soroban_sdk::String,
+        wasm_name: soroban_sdk::String,
+        version: Option<version::Version>,
+        upgrade_fn: Option<soroban_sdk::Symbol>,
     ) -> Result<soroban_sdk::Address, Error>;
 }

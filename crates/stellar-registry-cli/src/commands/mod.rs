@@ -41,7 +41,7 @@ impl Root {
         match &mut self.cmd {
             Cmd::Install(i) => i.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
-        };
+        }
         Ok(())
     }
 }

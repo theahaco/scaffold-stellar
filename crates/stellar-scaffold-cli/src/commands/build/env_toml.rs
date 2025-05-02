@@ -136,7 +136,7 @@ impl Environment {
         let current_env = parsed_toml.remove(scaffold_env);
         if current_env.is_none() {
             return Err(Error::NoSettingsForCurrentEnv(scaffold_env.to_string()));
-        };
+        }
         Ok(current_env)
     }
 }
