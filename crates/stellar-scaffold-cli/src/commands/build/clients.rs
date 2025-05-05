@@ -81,6 +81,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+    #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
+    NpmCommandFailure(std::path::PathBuf, String),
 }
 
 impl Args {
@@ -277,12 +279,12 @@ export default new Client.Client({{
         contract_id: &str,
     ) -> Result<(), Error> {
         eprintln!("🎭 binding {name:?} contract");
+        let output_dir = workspace_root.join(format!("packages/{name}"));
         cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
             "--output-dir",
-            workspace_root
-                .join(format!("packages/{name}"))
+            output_dir
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
@@ -293,6 +295,35 @@ export default new Client.Client({{
         eprintln!("🍽️ importing {name:?} contract");
         self.write_contract_template(workspace_root, name, contract_id)?;
 
+        // Run `npm i` in the output directory
+        eprintln!("🔧 running 'npm install' in {output_dir:?}");
+        let status = tokio::process::Command::new("npm")
+            .current_dir(&output_dir)
+            .arg("i")
+            .output()
+            .await?;
+        if !status.status.success() {
+            return Err(Error::NpmCommandFailure(
+                output_dir.clone(),
+                String::from_utf8_lossy(&status.stderr).to_string(),
+            ));
+        }
+        eprintln!("✅ 'npm install' succeeded in {output_dir:?}");
+
+        eprintln!("🔨 running 'npm run build' in {output_dir:?}");
+        let status = tokio::process::Command::new("npm")
+            .current_dir(&output_dir)
+            .arg("run")
+            .arg("build")
+            .output()
+            .await?;
+        if !status.status.success() {
+            return Err(Error::NpmCommandFailure(
+                output_dir.clone(),
+                String::from_utf8_lossy(&status.stderr).to_string(),
+            ));
+        }
+        eprintln!("✅ 'npm run build' succeeded in {output_dir:?}");
         Ok(())
     }
 
