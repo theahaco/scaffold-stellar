@@ -422,16 +422,39 @@ export default new Client.Client({{
         if package_names.is_empty() {
             return Ok(());
         }
+
         let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
-            if let Some(contracts) = contracts {
-                self.handle_production_contracts(workspace_root, contracts)
-                    .await?;
-            }
-            return Ok(());
+            return self.handle_production_mode(workspace_root, contracts).await;
         }
 
-        // ensure contract names are valid
+        Self::validate_contract_names(workspace_root, contracts)?;
+
+        let reordered_names = Self::reorder_package_names(&package_names, contracts);
+        for name in reordered_names {
+            self.process_single_contract(&name, workspace_root, contracts, network, &env)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    async fn handle_production_mode(
+        self,
+        workspace_root: &std::path::Path,
+        contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
+    ) -> Result<(), Error> {
+        if let Some(contracts) = contracts {
+            self.handle_production_contracts(workspace_root, contracts)
+                .await?;
+        }
+        Ok(())
+    }
+
+    fn validate_contract_names(
+        workspace_root: &std::path::Path,
+        contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
+    ) -> Result<(), Error> {
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
                 let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
@@ -440,96 +463,152 @@ export default new Client.Client({{
                 }
             }
         }
-        // Reorder package_names based on contracts order
-        let reordered_names = Self::reorder_package_names(&package_names, contracts);
-        for name in reordered_names {
-            let settings = match contracts {
-                Some(contracts) => contracts.get(&name as &str),
-                None => None,
-            };
-            let contract_id = if let Some(settings) = settings {
-                // Skip if contract is found and its `client` setting is false
-                if !settings.client {
-                    continue;
-                }
-                // If contract ID is set, use it directly
-                settings.id.clone()
-            } else {
-                None
-            };
-            let contract_id = if let Some(id) = contract_id {
-                // If we have a contract ID, use it
-                Contract::from_string(&id).map_err(|_| Error::InvalidContractID(id.clone()))?
-            } else {
-                // If we don't have a contract ID, proceed with installation and deployment
-                let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
-                if !wasm_path.exists() {
-                    return Err(Error::BadContractName(name.to_string()));
-                }
-                eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
-                let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
-                    "--wasm",
-                    wasm_path
-                        .to_str()
-                        .expect("we do not support non-utf8 paths"),
-                ])?
-                .run_against_rpc_server(None, None)
-                .await?
-                .into_result()
-                .expect("no hash returned by 'contract install'")
-                .to_string();
-                eprintln!("    ↳ hash: {hash}");
+        Ok(())
+    }
 
-                // Check if we have an alias saved for this contract
-                let alias = Self::get_contract_alias(&name, workspace_root)?;
-                if let Some(contract_id) = alias {
-                    match self
-                        .contract_hash_matches(&contract_id, &hash, network, workspace_root)
-                        .await
-                    {
-                        Ok(true) => {
-                            eprintln!("✅ Contract {name:?} is up to date");
-                            continue;
-                        }
-                        Ok(false) => eprintln!("🔄 Updating contract {name:?}"),
-                        Err(e) => return Err(e),
-                    }
-                }
+    async fn process_single_contract(
+        &self,
+        name: &str,
+        workspace_root: &std::path::Path,
+        contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
+        network: &Network,
+        env: &str,
+    ) -> Result<(), Error> {
+        let settings = match contracts {
+            Some(contracts) => contracts.get(name),
+            None => None,
+        };
 
-                eprintln!("🪞 instantiating {name:?} smart contract");
-                let new_contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&[
-                    "--alias",
-                    &name,
-                    "--wasm-hash",
-                    &hash,
-                ])?
-                .run_against_rpc_server(None, None)
-                .await?
-                .into_result()
-                .expect("no contract id returned by 'contract deploy'");
-                eprintln!("    ↳ contract_id: {new_contract_id}");
-
-                // Save the alias for future use
-                Self::save_contract_alias(&name, &new_contract_id, network, workspace_root)?;
-
-                new_contract_id
-            };
-
-            // Run init script if we're in development or test environment
-            if env == "development" || env == "testing" {
-                if let Some(settings) = settings {
-                    if let Some(init_script) = &settings.init {
-                        eprintln!("🚀 Running initialization script for {name:?}");
-                        self.run_init_script(&name, &contract_id, init_script)
-                            .await?;
-                    }
-                }
+        if let Some(settings) = settings {
+            if !settings.client {
+                return Ok(());
             }
-            self.generate_contract_bindings(workspace_root, &name, &contract_id.to_string())
-                .await?;
         }
 
+        let contract_id = self
+            .get_or_deploy_contract(name, workspace_root, settings, network)
+            .await?;
+
+        // Run init script if in development or test environment
+        if env == "development" || env == "testing" {
+            if let Some(settings) = settings {
+                if let Some(init_script) = &settings.after_deploy {
+                    eprintln!("🚀 Running initialization script for {name:?}");
+                    self.run_init_script(name, &contract_id, init_script)
+                        .await?;
+                }
+            }
+        }
+
+        self.generate_contract_bindings(workspace_root, name, &contract_id.to_string())
+            .await?;
+
         Ok(())
+    }
+
+    async fn get_or_deploy_contract(
+        &self,
+        name: &str,
+        workspace_root: &std::path::Path,
+        settings: Option<&env_toml::Contract>,
+        network: &Network,
+    ) -> Result<Contract, Error> {
+        if let Some(settings) = settings {
+            if let Some(id) = &settings.id {
+                return Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()));
+            }
+        }
+
+        let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
+        if !wasm_path.exists() {
+            return Err(Error::BadContractName(name.to_string()));
+        }
+
+        let hash = self.upload_contract_wasm(name, &wasm_path).await?;
+
+        // Check existing alias
+        if let Some(contract_id) = Self::get_contract_alias(name, workspace_root)? {
+            if self
+                .contract_hash_matches(&contract_id, &hash, network, workspace_root)
+                .await?
+            {
+                eprintln!("✅ Contract {name:?} is up to date");
+                return Ok(contract_id);
+            }
+            eprintln!("🔄 Updating contract {name:?}");
+        }
+
+        let contract_id = self.deploy_contract(name, &hash, settings).await?;
+        Self::save_contract_alias(name, &contract_id, network, workspace_root)?;
+
+        Ok(contract_id)
+    }
+
+    async fn upload_contract_wasm(
+        &self,
+        name: &str,
+        wasm_path: &std::path::Path,
+    ) -> Result<String, Error> {
+        eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
+        let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
+            "--wasm",
+            wasm_path
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
+        ])?
+        .run_against_rpc_server(None, None)
+        .await?
+        .into_result()
+        .expect("no hash returned by 'contract install'")
+        .to_string();
+        eprintln!("    ↳ hash: {hash}");
+        Ok(hash)
+    }
+
+    async fn deploy_contract(
+        &self,
+        name: &str,
+        hash: &str,
+        settings: Option<&env_toml::Contract>,
+    ) -> Result<Contract, Error> {
+        let mut deploy_args = vec![
+            "--alias".to_string(),
+            name.to_string(),
+            "--wasm-hash".to_string(),
+            hash.to_string(),
+        ];
+
+        if let Some(settings) = settings {
+            if let Some(constructor_script) = &settings.constructor_args {
+                let re = Regex::new(r"\$\((.*?)\)").expect("Invalid regex pattern");
+                let (shell, flag) = if cfg!(windows) {
+                    ("cmd", "/C")
+                } else {
+                    ("sh", "-c")
+                };
+
+                let resolved_line = Self::resolve_line(&re, constructor_script, shell, flag)?;
+                let parts = split(&resolved_line)
+                    .ok_or_else(|| Error::InitParseFailure(resolved_line.to_string()))?;
+
+                deploy_args.push("--".to_string());
+                deploy_args.extend(parts);
+            }
+        }
+
+        eprintln!("🪞 instantiating {name:?} smart contract");
+        let deploy_arg_refs: Vec<&str> = deploy_args
+            .iter()
+            .map(std::string::String::as_str)
+            .collect();
+        let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?
+            .run_against_rpc_server(None, None)
+            .await?
+            .into_result()
+            .expect("no contract id returned by 'contract deploy'");
+        eprintln!("    ↳ contract_id: {contract_id}");
+
+        Ok(contract_id)
     }
 
     fn resolve_line(re: &Regex, line: &str, shell: &str, flag: &str) -> Result<String, Error> {

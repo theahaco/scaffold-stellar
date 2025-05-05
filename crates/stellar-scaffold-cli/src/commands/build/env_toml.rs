@@ -113,10 +113,13 @@ pub struct Contract {
     pub client: bool,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub init: Option<String>,
+    pub after_deploy: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub constructor_args: Option<String>,
 }
 
 fn default_client() -> bool {
