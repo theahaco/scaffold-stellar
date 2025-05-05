@@ -45,6 +45,17 @@ network-passphrase = "Standalone Network ; February 2017"
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
             assert!(env.cwd.join(format!("src/contracts/{c}.ts")).exists());
+
+            // check dist/index.js and dist/index.d.ts exist after npm run build
+            let dist_dir = env.cwd.join(format!("packages/{c}/dist"));
+            assert!(
+                dist_dir.join("index.js").exists(),
+                "index.js missing for {c}"
+            );
+            assert!(
+                dist_dir.join("index.d.ts").exists(),
+                "index.d.ts missing for {c}"
+            );
         }
     });
 }
