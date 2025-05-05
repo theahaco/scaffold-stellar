@@ -1,6 +1,6 @@
 use clap::Parser;
 use rust_embed::{EmbeddedFile, RustEmbed};
-use soroban_cli::commands::contract::init as soroban_init;
+use stellar_cli::commands::contract::init as soroban_init;
 use std::{
     fs::{self, create_dir_all, metadata, write, Metadata},
     io,
@@ -63,7 +63,7 @@ impl Cmd {
             overwrite: true,
             frontend_template: None,
         }
-        .run(&soroban_cli::commands::global::Args::default())?;
+        .run(&stellar_cli::commands::global::Args::default())?;
 
         // Clone frontend template
         let fe_template_dir = tempfile::tempdir().map_err(|e| {

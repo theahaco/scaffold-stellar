@@ -1,28 +1,21 @@
-use soroban_cli::{commands as cli, CommandParser};
+use stellar_cli::{commands as cli, CommandParser};
 use std::error::Error;
 
 pub async fn start_local_stellar() -> Result<(), Box<dyn Error>> {
     let result = cli::container::StartCmd::parse_arg_vec(&["local"])?
-        .run(&soroban_cli::commands::global::Args::default())
+        .run(&stellar_cli::commands::global::Args::default())
         .await;
-
-    match result {
-        Ok(()) => {
-            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-        }
-        Err(e) => {
-            if e.to_string().contains("already in use")
-                || e.to_string().contains("port is already allocated")
-            {
-                eprintln!("Container is already running, proceeding to health check...");
-            } else {
-                return Err(Box::new(e));
-            }
+    if let Err(e) = result {
+        if e.to_string().contains("already in use")
+            || e.to_string().contains("port is already allocated")
+        {
+            eprintln!("Container is already running, proceeding to health check...");
+        } else {
+            return Err(Box::new(e));
         }
     }
-
-    wait_for_stellar_health().await?;
-    Ok(())
+    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+    wait_for_stellar_health().await
 }
 async fn wait_for_stellar_health() -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::new();

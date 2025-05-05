@@ -1,17 +1,11 @@
 #![allow(clippy::struct_excessive_bools)]
+use std::{fmt::Debug, io, path::Path, process::ExitStatus};
+
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::Parser;
+use stellar_cli::commands::{contract::build, global};
+
 use clients::ScaffoldEnv;
-use itertools::Itertools;
-use std::{
-    collections::HashSet,
-    env,
-    ffi::OsStr,
-    fmt::Debug,
-    fs, io,
-    path::Path,
-    process::{Command, ExitStatus, Stdio},
-};
 
 pub mod clients;
 pub mod docker;
@@ -27,46 +21,12 @@ pub mod env_toml;
 /// To view the commands that will be executed, without executing them, use the
 /// --print-commands-only option.
 #[derive(Parser, Debug, Clone)]
-pub struct Cmd {
-    /// List package names
+pub struct Command {
+    /// List package names in order of build
     #[arg(long, visible_alias = "ls")]
     pub list: bool,
-    /// Path to Cargo.toml
-    #[arg(long, default_value = "Cargo.toml")]
-    pub manifest_path: std::path::PathBuf,
-    /// Package to build
-    ///
-    /// If omitted, all packages that build for crate-type cdylib are built.
-    #[arg(long)]
-    pub package: Option<String>,
-    /// Build with the specified profile
-    #[arg(long)]
-    pub profile: Option<String>,
-    /// Build with the list of features activated, space or comma separated
-    #[arg(long, help_heading = "Features")]
-    pub features: Option<String>,
-    /// Build with the all features activated
-    #[arg(
-        long,
-        conflicts_with = "features",
-        conflicts_with = "no_default_features",
-        help_heading = "Features"
-    )]
-    pub all_features: bool,
-    /// Build with the default feature not activated
-    #[arg(long, help_heading = "Features")]
-    pub no_default_features: bool,
-    /// Directory to copy wasm files to
-    ///
-    /// If provided, wasm files can be found in the cargo target directory, and
-    /// the specified directory.
-    ///
-    /// If ommitted, wasm files are written only to `target/stellar`.
-    #[arg(long)]
-    pub out_dir: Option<std::path::PathBuf>,
-    /// Print commands to build without executing them
-    #[arg(long, conflicts_with = "out_dir", help_heading = "Other")]
-    pub print_commands_only: bool,
+    #[command(flatten)]
+    pub build: build::Cmd,
     /// Build client code in addition to building the contract
     #[arg(long)]
     pub build_clients: bool,
@@ -96,14 +56,15 @@ pub enum Error {
     StellarBuild(#[from] stellar_build::deps::Error),
     #[error(transparent)]
     BuildClients(#[from] clients::Error),
+    #[error(transparent)]
+    Build(#[from] build::Error),
     #[error("Failed to start docker container")]
     DockerStart,
 }
 
-impl Cmd {
-    pub fn list_packages(&self) -> Result<Vec<Package>, Error> {
-        let metadata = self.metadata()?;
-        let packages = self.packages(&metadata)?;
+impl Command {
+    pub fn list_packages(&self, metadata: &Metadata) -> Result<Vec<Package>, Error> {
+        let packages = self.packages(metadata)?;
         Ok(stellar_build::deps::get_workspace(&packages)?)
     }
 
@@ -126,13 +87,9 @@ impl Cmd {
     }
 
     pub async fn run(&self) -> Result<(), Error> {
-        let working_dir = env::current_dir().map_err(Error::GettingCurrentDir)?;
         let metadata = self.metadata()?;
-        let packages = self.list_packages()?;
-        let workspace_root = self
-            .manifest_path
-            .parent()
-            .unwrap_or_else(|| Path::new("."));
+        let packages = self.list_packages(&metadata)?;
+        let workspace_root = metadata.workspace_root.as_std_path();
 
         if let Some(env) = &self.build_clients_args.env {
             if env == &ScaffoldEnv::Development {
@@ -149,100 +106,32 @@ impl Cmd {
         }
 
         let target_dir = &metadata.target_directory;
-        if let Some(package) = &self.package {
-            if packages.is_empty() {
-                return Err(Error::PackageNotFound {
-                    package: package.clone(),
-                });
-            }
-        }
-        let mut package_names: Vec<String> = Vec::new();
-        for p in packages {
-            package_names.push(p.name.clone().replace('-', "_"));
-            let mut cmd = Command::new("cargo");
-            cmd.stdout(Stdio::piped());
-            cmd.arg("rustc");
-            let manifest_path = pathdiff::diff_paths(&p.manifest_path, &working_dir)
-                .unwrap_or(p.manifest_path.clone().into());
-            cmd.arg(format!(
-                "--manifest-path={}",
-                manifest_path.to_string_lossy()
-            ));
-            cmd.arg("--crate-type=cdylib");
-            cmd.arg("--target=wasm32-unknown-unknown");
-            let profile = self.profile.as_deref().unwrap_or("release");
-            if profile == "release" {
-                cmd.arg("--release");
-            } else if profile != "debug" {
-                cmd.arg(format!("--profile={profile}"));
-            }
-            if self.all_features {
-                cmd.arg("--all-features");
-            }
-            if self.no_default_features {
-                cmd.arg("--no-default-features");
-            }
-            if let Some(features) = self.features() {
-                let requested: HashSet<String> = features.iter().cloned().collect();
-                let available = p.features.iter().map(|f| f.0).cloned().collect();
-                let activate = requested.intersection(&available).join(",");
-                if !activate.is_empty() {
-                    cmd.arg(format!("--features={activate}"));
-                }
-            }
-            if self.profile.is_none() {
-                set_default_profile_flags(&mut cmd);
-            }
-            let cmd_str = format!(
-                "cargo {}",
-                cmd.get_args().map(OsStr::to_string_lossy).join(" ")
-            );
 
-            if self.print_commands_only {
-                println!("{cmd_str}");
-            } else {
-                eprintln!("{cmd_str}");
-                let status = cmd.status().map_err(Error::CargoCmd)?;
-                if !status.success() {
-                    return Err(Error::Exit(status));
-                }
+        let global_args = global::Args::default();
 
-                let out_dir = self
-                    .out_dir
-                    .clone()
-                    .map_or_else(|| stellar_build::deps::get_target_dir(&manifest_path), Ok)?;
-
-                fs::create_dir_all(&out_dir).map_err(Error::CreatingOutDir)?;
-                let file = format!("{}.wasm", p.name.replace('-', "_"));
-                let target_file_path = Path::new(target_dir)
-                    .join("wasm32-unknown-unknown")
-                    .join(profile)
-                    .join(&file);
-                let out_file_path = out_dir.join(&file);
-                if !out_file_path.exists() {
-                    symlink::symlink_file(target_file_path, out_file_path)
-                        .map_err(Error::CopyingWasmFile)?;
-                }
-            }
+        for p in &packages {
+            let mut cmd = self.build.clone();
+            cmd.out_dir = Some(cmd.out_dir.unwrap_or_else(|| {
+                stellar_build::deps::out_dir(target_dir.as_std_path(), &p.name.replace('-', "_"))
+            }));
+            cmd.package = Some(p.name.clone());
+            cmd.run(&global_args)?;
         }
 
         if self.build_clients {
             self.build_clients_args
-                .run(&metadata.workspace_root.into_std_path_buf(), package_names)
+                .run(
+                    &metadata.workspace_root.into_std_path_buf(),
+                    packages.iter().map(|p| p.name.replace('-', "_")).collect(),
+                )
                 .await?;
         }
 
         Ok(())
     }
 
-    fn features(&self) -> Option<Vec<String>> {
-        self.features
-            .as_ref()
-            .map(|f| f.split(&[',', ' ']).map(String::from).collect())
-    }
-
     fn packages(&self, metadata: &Metadata) -> Result<Vec<Package>, Error> {
-        if let Some(package) = &self.package {
+        if let Some(package) = &self.build.package {
             let package = metadata
                 .packages
                 .iter()
@@ -269,36 +158,18 @@ impl Cmd {
             .collect())
     }
 
-    fn metadata(&self) -> Result<Metadata, cargo_metadata::Error> {
+    pub(crate) fn metadata(&self) -> Result<Metadata, cargo_metadata::Error> {
         let mut cmd = MetadataCommand::new();
         cmd.no_deps();
-        cmd.manifest_path(&self.manifest_path);
+        // Set the manifest path if one is provided, otherwise rely on the cargo
+        // commands default behavior of finding the nearest Cargo.toml in the
+        // current directory, or the parent directories above it.
+        if let Some(manifest_path) = &self.build.manifest_path {
+            cmd.manifest_path(manifest_path);
+        }
         // Do not configure features on the metadata command, because we are
         // only collecting non-dependency metadata, features have no impact on
         // the output.
         cmd.exec()
     }
-}
-
-fn set_default_profile_flags(cmd: &mut Command) {
-    cmd.args([
-        "--",
-        "-C",
-        "opt-level=z", // Sets the optimization level to "z", which is equivalent to the opt-level = "z" in the Cargo profile.
-        "-C",
-        "overflow-checks=yes", // Enables overflow checks, equivalent to overflow-checks = true.
-        "-C",
-        "debuginfo=0", // Disables debug information, equivalent to debug = 0.
-        "-C",
-        "strip=symbols", // Strips symbols from the binary, equivalent to strip = "symbols".
-        "-C",
-        "debug-assertions=yes", // Enables debug assertions, equivalent to debug-assertions = true.
-        "-C",
-        "panic=abort", // Sets the panic strategy to "abort", equivalent to panic = "abort".
-        "-C",
-        "codegen-units=1", // Sets the number of codegen units to 1, equivalent to codegen-units = 1.
-        "-C",
-        "lto=yes", // Enables link-time optimization, equivalent to lto = true.
-    ]);
-    cmd.env("RUSTFLAGS", "-C embed-bitcode=yes");
 }
