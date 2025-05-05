@@ -15,8 +15,6 @@ use crate::commands::build::{self, env_toml};
 use super::build::clients::ScaffoldEnv;
 use super::build::env_toml::ENV_FILE;
 
-pub mod docker;
-
 pub enum Message {
     FileChanged,
 }
@@ -38,8 +36,6 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Env(#[from] env_toml::Error),
-    #[error("Failed to start docker container")]
-    DockerStart,
 }
 
 fn canonicalize_path(path: &Path) -> PathBuf {
@@ -143,18 +139,10 @@ impl Cmd {
             .parent()
             .unwrap_or_else(|| Path::new("."));
         let env_toml_dir = workspace_root;
-        let Some(current_env) =
-            env_toml::Environment::get(workspace_root, &ScaffoldEnv::Development.to_string())?
-        else {
+        if env_toml::Environment::get(workspace_root, &ScaffoldEnv::Development.to_string())?
+            .is_none()
+        {
             return Ok(());
-        };
-        if current_env.network.run_locally {
-            eprintln!("Starting local Stellar Docker container...");
-            docker::start_local_stellar().await.map_err(|e| {
-                eprintln!("Failed to start Stellar Docker container: {e:?}");
-                Error::DockerStart
-            })?;
-            eprintln!("Local Stellar network is healthy and running.");
         }
         let packages = self
             .build_cmd
