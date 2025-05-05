@@ -1,6 +1,7 @@
 #![allow(clippy::struct_excessive_bools)]
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::Parser;
+use clients::ScaffoldEnv;
 use itertools::Itertools;
 use std::{
     collections::HashSet,
@@ -13,6 +14,7 @@ use std::{
 };
 
 pub mod clients;
+pub mod docker;
 pub mod env_toml;
 
 /// Build a contract from source
@@ -77,6 +79,8 @@ pub enum Error {
     #[error(transparent)]
     Metadata(#[from] cargo_metadata::Error),
     #[error(transparent)]
+    EnvironmentsToml(#[from] env_toml::Error),
+    #[error(transparent)]
     CargoCmd(io::Error),
     #[error("exit status {0}")]
     Exit(ExitStatus),
@@ -92,6 +96,8 @@ pub enum Error {
     StellarBuild(#[from] stellar_build::deps::Error),
     #[error(transparent)]
     BuildClients(#[from] clients::Error),
+    #[error("Failed to start docker container")]
+    DockerStart,
 }
 
 impl Cmd {
@@ -101,18 +107,48 @@ impl Cmd {
         Ok(stellar_build::deps::get_workspace(&packages)?)
     }
 
+    async fn start_local_docker_if_needed(
+        &self,
+        workspace_root: &Path,
+        env: &ScaffoldEnv,
+    ) -> Result<(), Error> {
+        if let Some(current_env) = env_toml::Environment::get(workspace_root, &env.to_string())? {
+            if current_env.network.run_locally {
+                eprintln!("Starting local Stellar Docker container...");
+                docker::start_local_stellar().await.map_err(|e| {
+                    eprintln!("Failed to start Stellar Docker container: {e:?}");
+                    Error::DockerStart
+                })?;
+                eprintln!("Local Stellar network is healthy and running.");
+            }
+        }
+        Ok(())
+    }
+
     pub async fn run(&self) -> Result<(), Error> {
         let working_dir = env::current_dir().map_err(Error::GettingCurrentDir)?;
         let metadata = self.metadata()?;
         let packages = self.list_packages()?;
+        let workspace_root = self
+            .manifest_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."));
+
+        if let Some(env) = &self.build_clients_args.env {
+            if env == &ScaffoldEnv::Development {
+                self.start_local_docker_if_needed(workspace_root, env)
+                    .await?;
+            }
+        }
+
         if self.list {
             for p in packages {
                 println!("{}", p.name);
             }
             return Ok(());
         }
-        let target_dir = &metadata.target_directory;
 
+        let target_dir = &metadata.target_directory;
         if let Some(package) = &self.package {
             if packages.is_empty() {
                 return Err(Error::PackageNotFound {
@@ -120,7 +156,6 @@ impl Cmd {
                 });
             }
         }
-
         let mut package_names: Vec<String> = Vec::new();
         for p in packages {
             package_names.push(p.name.clone().replace('-', "_"));
