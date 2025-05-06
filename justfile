@@ -28,7 +28,7 @@ build:
 
 # Setup the project to use a pinned version of the CLI
 setup:
-    -cargo binstall -y --install-path ./target/bin stellar-cli --version 22.6.0
+    -cargo install stellar-cli --version 22.6.0 --root ./target
 
 # Build stellar-scaffold-cli test contracts to speed up testing
 build-cli-test-contracts:
@@ -43,7 +43,7 @@ test-integration: build-cli-test-contracts
 create: build
     rm -rf .soroban
     stellar keys generate default
-    just stellar contract deploy --wasm ./target/stellar/example_core.wasm --alias core
+    just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core
 
 # # Builds contracts. Deploys core subcontract and then redeploys to status message.
 

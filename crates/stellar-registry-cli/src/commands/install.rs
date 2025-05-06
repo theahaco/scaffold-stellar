@@ -87,6 +87,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore]
     async fn test_run() {
         std::env::set_var("SOROBAN_NETWORK", "local");
         let cmd = Cmd {

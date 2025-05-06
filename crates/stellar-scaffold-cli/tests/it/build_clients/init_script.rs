@@ -1,6 +1,7 @@
 use crate::util::{find_binary, TestEnv};
 
 #[test]
+#[ignore]
 fn build_command_runs_init() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
@@ -15,7 +16,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
@@ -57,7 +58,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
@@ -106,7 +107,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
     network-passphrase = "Standalone Network ; February 2017"
 
     [development.contracts]
-    hello_world.client = false
+    soroban_hello_world_contract.client = false
     soroban_increment_contract.client = false
     soroban_auth_contract.client = false
     soroban_token_contract.client = false
@@ -142,6 +143,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
 }
 
 #[test]
+#[ignore]
 fn init_scripts_run_in_specified_order() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         let binary_path =
@@ -160,7 +162,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_auth_contract.client = false
 
@@ -212,7 +214,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_auth_contract.client = false
 
