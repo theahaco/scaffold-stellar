@@ -28,7 +28,7 @@ build:
 
 # Setup the project to use a pinned version of the CLI
 setup:
-    -cargo install stellar-cli --version 22.6.0 --root ./target
+    -cargo install stellar-cli --debug --version 22.6.0 --root ./target
 
 # Build stellar-scaffold-cli test contracts to speed up testing
 build-cli-test-contracts:
