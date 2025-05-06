@@ -313,6 +313,12 @@ soroban_token_contract.client = false
     assert!(stderr.contains("Simulating deploy transaction"));
     assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
     // Check that the contract files are created in the new directory
-    assert!(env.cwd.join("packages/soroban_hello_world_contract").exists());
-    assert!(env.cwd.join("src/contracts/soroban_hello_world_contract.ts").exists());
+    assert!(env
+        .cwd
+        .join("packages/soroban_hello_world_contract")
+        .exists());
+    assert!(env
+        .cwd
+        .join("src/contracts/soroban_hello_world_contract.ts")
+        .exists());
 }
