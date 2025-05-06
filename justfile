@@ -42,8 +42,8 @@ test-integration: build-cli-test-contracts
 
 create: build
     rm -rf .soroban
-    stellar keys generate default
-    just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core
+    -stellar keys generate default --fund
+    #just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core --source-account default
 
 # # Builds contracts. Deploys core subcontract and then redeploys to status message.
 
