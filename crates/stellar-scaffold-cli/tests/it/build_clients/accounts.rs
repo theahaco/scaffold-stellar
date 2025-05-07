@@ -19,16 +19,24 @@ soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#);
 
-        let stderr = env.scaffold("build").assert().success().stderr_as_str();
+        let stderr = env
+            .scaffold_build("development", false)
+            .assert()
+            .success()
+            .stderr_as_str();
         assert!(stderr.contains("creating keys for \"alice\""));
         assert!(stderr.contains("creating keys for \"bob\""));
         assert!(env.cwd.join(".stellar/identity/alice.toml").exists());
         assert!(env.cwd.join(".stellar/identity/bob.toml").exists());
 
         // check that they dont get overwritten if build is run again
-        let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("account \"alice\" already exists"));
-        assert!(stderr.contains("account \"bob\" already exists"));
+        let stderr = env
+            .scaffold_build("development", false)
+            .assert()
+            .success()
+            .stderr_as_str();
+        assert!(stderr.contains("identity with the name \'alice\' already exists"));
+        assert!(stderr.contains("identity with the name \'bob\' already exists"));
 
         // check that they're actually funded
         let stderr = env
