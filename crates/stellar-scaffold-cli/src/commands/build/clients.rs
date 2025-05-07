@@ -555,7 +555,7 @@ export default new Client.Client({{
         .run_against_rpc_server(None, None)
         .await?
         .into_result()
-        .expect("no hash returned by 'contract install'")
+        .expect("no hash returned by 'contract upload'")
         .to_string();
         eprintln!("    ↳ hash: {hash}");
         Ok(hash)
