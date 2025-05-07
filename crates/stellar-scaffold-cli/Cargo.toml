@@ -27,7 +27,7 @@ doctest = false
 
 [dependencies]
 stellar-build = { path = "../stellar-build" }
-soroban-cli = "22.0.1"
+stellar-cli = { workspace = true}
 clap = { version = "4.1.8", features = [
     "derive",
     "env",
