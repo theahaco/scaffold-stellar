@@ -29,10 +29,12 @@ impl std::fmt::Display for ScaffoldEnv {
     }
 }
 
-#[derive(clap::Args, Debug, Clone, Copy)]
+#[derive(clap::Args, Debug, Clone)]
 pub struct Args {
     #[arg(env = "STELLAR_SCAFFOLD_ENV", value_enum)]
     pub env: Option<ScaffoldEnv>,
+    #[arg(skip)]
+    pub workspace_root: Option<std::path::PathBuf>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -86,31 +88,32 @@ pub enum Error {
 }
 
 impl Args {
-    pub async fn run(
-        &self,
-        workspace_root: &std::path::Path,
-        package_names: Vec<String>,
-    ) -> Result<(), Error> {
+    pub async fn run(&self, package_names: Vec<String>) -> Result<(), Error> {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
+
         let Some(current_env) = env_toml::Environment::get(
             workspace_root,
-            &self.stellar_scaffold_env(ScaffoldEnv::Production),
+            &self.clone().stellar_scaffold_env(ScaffoldEnv::Production),
         )?
         else {
             return Ok(());
         };
 
         Self::add_network_to_env(&current_env.network)?;
-        // Create the '.stellar' directory if it doesn't exist - for saving contract aliases and account aliases
+        // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
         Self::handle_accounts(current_env.accounts.as_deref()).await?;
-        self.handle_contracts(
-            workspace_root,
-            current_env.contracts.as_ref(),
-            package_names,
-            &current_env.network,
-        )
-        .await?;
+        self.clone()
+            .handle_contracts(
+                current_env.contracts.as_ref(),
+                package_names,
+                &current_env.network,
+            )
+            .await?;
 
         Ok(())
     }
@@ -172,18 +175,22 @@ impl Args {
         }
     }
 
-    fn get_config_locator(workspace_root: &std::path::Path) -> stellar_cli::config::locator::Args {
+    fn get_config_locator(&self) -> stellar_cli::config::locator::Args {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root not set");
         stellar_cli::config::locator::Args {
             global: false,
-            config_dir: Some(workspace_root.to_path_buf()),
+            config_dir: Some(workspace_root.clone()),
         }
     }
 
     fn get_contract_alias(
+        &self,
         name: &str,
-        workspace_root: &std::path::Path,
     ) -> Result<Option<Contract>, stellar_cli::config::locator::Error> {
-        let config_dir = Self::get_config_locator(workspace_root);
+        let config_dir = self.get_config_locator();
         let network_passphrase = std::env::var("STELLAR_NETWORK_PASSPHRASE")
             .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
         config_dir.get_contract_id(name, &network_passphrase)
@@ -194,12 +201,11 @@ impl Args {
         contract_id: &Contract,
         hash: &str,
         network: &Network,
-        workspace_root: &std::path::Path,
     ) -> Result<bool, Error> {
         let result = cli::contract::fetch::Cmd {
             contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
             out_file: None,
-            locator: Self::get_config_locator(workspace_root),
+            locator: self.get_config_locator(),
             network: Self::get_network_args(network),
         }
         .run_against_rpc_server(None, None)
@@ -221,12 +227,12 @@ impl Args {
     }
 
     fn save_contract_alias(
+        &self,
         name: &str,
         contract_id: &Contract,
         network: &Network,
-        workspace_root: &std::path::Path,
     ) -> Result<(), stellar_cli::config::locator::Error> {
-        let config_dir = Self::get_config_locator(workspace_root);
+        let config_dir = self.get_config_locator();
         let passphrase = network
             .network_passphrase
             .clone()
@@ -234,17 +240,13 @@ impl Args {
         config_dir.save_contract_id(&passphrase, contract_id, name)
     }
 
-    fn write_contract_template(
-        self,
-        workspace_root: &std::path::Path,
-        name: &str,
-        contract_id: &str,
-    ) -> Result<(), Error> {
-        let allow_http = if self.stellar_scaffold_env(ScaffoldEnv::Production) == "development" {
-            "\n  allowHttp: true,"
-        } else {
-            ""
-        };
+    fn write_contract_template(self, name: &str, contract_id: &str) -> Result<(), Error> {
+        let allow_http =
+            if self.clone().stellar_scaffold_env(ScaffoldEnv::Production) == "development" {
+                "\n  allowHttp: true,"
+            } else {
+                ""
+            };
         let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
             .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
         let template = format!(
@@ -259,6 +261,10 @@ export default new Client.Client({{
 }});
 "
         );
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root not set");
         let path = workspace_root.join(format!("src/contracts/{name}.ts"));
         std::fs::write(path, template)?;
         Ok(())
@@ -272,13 +278,12 @@ export default new Client.Client({{
             .is_ok())
     }
 
-    async fn generate_contract_bindings(
-        self,
-        workspace_root: &std::path::Path,
-        name: &str,
-        contract_id: &str,
-    ) -> Result<(), Error> {
+    async fn generate_contract_bindings(self, name: &str, contract_id: &str) -> Result<(), Error> {
         eprintln!("🎭 binding {name:?} contract");
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root not set");
         let output_dir = workspace_root.join(format!("packages/{name}"));
         cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
@@ -293,7 +298,7 @@ export default new Client.Client({{
         .await?;
 
         eprintln!("🍽️ importing {name:?} contract");
-        self.write_contract_template(workspace_root, name, contract_id)?;
+        self.write_contract_template(name, contract_id)?;
 
         // Run `npm i` in the output directory
         eprintln!("🔧 running 'npm install' in {output_dir:?}");
@@ -395,7 +400,6 @@ export default new Client.Client({{
 
     async fn handle_production_contracts(
         &self,
-        workspace_root: &std::path::Path,
         contracts: &IndexMap<Box<str>, env_toml::Contract>,
     ) -> Result<(), Error> {
         for (name, contract) in contracts.iter().filter(|(_, settings)| settings.client) {
@@ -403,7 +407,8 @@ export default new Client.Client({{
                 if stellar_strkey::Contract::from_string(id).is_err() {
                     return Err(Error::InvalidContractID(id.to_string()));
                 }
-                self.generate_contract_bindings(workspace_root, name, &id.to_string())
+                self.clone()
+                    .generate_contract_bindings(name, &id.to_string())
                     .await?;
             } else {
                 return Err(Error::MissingContractID(name.to_string()));
@@ -414,7 +419,6 @@ export default new Client.Client({{
 
     async fn handle_contracts(
         self,
-        workspace_root: &std::path::Path,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
         package_names: Vec<String>,
         network: &Network,
@@ -423,16 +427,15 @@ export default new Client.Client({{
             return Ok(());
         }
 
-        let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
+        let env = self.clone().stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
             if let Some(contracts) = contracts {
-                self.handle_production_contracts(workspace_root, contracts)
-                    .await?;
+                self.handle_production_contracts(contracts).await?;
             }
             return Ok(());
         }
 
-        Self::validate_contract_names(workspace_root, contracts)?;
+        self.validate_contract_names(contracts)?;
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
         for name in names {
@@ -446,25 +449,29 @@ export default new Client.Client({{
                 continue;
             }
 
-            self.process_single_contract(&name, workspace_root, settings, network, &env)
+            self.process_single_contract(&name, settings, network, &env)
                 .await?;
         }
 
         Ok(())
     }
 
-    fn get_wasm_path(workspace_root: &std::path::Path, contract_name: &str) -> std::path::PathBuf {
+    fn get_wasm_path(&self, contract_name: &str) -> std::path::PathBuf {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root not set");
         let target_dir = workspace_root.join("target");
         stellar_build::stellar_wasm_out_file(&target_dir, contract_name)
     }
 
     fn validate_contract_names(
-        workspace_root: &std::path::Path,
+        &self,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
     ) -> Result<(), Error> {
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
-                let wasm_path = Self::get_wasm_path(workspace_root, name);
+                let wasm_path = self.get_wasm_path(name);
                 if !wasm_path.exists() {
                     return Err(Error::BadContractName(name.to_string()));
                 }
@@ -476,13 +483,12 @@ export default new Client.Client({{
     async fn process_single_contract(
         &self,
         name: &str,
-        workspace_root: &std::path::Path,
         settings: env_toml::Contract,
         network: &Network,
         env: &str,
     ) -> Result<(), Error> {
         let contract_id = self
-            .get_or_deploy_contract(name, workspace_root, &settings, network)
+            .get_or_deploy_contract(name, &settings, network)
             .await?;
 
         // Run after_deploy script if in development or test environment
@@ -496,7 +502,8 @@ export default new Client.Client({{
             .await?;
         }
 
-        self.generate_contract_bindings(workspace_root, name, &contract_id.to_string())
+        self.clone()
+            .generate_contract_bindings(name, &contract_id.to_string())
             .await?;
 
         Ok(())
@@ -505,7 +512,6 @@ export default new Client.Client({{
     async fn get_or_deploy_contract(
         &self,
         name: &str,
-        workspace_root: &std::path::Path,
         settings: &env_toml::Contract,
         network: &Network,
     ) -> Result<Contract, Error> {
@@ -513,7 +519,7 @@ export default new Client.Client({{
             return Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()));
         }
 
-        let wasm_path = Self::get_wasm_path(workspace_root, name);
+        let wasm_path = self.get_wasm_path(name);
         if !wasm_path.exists() {
             return Err(Error::BadContractName(name.to_string()));
         }
@@ -521,9 +527,9 @@ export default new Client.Client({{
         let hash = self.upload_contract_wasm(name, &wasm_path).await?;
 
         // Check existing alias
-        if let Some(contract_id) = Self::get_contract_alias(name, workspace_root)? {
+        if let Some(contract_id) = self.get_contract_alias(name)? {
             if self
-                .contract_hash_matches(&contract_id, &hash, network, workspace_root)
+                .contract_hash_matches(&contract_id, &hash, network)
                 .await?
             {
                 eprintln!("✅ Contract {name:?} is up to date");
@@ -533,7 +539,7 @@ export default new Client.Client({{
         }
 
         let contract_id = self.deploy_contract(name, &hash, settings).await?;
-        Self::save_contract_alias(name, &contract_id, network, workspace_root)?;
+        self.save_contract_alias(name, &contract_id, network)?;
 
         Ok(contract_id)
     }

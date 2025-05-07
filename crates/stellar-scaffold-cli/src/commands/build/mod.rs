@@ -121,11 +121,10 @@ impl Command {
         }
 
         if self.build_clients {
-            self.build_clients_args
-                .run(
-                    &metadata.workspace_root.into_std_path_buf(),
-                    packages.iter().map(|p| p.name.replace('-', "_")).collect(),
-                )
+            let mut build_clients_args = self.build_clients_args.clone();
+            build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
+            build_clients_args
+                .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;
         }
 
