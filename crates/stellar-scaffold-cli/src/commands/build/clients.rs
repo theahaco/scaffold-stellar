@@ -7,7 +7,7 @@ use shlex::split;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
-use stellar_cli::commands::{global, NetworkRunnable};
+use stellar_cli::commands::NetworkRunnable;
 use stellar_cli::utils::contract_hash;
 use stellar_cli::{commands as cli, CommandParser};
 use stellar_strkey::{self, Contract};
@@ -264,14 +264,6 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn account_exists(account_name: &str) -> Result<bool, Error> {
-        // TODO: this is a workaround until generate is changed to not overwrite accounts
-        Ok(cli::keys::fund::Cmd::parse_arg_vec(&[account_name])?
-            .run(&global::Args::default())
-            .await
-            .is_ok())
-    }
-
     async fn generate_contract_bindings(
         self,
         workspace_root: &std::path::Path,
@@ -346,17 +338,19 @@ export default new Client.Client({{
         };
 
         for account in accounts {
-            if Self::account_exists(&account.name).await? {
-                eprintln!(
-                    "ℹ️ account {:?} already exists, skipping key creation",
-                    account.name
-                );
-            } else {
-                eprintln!("🔐 creating keys for {:?}", account.name);
-                cli::keys::generate::Cmd::parse_arg_vec(&[&account.name])?
-                    .run(&stellar_cli::commands::global::Args::default())
-                    .await?;
-            }
+            eprintln!("🔐 creating keys for {:?}", account.name);
+            cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
+                .run(&stellar_cli::commands::global::Args::default())
+                .await
+                .or_else(|e| {
+                    if e.to_string().contains("already exists") {
+                        // ignore "already exists" errors
+                        eprintln!("{e}");
+                        Ok(())
+                    } else {
+                        Err(e)
+                    }
+                })?;
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);
