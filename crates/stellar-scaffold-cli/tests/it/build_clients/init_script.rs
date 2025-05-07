@@ -187,8 +187,6 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
             .output()
             .expect("Failed to execute command");
 
-    
-
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(output.status.success());
 

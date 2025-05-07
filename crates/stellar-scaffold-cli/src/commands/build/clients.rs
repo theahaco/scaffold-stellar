@@ -436,7 +436,7 @@ export default new Client.Client({{
                 .and_then(|contracts| contracts.get(name.as_str()))
                 .cloned()
                 .unwrap_or_default();
-            
+
             // Skip if client generation is disabled
             if !settings.client {
                 continue;
@@ -511,14 +511,14 @@ export default new Client.Client({{
         if let Some(id) = &settings.id {
             return Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()));
         }
-    
+
         let wasm_path = workspace_root.join(format!("target/stellar/{name}.wasm"));
         if !wasm_path.exists() {
             return Err(Error::BadContractName(name.to_string()));
         }
-    
+
         let hash = self.upload_contract_wasm(name, &wasm_path).await?;
-    
+
         // Check existing alias
         if let Some(contract_id) = Self::get_contract_alias(name, workspace_root)? {
             if self
@@ -530,10 +530,10 @@ export default new Client.Client({{
             }
             eprintln!("🔄 Updating contract {name:?}");
         }
-    
+
         let contract_id = self.deploy_contract(name, &hash, settings).await?;
         Self::save_contract_alias(name, &contract_id, network, workspace_root)?;
-    
+
         Ok(contract_id)
     }
 
@@ -581,7 +581,10 @@ export default new Client.Client({{
                 .to_string()
         });
 
-        Ok((source, command_parts.iter().map(|s| s.to_string()).collect()))
+        Ok((
+            source,
+            command_parts.iter().map(|s| (*s).to_string()).collect(),
+        ))
     }
 
     async fn deploy_contract(
@@ -599,7 +602,7 @@ export default new Client.Client({{
 
         if let Some(constructor_script) = &settings.constructor_args {
             let (source_account, mut args) = Self::parse_script_line(constructor_script)?;
-            
+
             if let Some(account) = source_account {
                 deploy_args.extend_from_slice(&["--source-account".to_string(), account]);
             }
@@ -677,7 +680,7 @@ export default new Client.Client({{
                 args.extend_from_slice(&["--source-account", account]);
             }
             args.extend_from_slice(&["--"]);
-            args.extend(command_parts.iter().map(|s| s.as_str()));
+            args.extend(command_parts.iter().map(std::string::String::as_str));
 
             eprintln!("  ↳ Executing: stellar contract invoke {}", args.join(" "));
             let result = cli::contract::invoke::Cmd::parse_arg_vec(&args)?
