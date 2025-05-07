@@ -55,8 +55,8 @@ pub enum Error {
     InvalidContractID(String),
     #[error("⛔ ️An ID must be set for a contract in production or staging. E.g. <name>.id = C...")]
     MissingContractID(String),
-    #[error("⛔ ️Unable to parse init script: {0:?}")]
-    InitParseFailure(String),
+    #[error("⛔ ️Unable to parse script: {0:?}")]
+    ScriptParseFailure(String),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
     #[error(transparent)]
@@ -364,7 +364,7 @@ export default new Client.Client({{
         Ok(())
     }
 
-    fn reorder_package_names(
+    fn maintain_user_ordering(
         package_names: &[String],
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
     ) -> Vec<String> {
@@ -425,13 +425,17 @@ export default new Client.Client({{
 
         let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
-            return self.handle_production_mode(workspace_root, contracts).await;
+            if let Some(contracts) = contracts {
+                self.handle_production_contracts(workspace_root, contracts)
+                    .await?;
+            }
+            return Ok(());
         }
 
         Self::validate_contract_names(workspace_root, contracts)?;
 
-        let reordered_names = Self::reorder_package_names(&package_names, contracts);
-        for name in reordered_names {
+        let names = Self::maintain_user_ordering(&package_names, contracts);
+        for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
                 .cloned()
@@ -449,16 +453,9 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn handle_production_mode(
-        self,
-        workspace_root: &std::path::Path,
-        contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
-    ) -> Result<(), Error> {
-        if let Some(contracts) = contracts {
-            self.handle_production_contracts(workspace_root, contracts)
-                .await?;
-        }
-        Ok(())
+    fn get_wasm_path(workspace_root: &std::path::Path, contract_name: &str) -> std::path::PathBuf {
+        let target_dir = workspace_root.join("target");
+        stellar_build::stellar_wasm_out_file(&target_dir, contract_name)
     }
 
     fn validate_contract_names(
@@ -467,8 +464,7 @@ export default new Client.Client({{
     ) -> Result<(), Error> {
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
-                let target_dir = workspace_root.join("target");
-                let wasm_path = stellar_build::stellar_wasm_out_file(&target_dir, name);
+                let wasm_path = Self::get_wasm_path(workspace_root, name);
                 if !wasm_path.exists() {
                     return Err(Error::BadContractName(name.to_string()));
                 }
@@ -489,11 +485,15 @@ export default new Client.Client({{
             .get_or_deploy_contract(name, workspace_root, &settings, network)
             .await?;
 
-        // Run init script if in development or test environment
+        // Run after_deploy script if in development or test environment
         if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-            eprintln!("🚀 Running initialization script for {name:?}");
-            self.run_init_script(name, &contract_id, settings.after_deploy.as_ref().unwrap())
-                .await?;
+            eprintln!("🚀 Running after_deploy script for {name:?}");
+            self.run_after_deploy_script(
+                name,
+                &contract_id,
+                settings.after_deploy.as_ref().unwrap(),
+            )
+            .await?;
         }
 
         self.generate_contract_bindings(workspace_root, name, &contract_id.to_string())
@@ -513,8 +513,7 @@ export default new Client.Client({{
             return Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()));
         }
 
-        let target_dir = workspace_root.join("target");
-        let wasm_path = stellar_build::stellar_wasm_out_file(&target_dir, name);
+        let wasm_path = Self::get_wasm_path(workspace_root, name);
         if !wasm_path.exists() {
             return Err(Error::BadContractName(name.to_string()));
         }
@@ -570,7 +569,7 @@ export default new Client.Client({{
 
         let resolved_line = Self::resolve_line(&re, line, shell, flag)?;
         let parts = split(&resolved_line)
-            .ok_or_else(|| Error::InitParseFailure(resolved_line.to_string()))?;
+            .ok_or_else(|| Error::ScriptParseFailure(resolved_line.to_string()))?;
 
         let (source_account, command_parts): (Vec<_>, Vec<_>) = parts
             .iter()
@@ -662,13 +661,13 @@ export default new Client.Client({{
         }
     }
 
-    async fn run_init_script(
+    async fn run_after_deploy_script(
         &self,
         name: &str,
         contract_id: &Contract,
-        init_script: &str,
+        after_deploy_script: &str,
     ) -> Result<(), Error> {
-        for line in init_script.lines() {
+        for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
@@ -690,7 +689,7 @@ export default new Client.Client({{
                 .await?;
             eprintln!("  ↳ Result: {result:?}");
         }
-        eprintln!("✅ Initialization script for {name:?} completed successfully");
+        eprintln!("✅ After deploy script for {name:?} completed successfully");
         Ok(())
     }
 }
