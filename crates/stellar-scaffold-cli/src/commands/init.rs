@@ -1,12 +1,12 @@
 use clap::Parser;
 use rust_embed::{EmbeddedFile, RustEmbed};
-use stellar_cli::commands::contract::init as soroban_init;
 use std::{
     fs::{self, create_dir_all, metadata, write, Metadata},
     io,
     path::{Path, PathBuf},
     process::Command,
 };
+use stellar_cli::commands::contract::init as soroban_init;
 use tempfile::TempDir;
 use toml_edit::TomlError;
 

@@ -4,12 +4,12 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
-use stellar_cli::commands::{global, NetworkRunnable};
-use stellar_cli::utils::contract_hash;
-use stellar_cli::{commands as cli, CommandParser};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
+use stellar_cli::commands::{global, NetworkRunnable};
+use stellar_cli::utils::contract_hash;
+use stellar_cli::{commands as cli, CommandParser};
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::Error as xdrError;
 
