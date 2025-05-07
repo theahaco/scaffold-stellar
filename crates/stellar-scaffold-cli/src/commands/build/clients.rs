@@ -468,8 +468,7 @@ export default new Client.Client({{
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
                 let target_dir = workspace_root.join("target");
-                let wasm_path =
-                    stellar_build::deps::out_dir(&target_dir, name).with_extension("wasm");
+                let wasm_path = stellar_build::stellar_wasm_out_file(&target_dir, name);
                 if !wasm_path.exists() {
                     return Err(Error::BadContractName(name.to_string()));
                 }
@@ -515,7 +514,7 @@ export default new Client.Client({{
         }
 
         let target_dir = workspace_root.join("target");
-        let wasm_path = stellar_build::deps::out_dir(&target_dir, name).with_extension("wasm");
+        let wasm_path = stellar_build::stellar_wasm_out_file(&target_dir, name);
         if !wasm_path.exists() {
             return Err(Error::BadContractName(name.to_string()));
         }

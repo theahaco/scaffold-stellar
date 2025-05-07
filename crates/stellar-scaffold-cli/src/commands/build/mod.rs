@@ -111,9 +111,11 @@ impl Command {
 
         for p in &packages {
             let mut cmd = self.build.clone();
-            cmd.out_dir = cmd
-                .out_dir
-                .or_else(|| Some(stellar_build::deps::stellar_wasm_out_dir(target_dir.as_std_path())));
+            cmd.out_dir = cmd.out_dir.or_else(|| {
+                Some(stellar_build::deps::stellar_wasm_out_dir(
+                    target_dir.as_std_path(),
+                ))
+            });
             cmd.package = Some(p.name.clone());
             cmd.run(&global_args)?;
         }
