@@ -13,8 +13,9 @@ pub async fn start_local_stellar() -> Result<(), Box<dyn Error>> {
         } else {
             return Err(Box::new(e));
         }
+    } else {
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     }
-    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     wait_for_stellar_health().await
 }
 async fn wait_for_stellar_health() -> Result<(), Box<dyn Error>> {
