@@ -111,9 +111,9 @@ impl Command {
 
         for p in &packages {
             let mut cmd = self.build.clone();
-            cmd.out_dir = Some(cmd.out_dir.unwrap_or_else(|| {
-                stellar_build::deps::out_dir(target_dir.as_std_path(), &p.name.replace('-', "_"))
-            }));
+            cmd.out_dir = cmd
+                .out_dir
+                .or_else(|| Some(stellar_build::deps::out_dir(target_dir.as_std_path())));
             cmd.package = Some(p.name.clone());
             cmd.run(&global_args)?;
         }

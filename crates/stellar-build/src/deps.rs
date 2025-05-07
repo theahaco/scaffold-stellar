@@ -140,10 +140,14 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
 }
 
 #[must_use]
-pub fn out_dir(target_dir: &Path, name: &str) -> PathBuf {
-    target_dir.join("stellar").join(name.replace('-', "_"))
+pub fn out_dir(target_dir: &Path) -> PathBuf {
+    target_dir.join("stellar")
 }
 
+#[must_use]
+pub fn out_file(target_dir: &Path, name: &str) -> PathBuf {
+    target_dir.join("stellar").join(name.replace('-', "_")).with_extension("wasm")
+}
 // /// Retrieves a list of source and output paths for dependencies of a specified kind.
 // ///
 // /// # Arguments
