@@ -180,7 +180,7 @@ impl TestEnv {
     }
 
     fn cargo_bin_stellar_scaffold() -> PathBuf {
-        PathBuf::from(std::env::var("CARGO_BIN_EXE_stellar_scaffold").unwrap())
+        assert_cmd::cargo::cargo_bin("stellar-scaffold")
     }
 
     pub fn stellar_scaffold_process(&self, cmd: &str, additional_args: &[&str]) -> ProcessCommand {

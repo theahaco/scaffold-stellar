@@ -44,6 +44,6 @@ soroban_token_contract.client = false
             .assert()
             .success()
             .stderr_as_str();
-        assert!(stderr.is_empty());
+        assert!(stderr.contains("Account AliasOrSecret(\"alice\") funded"));
     });
 }
