@@ -1,7 +1,6 @@
 use crate::util::{find_binary, TestEnv};
 
 #[test]
-#[ignore]
 fn build_command_runs_init() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
@@ -23,8 +22,10 @@ soroban_auth_contract.client = false
 
 [development.contracts.soroban_token_contract]
 client = true
-init = """
-initialize --symbol ABND --decimal 7 --name abundance --admin alice
+constructor_args = """
+--symbol ABND --decimal 7 --name abundance --admin alice
+"""
+after_deploy = """
 mint --amount 2000000 --to alice
 """
 "#,
@@ -38,8 +39,6 @@ mint --amount 2000000 --to alice
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains(" -- initialize --symbol ABND --decimal 7 --name abundance --admin alice"));
         assert!(String::from_utf8_lossy(&output.stderr)
             .contains(" -- mint --amount 2000000 --to alice"));
         assert!(String::from_utf8_lossy(&output.stderr).contains(
@@ -65,8 +64,10 @@ soroban_auth_contract.client = false
 
 [development.contracts.soroban_token_contract]
 client = true
-init = """
-STELLAR_ACCOUNT=bob initialize --symbol ABND --decimal 7 --name abundance --admin bob 
+constructor_args = """
+STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bob 
+"""
+after_deploy = """
 STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob 
 """
 "#,
@@ -79,8 +80,6 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("--source-account bob -- initialize --symbol ABND --decimal 7 --name abundance --admin bob"));
         assert!(String::from_utf8_lossy(&output.stderr)
             .contains("--source-account bob -- mint --amount 2000000 --to bob"));
         assert!(String::from_utf8_lossy(&output.stderr).contains(
@@ -114,7 +113,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
 
     [development.contracts.soroban_custom_types_contract]
     client = true
-    init = """
+    after_deploy = """
     test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
     """
     "#
@@ -168,14 +167,16 @@ soroban_auth_contract.client = false
 
 [development.contracts.soroban_custom_types_contract]
 client = true
-init = """
+after_deploy = """
 test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
 """
 
 [development.contracts.soroban_token_contract]
 client = true
-init = """
-STELLAR_ACCOUNT=bob initialize --symbol ABND --decimal 7 --name abundance --admin bob 
+constructor_args = """
+STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bob 
+"""
+after_deploy = """
 STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob 
 """
 "#
@@ -185,6 +186,8 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
             .stellar_scaffold_env("development", true)
             .output()
             .expect("Failed to execute command");
+
+    
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(output.status.success());

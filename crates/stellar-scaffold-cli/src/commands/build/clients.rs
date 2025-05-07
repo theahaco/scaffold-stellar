@@ -558,6 +558,32 @@ export default new Client.Client({{
         Ok(hash)
     }
 
+    fn parse_script_line(line: &str) -> Result<(Option<String>, Vec<String>), Error> {
+        let re = Regex::new(r"\$\((.*?)\)").expect("Invalid regex pattern");
+        let (shell, flag) = if cfg!(windows) {
+            ("cmd", "/C")
+        } else {
+            ("sh", "-c")
+        };
+
+        let resolved_line = Self::resolve_line(&re, line, shell, flag)?;
+        let parts = split(&resolved_line)
+            .ok_or_else(|| Error::InitParseFailure(resolved_line.to_string()))?;
+
+        let (source_account, command_parts): (Vec<_>, Vec<_>) = parts
+            .iter()
+            .partition(|&part| part.starts_with("STELLAR_ACCOUNT="));
+
+        let source = source_account.first().map(|account| {
+            account
+                .strip_prefix("STELLAR_ACCOUNT=")
+                .unwrap()
+                .to_string()
+        });
+
+        Ok((source, command_parts.iter().map(|s| s.to_string()).collect()))
+    }
+
     async fn deploy_contract(
         &self,
         name: &str,
@@ -570,21 +596,16 @@ export default new Client.Client({{
             "--wasm-hash".to_string(),
             hash.to_string(),
         ];
-    
+
         if let Some(constructor_script) = &settings.constructor_args {
-            let re = Regex::new(r"\$\((.*?)\)").expect("Invalid regex pattern");
-            let (shell, flag) = if cfg!(windows) {
-                ("cmd", "/C")
-            } else {
-                ("sh", "-c")
-            };
-    
-            let resolved_line = Self::resolve_line(&re, constructor_script, shell, flag)?;
-            let parts = split(&resolved_line)
-                .ok_or_else(|| Error::InitParseFailure(resolved_line.to_string()))?;
-    
+            let (source_account, mut args) = Self::parse_script_line(constructor_script)?;
+            
+            if let Some(account) = source_account {
+                deploy_args.extend_from_slice(&["--source-account".to_string(), account]);
+            }
+
             deploy_args.push("--".to_string());
-            deploy_args.extend(parts);
+            deploy_args.append(&mut args);
         }
 
         eprintln!("🪞 instantiating {name:?} smart contract");
@@ -642,32 +663,17 @@ export default new Client.Client({{
         contract_id: &Contract,
         init_script: &str,
     ) -> Result<(), Error> {
-        let re = Regex::new(r"\$\((.*?)\)").expect("Invalid regex pattern");
-
-        let (shell, flag) = if cfg!(windows) {
-            ("cmd", "/C")
-        } else {
-            ("sh", "-c")
-        };
-
         for line in init_script.lines() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
             }
 
-            // resolve any $() patterns
-            let resolved_line = Self::resolve_line(&re, line, shell, flag)?;
-            let parts = split(&resolved_line)
-                .ok_or_else(|| Error::InitParseFailure(resolved_line.to_string()))?;
-            let (source_account, command_parts): (Vec<_>, Vec<_>) = parts
-                .iter()
-                .partition(|&part| part.starts_with("STELLAR_ACCOUNT="));
+            let (source_account, command_parts) = Self::parse_script_line(line)?;
 
             let contract_id_arg = contract_id.to_string();
             let mut args = vec!["--id", &contract_id_arg];
-            if let Some(account) = source_account.first() {
-                let account = account.strip_prefix("STELLAR_ACCOUNT=").unwrap();
+            if let Some(account) = source_account.as_ref() {
                 args.extend_from_slice(&["--source-account", account]);
             }
             args.extend_from_slice(&["--"]);
