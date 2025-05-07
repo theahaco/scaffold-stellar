@@ -14,10 +14,11 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
+soroban_token_contract.client = false
 "#,
         );
 
@@ -51,7 +52,7 @@ development.accounts = [
 development.network.name = "lol"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
