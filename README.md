@@ -41,6 +41,13 @@ The project consists of several main components:
   - Contract lifecycle management
   - Automated environment updates
 
+## Project Structure
+
+- `stellar-scaffold-cli`: Main CLI tool for project scaffolding and development
+- `stellar-registry-cli`: Contract registry and deployment management
+- `stellar-build`: Build utilities for Stellar smart contracts
+- `stellar-scaffold-macro`: Procedural macros for contract development
+
 ## Installation
 
 ### Development Setup
@@ -61,29 +68,87 @@ cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry
 
 ## Quick Start
 
-1. Initialize a new project:
+1. Install the required CLI tools:
+```bash
+# Install scaffold-stellar CLI
+cargo install --git https://github.com/ahalabs/scaffold-stellar scaffold-stellar-cli
+
+# Install registry CLI (needed for deployments)
+cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
+```
+
+2. Initialize a new project:
 ```bash
 stellar-scaffold init my-project
 cd my-project
 ```
 
-2. Start development mode:
+3. Set up your development environment:
 ```bash
+# Copy and configure environment variables
+cp .env.example .env
+
+# Install frontend dependencies
+npm install
+```
+
+4. Start development environment:
+```bash
+# Terminal 1: Start the development environment with hot reloading
+# This builds contracts and generates TypeScript clients
 stellar-scaffold dev --build-clients
+
+# Terminal 2: Start the frontend development server
+npm run dev
 ```
 
-3. Deploy your contract:
+5. For testnet/mainnet deployment:
 ```bash
+# First publish your contract to the registry
 stellar-registry publish
-stellar-registry deploy
+
+# Then deploy an instance with initialization parameters
+stellar-registry deploy \
+  --deployed-name my-contract \
+  --published-name my-contract \
+  initialize --param1 value1
+
+# Install the deployed contract locally
+stellar-registry install my-contract --out-dir ./contracts
 ```
 
-## Project Structure
+## Scaffold Initial Project Structure
 
-- `stellar-scaffold-cli`: Main CLI tool for project scaffolding and development
-- `stellar-registry-cli`: Contract registry and deployment management
-- `stellar-build`: Build utilities for Stellar smart contracts
-- `stellar-scaffold-macro`: Procedural macros for contract development
+When you run `stellar-scaffold init`, it creates a frontend-focused project structure with example contracts:
+
+```
+my-project/                      # Your initialized project
+├── contracts/                   # Example smart contracts
+│   ├── hello_world/            # Basic Hello World contract
+│   ├── stellar-example/        # Generic Stellar contract example  
+│   └── token/                  # Token contract example
+├── packages/                    # Auto-generated TypeScript clients
+│   ├── soroban_hello_world_contract/
+│   ├── soroban_token_contract/
+│   └── stellar_example/
+├── src/                        # Frontend React application
+│   ├── components/             # React components
+│   ├── contracts/              # Contract interaction helpers
+│   │   ├── soroban_hello_world_contract.ts
+│   │   ├── soroban_token_contract.ts
+│   │   ├── stellar_example.ts
+│   │   └── util.ts
+│   ├── App.tsx                 # Main application component
+│   └── main.tsx               # Application entry point
+├── target/                     # Build artifacts and WASM files
+├── environments.toml           # Environment configurations
+├── package.json               # Frontend dependencies
+└── .env                       # Local environment variables
+```
+
+This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with Vite, React, and includes basic components for interacting with the contracts.
+
+See the [CLI Documentation](./docs/cli.md) for detailed command information and the [Environments Guide](./docs/environments.md) for configuration details.
 
 ## Configuration
 
