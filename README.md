@@ -124,26 +124,16 @@ When you run `stellar-scaffold init`, it creates a frontend-focused project stru
 ```
 my-project/                      # Your initialized project
 ├── contracts/                   # Example smart contracts
-│   ├── hello_world/            # Basic Hello World contract
-│   ├── stellar-example/        # Generic Stellar contract example  
-│   └── token/                  # Token contract example
 ├── packages/                    # Auto-generated TypeScript clients
-│   ├── soroban_hello_world_contract/
-│   ├── soroban_token_contract/
-│   └── stellar_example/
-├── src/                        # Frontend React application
-│   ├── components/             # React components
-│   ├── contracts/              # Contract interaction helpers
-│   │   ├── soroban_hello_world_contract.ts
-│   │   ├── soroban_token_contract.ts
-│   │   ├── stellar_example.ts
-│   │   └── util.ts
-│   ├── App.tsx                 # Main application component
-│   └── main.tsx               # Application entry point
-├── target/                     # Build artifacts and WASM files
-├── environments.toml           # Environment configurations
-├── package.json               # Frontend dependencies
-└── .env                       # Local environment variables
+├── src/                         # Frontend React application
+│   ├── components/              # React components
+│   ├── contracts/               # Contract interaction helpers
+│   ├── App.tsx                  # Main application component
+│   └── main.tsx                 # Application entry point
+├── target/                      # Build artifacts and WASM files
+├── environments.toml            # Environment configurations
+├── package.json                 # Frontend dependencies
+└── .env                         # Local environment variables
 ```
 
 This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with Vite, React, and includes basic components for interacting with the contracts.
