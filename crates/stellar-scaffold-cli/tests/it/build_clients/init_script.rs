@@ -1,4 +1,5 @@
 use crate::util::{find_binary, TestEnv};
+use std::fs;
 
 #[test]
 fn build_command_runs_init() {
@@ -23,7 +24,7 @@ soroban_auth_contract.client = false
 [development.contracts.soroban_token_contract]
 client = true
 constructor_args = """
---symbol ABND --decimal 7 --name abundance --admin alice
+STELLAR_ACCOUNT=alice --symbol ABND --decimal 7 --name abundance --admin alice
 """
 after_deploy = """
 mint --amount 2000000 --to alice
@@ -42,7 +43,7 @@ mint --amount 2000000 --to alice
         assert!(String::from_utf8_lossy(&output.stderr)
             .contains(" -- mint --amount 2000000 --to alice"));
         assert!(String::from_utf8_lossy(&output.stderr).contains(
-            "✅ Initialization script for \"soroban_token_contract\" completed successfully"
+            "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
         // ensure setting STELLAR_ACCOUNT works
         env.set_environments_toml(
@@ -83,7 +84,7 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         assert!(String::from_utf8_lossy(&output.stderr)
             .contains("--source-account bob -- mint --amount 2000000 --to bob"));
         assert!(String::from_utf8_lossy(&output.stderr).contains(
-            "✅ Initialization script for \"soroban_token_contract\" completed successfully"
+            "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
     });
 }
@@ -129,20 +130,19 @@ fn init_handles_quotations_and_subcommands_in_script() {
         // Ensure the command executed successfully
         assert!(output.status.success());
 
-        // Check for the presence of the initialization commands in the output
+        // Check for the presence of the after_deploy commands in the output
         assert!(
             String::from_utf8_lossy(&output.stderr).contains(" -- test_init --resolution 300000")
         );
 
-        // Check for successful initialization message
+        // Check for successful after deploy message
         assert!(String::from_utf8_lossy(&output.stderr).contains(
-            "✅ Initialization script for \"soroban_custom_types_contract\" completed successfully"
+            "✅ After deploy script for \"soroban_custom_types_contract\" completed successfully"
         ));
     });
 }
 
 #[test]
-#[ignore]
 fn init_scripts_run_in_specified_order() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         let binary_path =
@@ -192,10 +192,10 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
 
         // Check order of initialization
         let custom_types_index = stderr
-            .find("Running initialization script for \"soroban_custom")
+            .find("Running after_deploy script for \"soroban_custom")
             .expect("Custom types init not found");
         let token_index = stderr
-            .find("Running initialization script for \"soroban_token")
+            .find("Running after_deploy script for \"soroban_token")
             .expect("Token init not found");
         assert!(
             custom_types_index < token_index,
@@ -243,10 +243,10 @@ test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contr
 
         // Check order of initialization
         let token_index = stderr
-            .find("Running initialization script for \"soroban_token")
+            .find("Running after_deploy script for \"soroban_token")
             .expect("Token init not found");
         let custom_types_index = stderr
-            .find("Running initialization script for \"soroban_custom")
+            .find("Running after_deploy script for \"soroban_custom")
             .expect("Custom types init not found");
         assert!(
             token_index < custom_types_index,

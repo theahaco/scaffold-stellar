@@ -481,9 +481,34 @@ export default new Client.Client({{
         network: &Network,
         env: &str,
     ) -> Result<(), Error> {
-        let contract_id = self
-            .get_or_deploy_contract(name, &settings, network)
-            .await?;
+        // First check if we have an ID in settings
+        let contract_id = if let Some(id) = &settings.id {
+            Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
+        } else {
+            let wasm_path = self.get_wasm_path(name);
+            if !wasm_path.exists() {
+                return Err(Error::BadContractName(name.to_string()));
+            }
+
+            let hash = self.upload_contract_wasm(name, &wasm_path).await?;
+
+            // Check existing alias - if it exists and matches hash, we can return early
+            if let Some(existing_contract_id) = self.get_contract_alias(name)? {
+                if self
+                    .contract_hash_matches(&existing_contract_id, &hash, network)
+                    .await?
+                {
+                    eprintln!("✅ Contract {name:?} is up to date");
+                    return Ok(());
+                }
+                eprintln!("🔄 Updating contract {name:?}");
+            }
+
+            // Deploy new contract if we got here
+            let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            self.save_contract_alias(name, &contract_id, network)?;
+            contract_id
+        };
 
         // Run after_deploy script if in development or test environment
         if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
@@ -501,41 +526,6 @@ export default new Client.Client({{
             .await?;
 
         Ok(())
-    }
-
-    async fn get_or_deploy_contract(
-        &self,
-        name: &str,
-        settings: &env_toml::Contract,
-        network: &Network,
-    ) -> Result<Contract, Error> {
-        if let Some(id) = &settings.id {
-            return Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()));
-        }
-
-        let wasm_path = self.get_wasm_path(name);
-        if !wasm_path.exists() {
-            return Err(Error::BadContractName(name.to_string()));
-        }
-
-        let hash = self.upload_contract_wasm(name, &wasm_path).await?;
-
-        // Check existing alias
-        if let Some(contract_id) = self.get_contract_alias(name)? {
-            if self
-                .contract_hash_matches(&contract_id, &hash, network)
-                .await?
-            {
-                eprintln!("✅ Contract {name:?} is up to date");
-                return Ok(contract_id);
-            }
-            eprintln!("🔄 Updating contract {name:?}");
-        }
-
-        let contract_id = self.deploy_contract(name, &hash, settings).await?;
-        self.save_contract_alias(name, &contract_id, network)?;
-
-        Ok(contract_id)
     }
 
     async fn upload_contract_wasm(
