@@ -117,6 +117,12 @@ impl Command {
                 ))
             });
             cmd.package = Some(p.name.clone());
+            let contract_meta = vec![
+                ("wasm_name".to_string(), p.name.clone()),
+                ("author".to_string(), p.name.clone()), // TODO: This should be an address -- from where?
+                ("version".to_string(), p.version.to_string()),
+            ];
+            cmd.meta = contract_meta;
             cmd.run(&global_args)?;
         }
 
