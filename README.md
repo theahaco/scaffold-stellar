@@ -122,7 +122,7 @@ stellar-registry deploy \
   --help
 
 # Install the deployed contract locally
-stellar-registry install my-contract --out-dir ./contracts
+stellar-registry install my-contract
 ```
 
 ## Scaffold Initial Project Structure
