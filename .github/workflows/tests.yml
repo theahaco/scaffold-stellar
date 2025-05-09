@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     name: test RPC
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
         STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
         STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
@@ -31,14 +31,14 @@ jobs:
           --health-retries 50
     steps:
     - uses: actions/checkout@v3
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20'
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
     - uses: actions/cache@v3
       with:
         path: |
