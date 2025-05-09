@@ -32,7 +32,7 @@ The project consists of several main components:
   - Network configuration via `environments.toml`
 
 - **Coming soon: Smart Contract Registry**
-  - On-chain registration system for Wasm binaries
+  - On-chain publishing platform for Wasm binaries
   - Version management and contract naming
   - Contract verification and dependency management
 
