@@ -79,7 +79,7 @@ cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry
 
 2. Initialize a new project:
 ```bash
-stellar-scaffold init my-project
+stellar scaffold init my-project
 cd my-project
 ```
 
