@@ -94,11 +94,6 @@ npm install
 
 4. Start development environment:
 ```bash
-# Terminal 1: Start the development environment with hot reloading
-# This builds contracts and generates TypeScript clients
-stellar-scaffold dev --build-clients
-
-# Terminal 2: Start the frontend development server
 npm run dev
 ```
 
