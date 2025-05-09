@@ -107,11 +107,19 @@ npm run dev
 # First publish your contract to the registry
 stellar-registry publish
 
-# Then deploy an instance with initialization parameters
+# Then deploy an instance with constructor parameters
 stellar-registry deploy \
   --deployed-name my-contract \
   --published-name my-contract \
-  initialize --param1 value1
+  -- \
+  --param1 value1
+  
+Can access the help docs with --help
+stellar-registry deploy \
+  --deployed-name my-contract \
+  --published-name my-contract \
+  -- \
+  --help
 
 # Install the deployed contract locally
 stellar-registry install my-contract --out-dir ./contracts
