@@ -5,7 +5,7 @@ fn contracts_built() {
     let contracts = [
         "soroban_auth_contract",
         "soroban_custom_types_contract",
-        "hello_world",
+        "soroban_hello_world_contract",
         "soroban_increment_contract",
     ];
     TestEnv::from("soroban-init-boilerplate", |env| {
@@ -21,6 +21,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
+soroban_token_contract.client = false
 {}
 "#,
                 contracts
@@ -65,7 +66,7 @@ fn contracts_built_by_default() {
     let contracts = [
         "soroban_auth_contract",
         "soroban_custom_types_contract",
-        "hello_world",
+        "soroban_hello_world_contract",
         "soroban_increment_contract",
     ];
     TestEnv::from("soroban-init-boilerplate", |env| {
@@ -78,6 +79,9 @@ development.accounts = [
 [development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+soroban_token_contract.client = false
 
 "#,
         );
@@ -141,7 +145,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = true
+soroban_hello_world_contract.client = true
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
@@ -157,7 +161,7 @@ soroban_token_contract.client = false
         // ensure it imports
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("🍽️ importing \"hello_world\" contract"));
+            .contains("🍽️ importing \"soroban_hello_world_contract\" contract"));
 
         let output2 = env
             .stellar_scaffold_env("development", false)
@@ -167,7 +171,7 @@ soroban_token_contract.client = false
         // ensure alias retrieval works
         assert!(output2.status.success());
         assert!(String::from_utf8_lossy(&output2.stderr)
-            .contains("✅ Contract \"hello_world\" is up to date"));
+            .contains("✅ Contract \"soroban_hello_world_contract\" is up to date"));
 
         let output3 = env
             .stellar_scaffold_env("development", true)
@@ -177,7 +181,7 @@ soroban_token_contract.client = false
         // ensure contract hash change check works, should update in dev mode
         assert!(output3.status.success());
         let message = String::from_utf8_lossy(&output3.stderr);
-        assert!(message.contains("🔄 Updating contract \"hello_world\""));
+        assert!(message.contains("🔄 Updating contract \"soroban_hello_world_contract\""));
         let Some(contract_id) = extract_contract_id(&message) else {
             panic!("Could not find contract ID in stderr");
         };
@@ -192,7 +196,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [production.contracts]
-hello_world.id = "{contract_id}"
+soroban_hello_world_contract.id = "{contract_id}"
 "#
         ));
 
@@ -210,7 +214,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [production.contracts]
-hello_world.client = true
+soroban_hello_world_contract.client = true
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
@@ -256,7 +260,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = true
+soroban_hello_world_contract.client = true
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
@@ -269,10 +273,10 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("installing \"hello_world\" wasm bytecode on-chain"));
-    assert!(stderr.contains("instantiating \"hello_world\" smart contract"));
+    assert!(stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
+    assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
     assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("binding \"hello_world\" contract"));
+    assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
 
     // Switch to a new directory
 
@@ -290,7 +294,7 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = true
+soroban_hello_world_contract.client = true
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
@@ -304,11 +308,17 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("installing \"hello_world\" wasm bytecode on-chain"));
-    assert!(stderr.contains("instantiating \"hello_world\" smart contract"));
+    assert!(stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
+    assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
     assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("binding \"hello_world\" contract"));
+    assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
     // Check that the contract files are created in the new directory
-    assert!(env.cwd.join("packages/hello_world").exists());
-    assert!(env.cwd.join("src/contracts/hello_world.ts").exists());
+    assert!(env
+        .cwd
+        .join("packages/soroban_hello_world_contract")
+        .exists());
+    assert!(env
+        .cwd
+        .join("src/contracts/soroban_hello_world_contract.ts")
+        .exists());
 }

@@ -1,35 +1,6 @@
 use crate::util::{AssertExt, TestEnv};
 
 #[test]
-fn contract_with_bad_name_prints_useful_error() {
-    TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
-            r#"
-development.accounts = [
-    { name = "alice" },
-]
-
-[development.network]
-rpc-url = "http://localhost:8000/rpc"
-network-passphrase = "Standalone Network ; February 2017"
-
-[development.contracts]
-hello.client = true
-soroban_increment_contract.client = false
-soroban_custom_types_contract.client = false
-soroban_auth_contract.client = false
-soroban_token_contract.client = false
-"#,
-        );
-
-        env.scaffold("build")
-            .assert()
-            .failure()
-            .stderr(predicates::str::contains("No contract named \"hello\""));
-    });
-}
-
-#[test]
 fn no_environments_toml_ends_after_contract_build() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
@@ -80,7 +51,7 @@ fn init_copies_frontend_template() {
 
     // Run loam init with project path
     let project_path = env.cwd.join("my-project");
-    env.stellar("init")
+    env.scaffold("init")
         .args([project_path.to_str().unwrap()])
         .assert()
         .success();

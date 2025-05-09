@@ -15,8 +15,6 @@ use crate::commands::build::{self, env_toml};
 use super::build::clients::ScaffoldEnv;
 use super::build::env_toml::ENV_FILE;
 
-pub mod docker;
-
 pub enum Message {
     FileChanged,
 }
@@ -25,7 +23,7 @@ pub enum Message {
 #[group(skip)]
 pub struct Cmd {
     #[command(flatten)]
-    pub build_cmd: build::Cmd,
+    pub build_cmd: build::Command,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -40,6 +38,8 @@ pub enum Error {
     Env(#[from] env_toml::Error),
     #[error("Failed to start docker container")]
     DockerStart,
+    #[error(transparent)]
+    Manifest(#[from] cargo_metadata::Error),
 }
 
 fn canonicalize_path(path: &Path) -> PathBuf {
@@ -137,30 +137,25 @@ impl Cmd {
     pub async fn run(&mut self) -> Result<(), Error> {
         let (tx, mut rx) = mpsc::channel::<Message>(100);
         let rebuild_state = Arc::new(Mutex::new(false));
-        let workspace_root: &Path = self
-            .build_cmd
-            .manifest_path
-            .parent()
-            .unwrap_or_else(|| Path::new("."));
-        let env_toml_dir = workspace_root;
-        let Some(current_env) =
-            env_toml::Environment::get(workspace_root, &ScaffoldEnv::Development.to_string())?
-        else {
+        let metadata = &self.build_cmd.metadata()?;
+        let env_toml_dir = metadata.workspace_root.as_std_path();
+        if env_toml::Environment::get(env_toml_dir, &ScaffoldEnv::Development.to_string())?
+            .is_none()
+        {
             return Ok(());
-        };
-        if current_env.network.run_locally {
-            eprintln!("Starting local Stellar Docker container...");
-            docker::start_local_stellar().await.map_err(|e| {
-                eprintln!("Failed to start Stellar Docker container: {e:?}");
-                Error::DockerStart
-            })?;
-            eprintln!("Local Stellar network is healthy and running.");
         }
         let packages = self
             .build_cmd
-            .list_packages()?
+            .list_packages(metadata)?
             .into_iter()
-            .map(|package| PathBuf::from(package.manifest_path.parent().unwrap().as_str()))
+            .map(|package| {
+                package
+                    .manifest_path
+                    .parent()
+                    .unwrap()
+                    .to_path_buf()
+                    .into_std_path_buf()
+            })
             .collect::<Vec<_>>();
 
         let watcher = Watcher::new(env_toml_dir, &packages);
@@ -211,7 +206,10 @@ impl Cmd {
         Ok(())
     }
 
-    async fn debounced_rebuild(build_command: Arc<build::Cmd>, rebuild_state: Arc<Mutex<bool>>) {
+    async fn debounced_rebuild(
+        build_command: Arc<build::Command>,
+        rebuild_state: Arc<Mutex<bool>>,
+    ) {
         // Debounce to avoid multiple rapid rebuilds
         time::sleep(std::time::Duration::from_secs(1)).await;
 
@@ -225,7 +223,7 @@ impl Cmd {
         *state = false;
     }
 
-    fn cloned_build_command(&mut self) -> Arc<build::Cmd> {
+    fn cloned_build_command(&mut self) -> Arc<build::Command> {
         self.build_cmd
             .build_clients_args
             .env

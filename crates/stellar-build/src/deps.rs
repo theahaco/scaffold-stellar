@@ -29,13 +29,13 @@ use topological_sort::TopologicalSort;
 /// - There's an issue executing the metadata command.
 /// - Any other error occurs during the metadata retrieval process.
 pub fn get_target_dir(manifest_path: &Path) -> Result<PathBuf, cargo_metadata::Error> {
-    Ok(cargo_metadata::MetadataCommand::new()
-        .manifest_path(manifest_path)
-        .exec()?
-        .target_directory
-        .to_path_buf()
-        .into_std_path_buf()
-        .join("stellar"))
+    Ok(stellar_wasm_out_dir(
+        cargo_metadata::MetadataCommand::new()
+            .manifest_path(manifest_path)
+            .exec()?
+            .target_directory
+            .as_std_path(),
+    ))
 }
 
 pub trait PackageExt {
@@ -140,10 +140,16 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
 }
 
 #[must_use]
-pub fn out_dir(target_dir: &Path, name: &str) -> PathBuf {
-    target_dir.join("stellar").join(name.replace('-', "_"))
+pub fn stellar_wasm_out_dir(target_dir: &Path) -> PathBuf {
+    target_dir.join("stellar")
 }
 
+#[must_use]
+pub fn stellar_wasm_out_file(target_dir: &Path, name: &str) -> PathBuf {
+    stellar_wasm_out_dir(target_dir)
+        .join(name.replace('-', "_"))
+        .with_extension("wasm")
+}
 // /// Retrieves a list of source and output paths for dependencies of a specified kind.
 // ///
 // /// # Arguments
@@ -258,7 +264,7 @@ mod tests {
     fn test_get_soroban_deps() {
         let pwd = std::env::current_dir().unwrap();
         println!("{pwd:?}");
-        let manifest_path = pwd.join("../../test/normal/Cargo.toml");
+        let manifest_path = pwd.join("../stellar-scaffold-cli/tests/fixtures/soroban-init-boilerplate/contracts/hello_world/Cargo.toml");
         let mut c = cargo_metadata::MetadataCommand::new();
         c.manifest_path(&manifest_path);
         let metadata = c.exec().unwrap();

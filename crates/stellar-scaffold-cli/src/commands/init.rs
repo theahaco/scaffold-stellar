@@ -1,11 +1,12 @@
 use clap::Parser;
-use soroban_cli::commands::contract::init as soroban_init;
+use stellar_cli::commands::contract::init as soroban_init;
 use std::{
     fs::{read_dir, rename},
     io,
     path::{Path, PathBuf},
     process::Command,
 };
+use stellar_cli::commands::contract::init as soroban_init;
 use tempfile::TempDir;
 use toml_edit::TomlError;
 
@@ -58,7 +59,7 @@ impl Cmd {
             overwrite: true,
             frontend_template: None,
         }
-        .run(&soroban_cli::commands::global::Args::default())?;
+        .run(&stellar_cli::commands::global::Args::default())?;
 
         // Clone frontend template
         let fe_template_dir = tempfile::tempdir().map_err(|e| {

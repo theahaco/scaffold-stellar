@@ -6,10 +6,8 @@ use std::env;
 use quote::quote;
 
 pub(crate) fn manifest() -> std::path::PathBuf {
-    std::path::PathBuf::from(
-        env::var("CARGO_MANIFEST_DIR").expect("failed to finde cargo manifest"),
-    )
-    .join("Cargo.toml")
+    std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("failed to find cargo manifest"))
+        .join("Cargo.toml")
 }
 
 /// Generates a contract Client for a given contract.
@@ -32,11 +30,10 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
     dir.set_extension("wasm");
     let binding = dir.canonicalize().unwrap();
     let file = binding.to_str().unwrap();
-    if std::path::PathBuf::from(file).exists() {
-        // If the file exists, we can use it
-    } else {
-        panic!("The file does not exist: {file}");
-    }
+    assert!(
+        std::path::PathBuf::from(file).exists(),
+        "The file does not exist: {file}"
+    );
     quote! {
         pub(crate) mod #name {
             #![allow(clippy::ref_option, clippy::too_many_arguments)]

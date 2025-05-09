@@ -4,12 +4,12 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
-use soroban_cli::commands::{global, NetworkRunnable};
-use soroban_cli::utils::contract_hash;
-use soroban_cli::{commands as cli, CommandParser};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
+use stellar_cli::commands::NetworkRunnable;
+use stellar_cli::utils::contract_hash;
+use stellar_cli::{commands as cli, CommandParser};
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::Error as xdrError;
 
@@ -68,9 +68,9 @@ pub enum Error {
     #[error(transparent)]
     ContractFetch(#[from] cli::contract::fetch::Error),
     #[error(transparent)]
-    ConfigLocator(#[from] soroban_cli::config::locator::Error),
+    ConfigLocator(#[from] stellar_cli::config::locator::Error),
     #[error(transparent)]
-    ConfigNetwork(#[from] soroban_cli::config::network::Error),
+    ConfigNetwork(#[from] stellar_cli::config::network::Error),
     #[error(transparent)]
     ContractInvoke(#[from] cli::contract::invoke::Error),
     #[error(transparent)]
@@ -102,7 +102,7 @@ impl Args {
         Self::add_network_to_env(&current_env.network)?;
         // Create the '.stellar' directory if it doesn't exist - for saving contract aliases and account aliases
         std::fs::create_dir_all(workspace_root.join(".stellar"))
-            .map_err(soroban_cli::config::locator::Error::Io)?;
+            .map_err(stellar_cli::config::locator::Error::Io)?;
         Self::handle_accounts(current_env.accounts.as_deref()).await?;
         self.handle_contracts(
             workspace_root,
@@ -130,17 +130,17 @@ impl Args {
             Network {
                 name: Some(name), ..
             } => {
-                let soroban_cli::config::network::Network {
+                let stellar_cli::config::network::Network {
                     rpc_url,
                     network_passphrase,
                     ..
-                } = (soroban_cli::config::network::Args {
+                } = (stellar_cli::config::network::Args {
                     network: Some(name.clone()),
                     rpc_url: None,
                     network_passphrase: None,
                     rpc_headers: Vec::new(),
                 })
-                .get(&soroban_cli::config::locator::Args {
+                .get(&stellar_cli::config::locator::Args {
                     global: false,
                     config_dir: None,
                 })?;
@@ -163,8 +163,8 @@ impl Args {
         Ok(())
     }
 
-    fn get_network_args(network: &Network) -> soroban_cli::config::network::Args {
-        soroban_cli::config::network::Args {
+    fn get_network_args(network: &Network) -> stellar_cli::config::network::Args {
+        stellar_cli::config::network::Args {
             rpc_url: network.rpc_url.clone(),
             network_passphrase: network.network_passphrase.clone(),
             network: network.name.clone(),
@@ -172,8 +172,8 @@ impl Args {
         }
     }
 
-    fn get_config_locator(workspace_root: &std::path::Path) -> soroban_cli::config::locator::Args {
-        soroban_cli::config::locator::Args {
+    fn get_config_locator(workspace_root: &std::path::Path) -> stellar_cli::config::locator::Args {
+        stellar_cli::config::locator::Args {
             global: false,
             config_dir: Some(workspace_root.to_path_buf()),
         }
@@ -182,7 +182,7 @@ impl Args {
     fn get_contract_alias(
         name: &str,
         workspace_root: &std::path::Path,
-    ) -> Result<Option<Contract>, soroban_cli::config::locator::Error> {
+    ) -> Result<Option<Contract>, stellar_cli::config::locator::Error> {
         let config_dir = Self::get_config_locator(workspace_root);
         let network_passphrase = std::env::var("STELLAR_NETWORK_PASSPHRASE")
             .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
@@ -197,7 +197,7 @@ impl Args {
         workspace_root: &std::path::Path,
     ) -> Result<bool, Error> {
         let result = cli::contract::fetch::Cmd {
-            contract_id: soroban_cli::config::UnresolvedContract::Resolved(*contract_id),
+            contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
             out_file: None,
             locator: Self::get_config_locator(workspace_root),
             network: Self::get_network_args(network),
@@ -225,7 +225,7 @@ impl Args {
         contract_id: &Contract,
         network: &Network,
         workspace_root: &std::path::Path,
-    ) -> Result<(), soroban_cli::config::locator::Error> {
+    ) -> Result<(), stellar_cli::config::locator::Error> {
         let config_dir = Self::get_config_locator(workspace_root);
         let passphrase = network
             .network_passphrase
@@ -262,14 +262,6 @@ export default new Client.Client({{
         let path = workspace_root.join(format!("src/contracts/{name}.ts"));
         std::fs::write(path, template)?;
         Ok(())
-    }
-
-    async fn account_exists(account_name: &str) -> Result<bool, Error> {
-        // TODO: this is a workaround until generate is changed to not overwrite accounts
-        Ok(cli::keys::fund::Cmd::parse_arg_vec(&[account_name])?
-            .run(&global::Args::default())
-            .await
-            .is_ok())
     }
 
     async fn generate_contract_bindings(
@@ -346,17 +338,19 @@ export default new Client.Client({{
         };
 
         for account in accounts {
-            if Self::account_exists(&account.name).await? {
-                eprintln!(
-                    "ℹ️ account {:?} already exists, skipping key creation",
-                    account.name
-                );
-            } else {
-                eprintln!("🔐 creating keys for {:?}", account.name);
-                cli::keys::generate::Cmd::parse_arg_vec(&[&account.name])?
-                    .run(&soroban_cli::commands::global::Args::default())
-                    .await?;
-            }
+            eprintln!("🔐 creating keys for {:?}", account.name);
+            cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
+                .run(&stellar_cli::commands::global::Args::default())
+                .await
+                .or_else(|e| {
+                    if e.to_string().contains("already exists") {
+                        // ignore "already exists" errors
+                        eprintln!("{e}");
+                        Ok(())
+                    } else {
+                        Err(e)
+                    }
+                })?;
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);

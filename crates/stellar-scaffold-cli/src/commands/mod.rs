@@ -58,7 +58,7 @@ pub enum Cmd {
     Init(init::Cmd),
 
     /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
-    Build(build::Cmd),
+    Build(build::Command),
 
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
