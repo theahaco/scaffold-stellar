@@ -147,6 +147,17 @@ impl TestEnv {
         stellar_scaffold
     }
 
+    pub fn stellar_scaffold_custom_dir(&self, cmd: &str, additional_args: &[&str], dir: &PathBuf) -> Command {
+        let bin = Self::cargo_bin_stellar_scaffold();
+        let mut stellar_scaffold = Command::new(bin);
+        stellar_scaffold.current_dir(dir);
+        stellar_scaffold.arg(cmd);
+        for arg in additional_args {
+            stellar_scaffold.arg(arg);
+        }
+        stellar_scaffold
+    }
+
     pub fn scaffold(&self, cmd: &str) -> Command {
         if cmd == "build" {
             self.scaffold_build("development", true)
