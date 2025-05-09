@@ -71,9 +71,9 @@ cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry
 1. Install the required CLI tools:
 ```bash
 # Install scaffold-stellar CLI
-cargo install --git https://github.com/ahalabs/scaffold-stellar scaffold-stellar-cli
+cargo install scaffold-stellar-cli
 
-# Install registry CLI (needed for deployments)
+# Install registry CLI (needed for deployments; still pre-release)
 cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
 ```
 
