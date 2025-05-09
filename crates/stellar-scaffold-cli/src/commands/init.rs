@@ -1,11 +1,11 @@
 use clap::Parser;
-use stellar_cli::commands::contract::init as soroban_init;
 use std::{
     fs::{read_dir, rename},
     io,
     path::{Path, PathBuf},
     process::Command,
 };
+use stellar_cli::commands::contract::init as soroban_init;
 use tempfile::TempDir;
 use toml_edit::TomlError;
 
