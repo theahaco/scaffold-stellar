@@ -6,7 +6,6 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-use stellar_cli::commands::contract::init as soroban_init;
 use tempfile::TempDir;
 use toml_edit::TomlError;
 
