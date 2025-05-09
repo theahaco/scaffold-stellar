@@ -154,7 +154,7 @@ soroban_token_contract.client = false
         );
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .stellar_scaffold_env("development", false)
             .output()
             .expect("Failed to execute command");
 

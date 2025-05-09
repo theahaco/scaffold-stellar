@@ -294,30 +294,30 @@ export default new Client.Client({{
 
         // Run `npm i` in the output directory
         eprintln!("🔧 running 'npm install' in {output_dir:?}");
-        let status = tokio::process::Command::new("npm")
+        let status = std::process::Command::new("npm")
             .current_dir(&output_dir)
-            .arg("i")
-            .output()
-            .await?;
-        if !status.status.success() {
+            .arg("install")
+            .spawn()?
+            .wait()?;
+        if !status.success() {
             return Err(Error::NpmCommandFailure(
                 output_dir.clone(),
-                String::from_utf8_lossy(&status.stderr).to_string(),
+                format!("npm install failed with status: {:?}", status.code()),
             ));
         }
         eprintln!("✅ 'npm install' succeeded in {output_dir:?}");
 
         eprintln!("🔨 running 'npm run build' in {output_dir:?}");
-        let status = tokio::process::Command::new("npm")
+        let status = std::process::Command::new("npm")
             .current_dir(&output_dir)
             .arg("run")
             .arg("build")
-            .output()
-            .await?;
-        if !status.status.success() {
+            .spawn()?
+            .wait()?;
+        if !status.success() {
             return Err(Error::NpmCommandFailure(
                 output_dir.clone(),
-                String::from_utf8_lossy(&status.stderr).to_string(),
+                format!("npm run build failed with status: {:?}", status.code()),
             ));
         }
         eprintln!("✅ 'npm run build' succeeded in {output_dir:?}");

@@ -1,5 +1,4 @@
 use crate::util::{find_binary, TestEnv};
-use std::fs;
 
 #[test]
 fn build_command_runs_init() {

@@ -73,6 +73,7 @@ assert_cmd = "2.0.4"
 assert_fs = "1.0.7"
 predicates = "3.1.0"
 walkdir = "2.3"
+uuid = { features = ["v4",], version = "1.16.0" }
 
 
 [features]

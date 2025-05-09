@@ -107,7 +107,7 @@ impl From<AccountRepresentation> for Account {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Contract {
     #[serde(default = "default_client", skip_serializing_if = "std::ops::Not::not")]
     pub client: bool,
@@ -120,6 +120,17 @@ pub struct Contract {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub constructor_args: Option<String>,
+}
+
+impl Default for Contract {
+    fn default() -> Self {
+        Self {
+            client: default_client(),
+            after_deploy: None,
+            id: None,
+            constructor_args: None,
+        }
+    }
 }
 
 fn default_client() -> bool {
