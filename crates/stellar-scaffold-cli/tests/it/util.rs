@@ -120,14 +120,14 @@ impl TestEnv {
         stellar_scaffold.arg("build");
         stellar_scaffold.arg(env);
         stellar_scaffold.arg("--build-clients");
-        
+
         if randomize_wasm {
             // Add a random meta key-value pair to make the WASM unique
             let random_value = uuid::Uuid::new_v4().to_string();
             stellar_scaffold.arg("--meta");
             stellar_scaffold.arg(format!("random_test={}", random_value));
         }
-        
+
         stellar_scaffold
     }
 
