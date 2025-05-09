@@ -4,15 +4,15 @@ CLI toolkit for Stellar smart contract development, providing project scaffoldin
 
 Stellar Scaffold CLI comes with three main commands:
 
-* `stellar-scaffold init` - Creates a new Stellar smart contract project with best practices and configurations in place, including an `environments.toml` file for managing network settings, accounts, and contracts across different environments.
+* `stellar scaffold init` - Creates a new Stellar smart contract project with best practices and configurations in place, including an `environments.toml` file for managing network settings, accounts, and contracts across different environments.
 
-* `stellar-scaffold build` - Manages two key build processes:
+* `stellar scaffold build` - Manages two key build processes:
   * Build smart contracts and handle dependencies
   * Generate TypeScript client packages for frontend integration
   
   The build process respects environment configurations from `environments.toml` and handles contract deployment states based on the current environment (controlled via `STELLAR_SCAFFOLD_ENV`).
 
-* `stellar-scaffold dev` - Development mode that monitors contract source files and `environments.toml` for changes, automatically rebuilding as needed. Defaults to using the `development` environment.
+* `stellar scaffold dev` - Development mode that monitors contract source files and `environments.toml` for changes, automatically rebuilding as needed. Defaults to using the `development` environment.
 
 ## Getting Started
 
@@ -23,7 +23,7 @@ cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-scaffold
 
 2. Create a new project:
 ```bash
-stellar-scaffold init my-project
+stellar scaffold init my-project
 cd my-project
 ```
 
@@ -39,7 +39,7 @@ cp .env.example .env
 
 4. Start development:
 ```bash
-stellar-scaffold dev --build-clients
+stellar scaffold dev --build-clients
 ```
 
 ## Environment Configuration
@@ -67,7 +67,7 @@ network = {
 
 ## Build Process Details
 
-`stellar-scaffold build` and `stellar-scaffold dev` manage:
+`stellar scaffold build` and `stellar scaffold dev` manage:
 
 1. Smart contract compilation and deployment based on environment
 2. TypeScript client package generation for frontend integration

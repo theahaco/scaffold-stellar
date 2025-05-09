@@ -60,10 +60,10 @@ To install the executables directly:
 
 ```bash
 # Install stellar-scaffold-cli
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-scaffold-cli
+cargo install stellar-scaffold-cli
 
 # Install stellar-registry-cli
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
+cargo install stellar-registry-cli
 ```
 
 ## Quick Start
@@ -103,26 +103,26 @@ npm run dev
 stellar registry publish
 
 # Then deploy an instance with constructor parameters
-stellar-registry deploy \
+stellar registry deploy \
   --deployed-name my-contract \
   --published-name my-contract \
   -- \
   --param1 value1
   
-Can access the help docs with --help
-stellar-registry deploy \
+# Can access the help docs with --help
+stellar registry deploy \
   --deployed-name my-contract \
   --published-name my-contract \
   -- \
   --help
 
 # Install the deployed contract locally
-stellar-registry install my-contract
+stellar registry install my-contract
 ```
 
 ## Scaffold Initial Project Structure
 
-When you run `stellar-scaffold init`, it creates a frontend-focused project structure with example contracts:
+When you run `stellar scaffold init`, it creates a frontend-focused project structure with example contracts:
 
 ```
 my-project/                      # Your initialized project

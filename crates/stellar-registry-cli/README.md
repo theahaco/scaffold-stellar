@@ -17,7 +17,7 @@ cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry
 Deploy a published contract with optional initialization parameters:
 
 ```bash
-stellar-registry deploy \
+stellar registry deploy \
   --deployed-name <NAME> \
   --published-name <CONTRACT> \
   [CONTRACT_FN_AND_ARGS...]
@@ -33,7 +33,7 @@ Options:
 Install a deployed contract's Wasm and contract ID locally:
 
 ```bash
-stellar-registry install <DEPLOYED_NAME> \
+stellar registry install <DEPLOYED_NAME> \
   --out-dir <PATH>
 ```
 
@@ -55,7 +55,7 @@ The CLI can be configured through environment variables:
 
 1. Deploy a token contract:
 ```bash
-stellar-registry deploy \
+stellar registry deploy \
   --deployed-name my-token \
   --published-name token \
   initialize \
@@ -66,7 +66,7 @@ stellar-registry deploy \
 
 2. Install the deployed contract:
 ```bash
-stellar-registry install my-token \
+stellar registry install my-token \
   --out-dir ./contracts/my-token
 ```
 

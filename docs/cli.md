@@ -7,7 +7,7 @@ Scaffold Stellar provides several CLI commands to help manage your Stellar smart
 Initialize a new Scaffold Stellar project:
 
 ```bash
-stellar-scaffold init <project-path> [name]
+stellar scaffold init <project-path> [name]
 ```
 
 Options:
@@ -24,7 +24,7 @@ The init command creates:
 Build contracts and generate frontend client packages:
 
 ```bash
-stellar-scaffold build [options]
+stellar scaffold build [options]
 ```
 
 Options:
@@ -37,7 +37,7 @@ Options:
 Start development mode with hot reloading:
 
 ```bash
-stellar-scaffold dev [options]
+stellar scaffold dev [options]
 ```
 
 Options:
@@ -49,7 +49,7 @@ Options:
 Update environment variables in the .env file:
 
 ```bash
-stellar-scaffold update-env --name <var-name> [options]
+stellar scaffold update-env --name <var-name> [options]
 ```
 
 Options:
