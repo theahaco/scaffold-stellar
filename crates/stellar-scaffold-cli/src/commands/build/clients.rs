@@ -294,30 +294,40 @@ export default new Client.Client({{
 
         // Run `npm i` in the output directory
         eprintln!("🔧 running 'npm install' in {output_dir:?}");
-        let status = std::process::Command::new("npm")
+        let output = std::process::Command::new("npm")
             .current_dir(&output_dir)
             .arg("install")
-            .spawn()?
-            .wait()?;
-        if !status.success() {
+            .arg("--loglevel=error") // Reduce noise from warnings
+            .output()?;
+
+        if !output.status.success() {
             return Err(Error::NpmCommandFailure(
                 output_dir.clone(),
-                format!("npm install failed with status: {:?}", status.code()),
+                format!(
+                    "npm install failed with status: {:?}\nError: {}",
+                    output.status.code(),
+                    String::from_utf8_lossy(&output.stderr)
+                ),
             ));
         }
         eprintln!("✅ 'npm install' succeeded in {output_dir:?}");
 
         eprintln!("🔨 running 'npm run build' in {output_dir:?}");
-        let status = std::process::Command::new("npm")
+        let output = std::process::Command::new("npm")
             .current_dir(&output_dir)
             .arg("run")
             .arg("build")
-            .spawn()?
-            .wait()?;
-        if !status.success() {
+            .arg("--loglevel=error") // Reduce noise from warnings
+            .output()?;
+
+        if !output.status.success() {
             return Err(Error::NpmCommandFailure(
                 output_dir.clone(),
-                format!("npm run build failed with status: {:?}", status.code()),
+                format!(
+                    "npm run build failed with status: {:?}\nError: {}",
+                    output.status.code(),
+                    String::from_utf8_lossy(&output.stderr)
+                ),
             ));
         }
         eprintln!("✅ 'npm run build' succeeded in {output_dir:?}");

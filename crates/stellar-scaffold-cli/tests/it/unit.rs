@@ -34,7 +34,11 @@ soroban_token_contract.client = false
         );
 
         let stderr = env
-            .stellar_scaffold_custom_dir("build", &["--manifest-path", "./soroban-init-boilerplate/Cargo.toml"], &env.cwd.join(".."))
+            .stellar_scaffold_custom_dir(
+                "build",
+                &["--manifest-path", "./soroban-init-boilerplate/Cargo.toml"],
+                &env.cwd.join(".."),
+            )
             .assert()
             .success()
             .stderr_as_str();
