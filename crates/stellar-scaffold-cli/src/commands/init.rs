@@ -1,5 +1,4 @@
 use clap::Parser;
-use stellar_cli::commands::contract::init as soroban_init;
 use std::{
     fs::{read_dir, rename},
     io,
