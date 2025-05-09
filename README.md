@@ -105,7 +105,7 @@ npm run dev
 5. For testnet/mainnet deployment:
 ```bash
 # First publish your contract to the registry
-stellar-registry publish
+stellar registry publish
 
 # Then deploy an instance with constructor parameters
 stellar-registry deploy \
