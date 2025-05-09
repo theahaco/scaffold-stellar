@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::{
-    fs::{read_dir, rename},
+    fs::read_dir,
     io,
     path::{Path, PathBuf},
     process::Command,
@@ -68,18 +68,8 @@ impl Cmd {
 
         clone_repo(FRONTEND_TEMPLATE, fe_template_dir.path())?;
         copy_frontend_files(&fe_template_dir, &self.project_path)?;
-
-        rename_cargo_toml_remove(&self.project_path, "status_message")?;
         Ok(())
     }
-}
-
-fn rename_cargo_toml_remove(project: &Path, name: &str) -> Result<(), Error> {
-    let from = project.join(format!("contracts/{name}/Cargo.toml.remove"));
-    let to = from.with_extension("");
-    println!("Renaming to {from:?} to {to:?}");
-    rename(from, to)?;
-    Ok(())
 }
 
 fn clone_repo(repo_url: &str, dest: &Path) -> Result<(), Error> {
