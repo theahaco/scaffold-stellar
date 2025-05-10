@@ -298,7 +298,7 @@ export default new Client.Client({{
             .current_dir(&output_dir)
             .arg("install")
             .arg("--loglevel=error") // Reduce noise from warnings
-            .arg("--no-workspaces")  // fix issue where stellar sometimes isnt installed locally causing tsc to fail
+            .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
             .output()?;
 
         if !output.status.success() {
