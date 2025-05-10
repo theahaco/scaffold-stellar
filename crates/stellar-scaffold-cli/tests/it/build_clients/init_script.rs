@@ -220,14 +220,16 @@ soroban_auth_contract.client = false
 
 [development.contracts.soroban_token_contract]
 client = true
-init = """
-STELLAR_ACCOUNT=bob initialize --symbol ABND --decimal 7 --name abundance --admin bob 
+constructor_args = """
+STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bob 
+"""
+after_deploy = """
 STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob 
 """
 
 [development.contracts.soroban_custom_types_contract]
 client = true
-init = """
+after_deploy = """
 test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
 """
 "#));
