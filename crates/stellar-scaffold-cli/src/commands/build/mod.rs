@@ -117,11 +117,17 @@ impl Command {
                 ))
             });
             cmd.package = Some(p.name.clone());
-            let contract_meta = vec![
+            let mut contract_meta = vec![
                 ("wasm_name".to_string(), p.name.clone()),
                 ("author".to_string(), p.name.clone()), // TODO: This should be an address -- from where?
                 ("version".to_string(), p.version.to_string()),
             ];
+            if p.repository.is_some() {
+                contract_meta.push((
+                    "source_repo".to_string(),
+                    p.repository.clone().unwrap(),
+                ));
+            }
             cmd.meta = contract_meta;
             cmd.run(&global_args)?;
         }
