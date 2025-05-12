@@ -20,7 +20,7 @@ soroban_token_contract.client = false
 "#);
 
         let stderr = env
-            .scaffold_build("development", false)
+            .scaffold_build("development", true)
             .assert()
             .success()
             .stderr_as_str();
@@ -31,7 +31,7 @@ soroban_token_contract.client = false
 
         // check that they dont get overwritten if build is run again
         let stderr = env
-            .scaffold_build("development", false)
+            .scaffold_build("development", true)
             .assert()
             .success()
             .stderr_as_str();
