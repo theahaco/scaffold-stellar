@@ -37,7 +37,6 @@ soroban_token_contract.client = false
             .stellar_scaffold_custom_dir(
                 "build",
                 &["--manifest-path", "./soroban-init-boilerplate/Cargo.toml"],
-                &env.cwd.join(".."),
             )
             .assert()
             .success()

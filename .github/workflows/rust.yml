@@ -34,6 +34,6 @@ jobs:
       - name: build since clippy needs contracts to be built
         run: just build
       - name: Run cargo clippy
-        run: cargo clippy --all
+        run: cargo clippy --all --tests
       - name: Unit Tests
         run: just test

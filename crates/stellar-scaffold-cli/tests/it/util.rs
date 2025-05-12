@@ -125,7 +125,7 @@ impl TestEnv {
             // Add a random meta key-value pair to make the WASM unique
             let random_value = uuid::Uuid::new_v4().to_string();
             stellar_scaffold.arg("--meta");
-            stellar_scaffold.arg(format!("random_test={}", random_value));
+            stellar_scaffold.arg(format!("random_test={random_value}"));
         }
 
         stellar_scaffold
@@ -147,12 +147,8 @@ impl TestEnv {
         stellar_scaffold
     }
 
-    pub fn stellar_scaffold_custom_dir(
-        &self,
-        cmd: &str,
-        additional_args: &[&str],
-        dir: &PathBuf,
-    ) -> Command {
+    pub fn stellar_scaffold_custom_dir(&self, cmd: &str, additional_args: &[&str]) -> Command {
+        let dir = self.cwd.join("..");
         let bin = Self::cargo_bin_stellar_scaffold();
         let mut stellar_scaffold = Command::new(bin);
         stellar_scaffold.current_dir(dir);
