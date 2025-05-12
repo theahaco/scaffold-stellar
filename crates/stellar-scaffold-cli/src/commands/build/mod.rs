@@ -119,7 +119,6 @@ impl Command {
             cmd.package = Some(p.name.clone());
             let mut contract_meta = vec![
                 ("wasm_name".to_string(), p.name.clone()),
-                ("author".to_string(), p.name.clone()), // TODO: This should be an address -- from where?
                 ("version".to_string(), p.version.to_string()),
             ];
             if p.repository.is_some() {
