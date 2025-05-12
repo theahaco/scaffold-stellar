@@ -34,7 +34,7 @@ clap = { version = "4.1.8", features = [
     "deprecated",
     "string",
 ] }
-
+degit = "0.1.3"
 cargo_metadata = { workspace = true }
 sha2 = { workspace = true }
 
