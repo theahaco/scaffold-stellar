@@ -1,4 +1,4 @@
-# loam-cli
+# stellar-scaffold-cli
 
 An npm installation for [loam](https://github.com/ahalabs/scaffold-stellar).
 
