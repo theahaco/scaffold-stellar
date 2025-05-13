@@ -1,7 +1,6 @@
 use clap::Parser;
-use rust_embed::{EmbeddedFile, RustEmbed};
 use std::{
-    fs::{self, create_dir_all, metadata, write, Metadata},
+    fs::read_dir,
     io,
     path::{Path, PathBuf},
     process::Command,
@@ -11,10 +10,6 @@ use tempfile::TempDir;
 use toml_edit::TomlError;
 
 const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
-
-#[derive(RustEmbed)]
-#[folder = "./src/examples/soroban/status_message"]
-struct ExampleStatusMessage;
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -73,74 +68,8 @@ impl Cmd {
 
         clone_repo(FRONTEND_TEMPLATE, fe_template_dir.path())?;
         copy_frontend_files(&fe_template_dir, &self.project_path)?;
-
-        copy_example_contracts(&self.project_path)?;
-        rename_cargo_toml_remove(&self.project_path, "status_message")?;
         Ok(())
     }
-}
-
-fn copy_example_contracts(to: &Path) -> Result<(), Error> {
-    for item in ExampleStatusMessage::iter() {
-        copy_file(
-            &to.join("contracts/status_message"),
-            item.as_ref(),
-            ExampleStatusMessage::get(&item),
-        )?;
-    }
-
-    Ok(())
-}
-
-fn copy_file(
-    example_path: &Path,
-    filename: &str,
-    embedded_file: Option<EmbeddedFile>,
-) -> Result<(), Error> {
-    let to = example_path.join(filename);
-    if file_exists(&to) {
-        println!(
-            "ℹ️  Skipped creating {} as it already exists",
-            &to.to_string_lossy()
-        );
-        return Ok(());
-    }
-    create_dir_all(to.parent().expect("invalid path")).map_err(|e| {
-        eprintln!("Error creating directory path for: {to:?}");
-        e
-    })?;
-
-    let Some(embedded_file) = embedded_file else {
-        println!("⚠️  Failed to read file: {filename}");
-        return Ok(());
-    };
-
-    let file_contents = std::str::from_utf8(embedded_file.data.as_ref()).map_err(|e| {
-        eprintln!("Error converting file contents in {filename:?} to string",);
-        e
-    })?;
-
-    println!("➕  Writing {}", &to.to_string_lossy());
-    write(&to, file_contents).map_err(|e| {
-        eprintln!("Error writing file: {to:?}");
-        e
-    })?;
-    Ok(())
-}
-
-fn file_exists(file_path: &Path) -> bool {
-    metadata(file_path)
-        .as_ref()
-        .map(Metadata::is_file)
-        .unwrap_or(false)
-}
-
-fn rename_cargo_toml_remove(project: &Path, name: &str) -> Result<(), Error> {
-    let from = project.join(format!("contracts/{name}/Cargo.toml.remove"));
-    let to = from.with_extension("");
-    println!("Renaming to {from:?} to {to:?}");
-    fs::rename(from, to)?;
-    Ok(())
 }
 
 fn clone_repo(repo_url: &str, dest: &Path) -> Result<(), Error> {
@@ -156,7 +85,7 @@ fn clone_repo(repo_url: &str, dest: &Path) -> Result<(), Error> {
 }
 
 fn copy_frontend_files(temp_dir: &TempDir, project_path: &Path) -> Result<(), Error> {
-    let entries = std::fs::read_dir(temp_dir.path())?
+    let entries = read_dir(temp_dir.path())?
         .filter_map(Result::ok)
         .filter(|entry| entry.file_name() != ".git");
 
