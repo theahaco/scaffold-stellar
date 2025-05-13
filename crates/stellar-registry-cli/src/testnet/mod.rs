@@ -9,13 +9,13 @@ use stellar_cli::{
 use rpc::Client;
 use soroban_rpc as rpc;
 
-const CONTRACT_ID: &str = include_str!("./stellar-registry.json");
-
 pub fn contract_id() -> UnresolvedContract {
     if let Ok(contract_id) = env::var("STELLAR_REGISTRY_CONTRACT_ID") {
         contract_id.parse()
     } else {
-        CONTRACT_ID.trim_end().trim_matches('"').to_owned().parse()
+        super::contract::contract_id(&network_passphrase())
+            .to_string()
+            .parse()
     }
     .unwrap()
 }
@@ -79,4 +79,17 @@ pub async fn invoke_registry(slop: &[&str]) -> Result<String, invoke::Error> {
 
 pub fn client() -> Result<Client, rpc::Error> {
     Client::new(&rpc_url())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_contract_id() {
+        let contract_id = super::contract_id_strkey();
+        assert_eq!(
+            contract_id.to_string(),
+            "CAUZNARBNJOFLYURIINDQDRUOJWVGR3VOH6QWFNQEPZWRQJFCYUHSJU7".to_string()
+        );
+    }
+
 }
