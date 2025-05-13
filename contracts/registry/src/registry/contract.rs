@@ -65,7 +65,7 @@ impl IsDeployable for Contract {
         // Publish a deploy event
         let version =
             version.map_or_else(|| Wasm::default().most_recent_version(&wasm_name), Ok)?;
-        let deploy_datas = DeployEventData {
+        let deploy_data = DeployEventData {
             wasm_name,
             contract_name,
             version,
@@ -73,7 +73,7 @@ impl IsDeployable for Contract {
             contract_id: address.clone(),
         };
         env.events()
-            .publish((symbol_short!("deploy"),), deploy_datas);
+            .publish((symbol_short!("deploy"),), deploy_data);
 
         Ok(address)
     }
