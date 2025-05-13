@@ -154,7 +154,7 @@ soroban_token_contract.client = false
         );
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .stellar_scaffold_env("development", false)
             .output()
             .expect("Failed to execute command");
 
@@ -268,7 +268,7 @@ soroban_token_contract.client = false
     );
 
     let output = env
-        .stellar_scaffold_env("development", false)
+        .stellar_scaffold_env("development", true)
         .output()
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -303,7 +303,7 @@ soroban_token_contract.client = false
 
     // Run build in the new directory
     let output = env
-        .stellar_scaffold_env("development", false)
+        .stellar_scaffold_env("development", true)
         .output()
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);

@@ -10,7 +10,7 @@ repository = "https://github.com/AhaLabs/scaffold-stellar/tree/main/crates/stell
 proc-macro = true
 
 [dependencies]
-stellar-build = { path = "../stellar-build", version = "0.7.3" }
+stellar-build = { path = "../stellar-build", version = "0.0.1-alpha" }
 proc-macro2 = "1.0"
 syn = { version = "2", features = ["full"] }
 quote = "1.0"

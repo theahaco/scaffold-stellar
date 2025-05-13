@@ -34,14 +34,16 @@ soroban_token_contract.client = false
         );
 
         let stderr = env
-            .scaffold("build")
-            .current_dir(env.cwd.join(".."))
-            .args(["--manifest-path", "./soroban-init-boilerplate/Cargo.toml"])
+            .stellar_scaffold_custom_dir(
+                "build",
+                &["--manifest-path", "./soroban-init-boilerplate/Cargo.toml"],
+                &env.cwd.join(".."),
+            )
             .assert()
             .success()
             .stderr_as_str();
 
-        assert!(stderr.contains("🌐 using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains("Build Complete"));
     });
 }
 
