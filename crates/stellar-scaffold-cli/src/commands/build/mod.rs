@@ -117,10 +117,14 @@ impl Command {
                 ))
             });
             cmd.package = Some(p.name.clone());
-            let mut contract_meta = vec![
-                ("wasm_name".to_string(), p.name.clone()),
-                ("version".to_string(), p.version.to_string()),
-            ];
+            let mut contract_meta = vec![];
+            if !p.name.is_empty() {
+                contract_meta.push(("wasm_name".to_string(), p.name.clone()));
+            }
+            if !p.version.to_string().is_empty() {
+                contract_meta.push(("version".to_string(), p.version.to_string()));
+            }
+
             if p.repository.is_some() {
                 contract_meta.push(("source_repo".to_string(), p.repository.clone().unwrap()));
             }
