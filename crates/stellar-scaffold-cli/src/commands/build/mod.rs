@@ -122,10 +122,7 @@ impl Command {
                 ("version".to_string(), p.version.to_string()),
             ];
             if p.repository.is_some() {
-                contract_meta.push((
-                    "source_repo".to_string(),
-                    p.repository.clone().unwrap(),
-                ));
+                contract_meta.push(("source_repo".to_string(), p.repository.clone().unwrap()));
             }
             cmd.meta = contract_meta;
             cmd.run(&global_args)?;
