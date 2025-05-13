@@ -12,7 +12,6 @@ stellar scaffold init <project-path> [name]
 
 Options:
 - `project-path`: Required. The path where the project will be created
-- `name`: Optional. The name of the project (defaults to "stellar-example")
 
 The init command creates:
 - A new Stellar smart contract project with best practices and configurations

@@ -102,29 +102,6 @@ constructor_args = "STELLAR_ACCOUNT=admin --arg1 value1 --arg2 value2"
 constructor_args = "--account1 $(stellar keys address user1) --account2 $(stellar keys address user2)"
 ```
 
-### Example Configurations
-
-```toml
-# Token contract with constructor args
-[development.contracts.token]
-client = true
-constructor_args = "--name Token --symbol TKN --decimals 8"
-
-# Contract deployed by admin with dynamic arguments
-[development.contracts.marketplace]
-client = true
-constructor_args = "STELLAR_ACCOUNT=admin --treasury-account $(stellar keys address treasury)"
-
-# Contract with both constructor args and after_deploy script
-[development.contracts.game]
-client = true
-constructor_args = "STELLAR_ACCOUNT=admin --name GameV1 --start 1000"
-after_deploy = """
-    # Additional setup after deployment
-    add_player --address "$(stellar keys address player1)"
-    set_difficulty --difficulty 3
-"""
-
 #### `after_deploy` (string, optional)
 - Initialization script to run after contract deployment
 - Only runs in development/testing environments
@@ -153,12 +130,24 @@ set_fee_rate --rate 0.003
 ### Example Configurations
 
 ```toml
-# Development environment with full configuration
+# Token contract with constructor args
 [development.contracts.token]
 client = true
+constructor_args = "--name Token --symbol TKN --decimals 8"
+
+# Contract deployed by admin with dynamic arguments
+[development.contracts.marketplace]
+client = true
+constructor_args = "STELLAR_ACCOUNT=admin --treasury-account $(stellar keys address treasury)"
+
+# Contract with both constructor args and after_deploy script
+[development.contracts.game]
+client = true
+constructor_args = "STELLAR_ACCOUNT=admin --name GameV1 --start 1000"
 after_deploy = """
-    initialize "Token" "TKN" 8
-    STELLAR_ACCOUNT=admin mint "user1" 1000000000
+    # Additional setup after deployment
+    add_player --address "$(stellar keys address player1)"
+    set_difficulty --difficulty 3
 """
 
 # Production environment with fixed contract ID
@@ -169,15 +158,11 @@ id = "CC5YYARE2TSLA..."  # Must be valid contract ID
 # Utility contract without client generation
 [development.contracts.utils]
 client = false
-after_deploy = "initialize"
 
 # Complex initialization with multiple accounts
 [development.contracts.marketplace]
 client = true
 after_deploy = """
-    # Initialize contract
-    initialize
-
     # Set up admin
     STELLAR_ACCOUNT=admin set_admin_account --account "$(stellar keys address admin)"
     
