@@ -9,7 +9,7 @@ async fn dev_command_watches_for_changes_and_environments_toml() {
     TestEnv::from_async("soroban-init-boilerplate", |env| async {
         Box::pin(async move {
             let mut dev_process = env
-                .stellar_scaffold_process("dev", &["--build-clients"])
+                .stellar_scaffold_process("watch", &["--build-clients"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -158,7 +158,7 @@ soroban_token_contract.client = false
             );
 
             let mut dev_process = env
-                .stellar_scaffold_process("dev", &["--build-clients"])
+                .stellar_scaffold_process("watch", &["--build-clients"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())

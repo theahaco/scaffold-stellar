@@ -12,7 +12,7 @@ Stellar Scaffold CLI comes with three main commands:
   
   The build process respects environment configurations from `environments.toml` and handles contract deployment states based on the current environment (controlled via `STELLAR_SCAFFOLD_ENV`).
 
-* `stellar scaffold dev` - Development mode that monitors contract source files and `environments.toml` for changes, automatically rebuilding as needed. Defaults to using the `development` environment.
+* `stellar scaffold watch` - Development mode that monitors contract source files and `environments.toml` for changes, automatically rebuilding as needed. Defaults to using the `development` environment.
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ cp .env.example .env
 
 4. Start development:
 ```bash
-stellar scaffold dev --build-clients
+stellar scaffold watch --build-clients
 ```
 
 ## Environment Configuration
@@ -67,7 +67,7 @@ network = {
 
 ## Build Process Details
 
-`stellar scaffold build` and `stellar scaffold dev` manage:
+`stellar scaffold build` and `stellar scaffold watch` manage:
 
 1. Smart contract compilation and deployment based on environment
 2. TypeScript client package generation for frontend integration

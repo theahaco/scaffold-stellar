@@ -3,7 +3,7 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod build;
-pub mod dev;
+pub mod watch;
 pub mod init;
 pub mod update_env;
 
@@ -38,7 +38,7 @@ impl Root {
             Cmd::Init(init_info) => init_info.run()?,
             Cmd::Build(build_info) => build_info.run().await?,
             Cmd::UpdateEnv(e) => e.run()?,
-            Cmd::Dev(dev_info) => dev_info.run().await?,
+            Cmd::Watch(watch_info) => watch_info.run().await?,
         }
         Ok(())
     }
@@ -64,7 +64,7 @@ pub enum Cmd {
     UpdateEnv(update_env::Cmd),
 
     /// Monitor contracts and environments.toml for changes and rebuild as needed
-    Dev(dev::Cmd),
+    Watch(watch::Cmd),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -77,5 +77,5 @@ pub enum Error {
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]
-    Dev(#[from] dev::Error),
+    Watch(#[from] watch::Error),
 }
