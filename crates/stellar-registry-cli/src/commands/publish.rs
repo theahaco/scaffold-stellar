@@ -17,7 +17,6 @@ pub struct Cmd {
     /// Function name as subcommand, then arguments for that function as `--arg-name value`
     #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
     pub slop: Vec<OsString>,
-
     #[command(flatten)]
     pub config: config::Args,
     #[command(flatten)]
@@ -36,6 +35,8 @@ pub enum Error {
     CannotParseContractSpec,
     #[error("Missing file argument {0:#?}")]
     MissingFileArg(PathBuf),
+    #[error(transparent)]
+    Config(#[from] config::Error),
 }
 
 impl Cmd {
@@ -49,7 +50,8 @@ impl Cmd {
         // Get out its metadata and set the contract name (wasm_name), version, source_repo
         let mut wasm_name: String = String::new();
         let mut version: String = String::new();
-        let mut source_repo: String = String::new();
+        // TODO: use source_repo when registry contract supports it
+        // let mut source_repo: String = String::new();
         for meta_entry in spec?.meta {
             match meta_entry {
                 ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
@@ -57,21 +59,27 @@ impl Cmd {
                     match key.as_str() {
                         "wasm_name" => wasm_name = val.to_string(),
                         "version" => version = val.to_string(),
-                        "source_repo" => source_repo = val.to_string(),
+                        // "source_repo" => source_repo = val.to_string(),
                         _ => {}
                     }
                 }
             }
         }
 
+        let wasm_path = self.wasm.to_string_lossy().to_string();
+        let key = self.config.key_pair()?;
+        let author = stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
+
         invoke_registry(&[
             "publish",
-            "--name",
-            &wasm_name,
+            "--wasm-file-path",
+            &wasm_path,
             "--version",
             &version,
-            "--source-repo",
-            &source_repo,
+            "--author",
+            &author,
+            "--name",
+            &wasm_name,
         ])
         .await?;
 
