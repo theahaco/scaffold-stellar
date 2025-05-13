@@ -3,11 +3,11 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod build;
-pub mod watch;
 pub mod init;
 pub mod update_env;
+pub mod watch;
 
-const ABOUT: &str = "Build contracts and generate front ends";
+const ABOUT: &str = "Build smart contracts with frontend support";
 
 #[derive(Parser, Debug)]
 #[command(
