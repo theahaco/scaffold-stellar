@@ -52,17 +52,11 @@ impl Cmd {
         let mut version: String = String::new();
         // TODO: use source_repo when registry contract supports it
         // let mut source_repo: String = String::new();
-        for meta_entry in spec?.meta {
-            match meta_entry {
-                ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
-                    let key = key.to_string();
-                    match key.as_str() {
-                        "wasm_name" => wasm_name = val.to_string(),
-                        "version" => version = val.to_string(),
-                        // "source_repo" => source_repo = val.to_string(),
-                        _ => {}
-                    }
-                }
+        for ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) in spec?.meta {
+            match key.to_string().as_str() {
+                "wasm_name" => wasm_name = val.to_string(),
+                "version" => version = val.to_string(),
+                _ => {}
             }
         }
 
