@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
-pub mod publish;
 pub mod deploy;
 pub mod install;
+pub mod publish;
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
