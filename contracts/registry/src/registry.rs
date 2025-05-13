@@ -8,8 +8,8 @@ use crate::{
 pub mod contract;
 pub mod wasm;
 
-pub use contract::Contract;
-pub use wasm::Wasm;
+pub use contract::C;
+pub use wasm::W;
 
 #[loam_sdk::subcontract]
 pub trait IsPublishable {

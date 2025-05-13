@@ -9,22 +9,22 @@ use super::IsPublishable;
 
 /// Contains
 #[loamstorage]
-pub struct Wasm {
-    pub registry: PersistentMap<String, Map<Version, BytesN<32>>>,
-    pub author: PersistentMap<String, Address>,
+pub struct W {
+    pub r: PersistentMap<String, Map<Version, BytesN<32>>>,
+    pub a: PersistentMap<String, Address>,
 }
 
-impl Wasm {
+impl W {
     pub fn new(name: &String, author: Address) -> Self {
         let mut s = Self::default();
-        s.author.set(name.clone(), &author);
+        s.a.set(name.clone(), &author);
         s
     }
 }
 
-impl Wasm {
+impl W {
     fn registry(&self, name: &String) -> Result<Map<Version, BytesN<32>>, Error> {
-        self.registry
+        self.r
             .get(name.clone())
             .ok_or(Error::NoSuchContractPublished)
     }
@@ -51,21 +51,18 @@ impl Wasm {
         version: Version,
         binary: BytesN<32>,
     ) -> Result<(), Error> {
-        let mut registry = self
-            .registry
-            .get(name.clone())
-            .unwrap_or_else(|| Map::new(env()));
+        let mut registry = self.r.get(name.clone()).unwrap_or_else(|| Map::new(env()));
         registry.set(version, binary);
-        self.registry.set(name.clone(), &registry);
+        self.r.set(name.clone(), &registry);
         Ok(())
     }
 
     pub fn author(&self, name: &String) -> Option<Address> {
-        self.author.get(name.clone())
+        self.a.get(name.clone())
     }
 }
 
-impl IsPublishable for Wasm {
+impl IsPublishable for W {
     fn current_version(&self, contract_name: String) -> Result<Version, Error> {
         self.most_recent_version(&contract_name)
     }
@@ -95,7 +92,7 @@ impl IsPublishable for Wasm {
         }
         author.require_auth();
         version.log();
-        self.author.set(wasm_name.clone(), &author);
+        self.a.set(wasm_name.clone(), &author);
         self.set(&wasm_name, version, wasm_hash)
     }
 
