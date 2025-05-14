@@ -122,25 +122,33 @@ impl Cmd {
                 &spec_entries,
                 &config::Args::default(),
             );
-            if let Ok((_, _, host_function_params, signers)) = res {
-                (
-                    ScVal::Vec(Some(
+            match res {
+                Ok((_, _, host_function_params, signers)) => {
+                    if host_function_params.function_name.len() > 64 {
+                        return Err(Error::FunctionNameTooLong(
+                            host_function_params.function_name,
+                        ));
+                    }
+                    let args = ScVal::Vec(Some(
                         vec![
                             ScVal::Symbol(host_function_params.function_name),
                             ScVal::Vec(Some(host_function_params.args.into())),
                         ]
                         .try_into()
                         .unwrap(),
-                    )),
-                    signers,
-                )
-            } else if let &Err(stellar_cli::commands::contract::arg_parsing::Error::HelpMessage(help)) =
-                &res
-            {
-                println!("{help}");
-                return Ok(());
-            } else {
-                return res?;
+                    ));
+                    (args, signers)
+                }
+                Err(stellar_cli::commands::contract::arg_parsing::Error::HelpMessage(help)) => {
+                    println!("{help}");
+                    return Ok(());
+                }
+                Err(e) => {
+                    return Err(Error::CannotParseArg {
+                        arg: self.slop.join(" "),
+                        error: e,
+                    });
+                }
             }
         };
 
