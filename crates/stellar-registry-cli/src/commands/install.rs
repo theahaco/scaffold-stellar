@@ -7,18 +7,22 @@ use stellar_cli::{
         contract::{fetch, invoke},
         global,
     },
-    config::{self, network, UnresolvedContract},
+    config::{self, locator, network, UnresolvedContract},
 };
+use stellar_strkey::Contract;
 
 use crate::testnet;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// Name of deployed contract
-    pub deployed_name: String,
-    /// Where to place the Wasm file. Default `<root>/target/stellar/<deployed_name>/index.wasm`
-    #[arg(long, short = 'o')]
-    pub out_dir: Option<PathBuf>,
+    pub contract_name: String,
+    /// Where to place the Wasm file. Default `<root>/target/stellar/<contract_name>/index.wasm`
+    #[arg(long, short = 'o', default_value = "./target/stellar/")]
+    pub out_dir: PathBuf,
+    /// Directory for storing contract configuration
+    #[arg(long, default_value = ".stellar")]
+    pub config_dir: PathBuf,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -33,24 +37,51 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Strkey(#[from] stellar_strkey::DecodeError),
+    #[error(transparent)]
+    Config(#[from] stellar_cli::config::locator::Error),
 }
 
 impl Cmd {
+    fn get_config_locator(&self) -> locator::Args {
+        locator::Args {
+            global: false,
+            config_dir: Some(self.config_dir.clone()),
+        }
+    }
+
     pub async fn run(&self) -> Result<(), Error> {
-        let contract_id = testnet::contract_id();
+        // First fetch the contract ID from the registry
         let network = testnet::network();
-        let out_dir = self.out_dir.as_ref().unwrap();
-        let mut out_file = out_dir.join(&self.deployed_name);
+        let network_passphrase = network.network_passphrase
+        .clone()
+        .expect("Network passphrase required");
+        let contract_id = self.get_contract_id(&testnet::contract_id(), &network).await?;
+        
+        let contract = Contract::from_string(&contract_id)?;
+
+        let config_locator = self.get_config_locator();
+        config_locator.save_contract_id(
+            &network_passphrase,
+            &contract,
+            &self.contract_name,
+        )?;
+
+        // Fetch and save the WASM file
+        let mut out_file = self.out_dir.join(&self.contract_name);
         out_file.set_extension("wasm");
-        let id_file = out_file.parent().unwrap().join("contract_id.txt");
+        
         let fetch_cmd = fetch::Cmd {
-            contract_id,
-            out_file: Some(out_file),
-            network,
+            contract_id: UnresolvedContract::Resolved(contract),
+            out_file: Some(out_file.clone()),
+            network: network.clone(),
             ..Default::default()
         };
         fetch_cmd.run().await?;
-        std::fs::write(id_file, testnet::contract_id_strkey().to_string())?;
+        println!("WASM file saved to: {}", out_file.display());
+
+        println!("✅ Successfully installed contract {}", self.contract_name);
+        println!("Contract ID: {}", contract_id);
+        
         Ok(())
     }
 
@@ -68,7 +99,7 @@ impl Cmd {
             is_view: true,
             ..Default::default()
         };
-        cmd.slop = vec!["fetch_contract_id", "--deployed_name", &self.deployed_name]
+        cmd.slop = vec!["fetch_contract_id", "--contract_name", &self.contract_name]
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
@@ -87,12 +118,12 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    #[ignore]
     async fn test_run() {
-        std::env::set_var("SOROBAN_NETWORK", "local");
+        std::env::set_var("SOROBAN_NETWORK", "testnet");
         let cmd = Cmd {
-            deployed_name: "stellar_registry".to_owned(),
-            out_dir: None,
+            contract_name: "hello".to_owned(),
+            out_dir: ".".into(),
+            config_dir: ".stellar".into()
         };
         let contract_id = testnet::contract_id();
         let network = testnet::network();
