@@ -68,7 +68,7 @@ pub enum Error {
     #[error("parsing argument {arg}: {error}")]
     CannotParseArg {
         arg: String,
-        error: soroban_spec_tools::Error,
+        error: stellar_cli::commands::contract::arg_parsing::Error,
     },
     #[error("function name {0} is too long")]
     FunctionNameTooLong(String),
@@ -126,7 +126,7 @@ impl Cmd {
                 Ok((_, _, host_function_params, signers)) => {
                     if host_function_params.function_name.len() > 64 {
                         return Err(Error::FunctionNameTooLong(
-                            host_function_params.function_name,
+                            host_function_params.function_name.to_string(),
                         ));
                     }
                     let args = ScVal::Vec(Some(
@@ -145,7 +145,12 @@ impl Cmd {
                 }
                 Err(e) => {
                     return Err(Error::CannotParseArg {
-                        arg: self.slop.join(" "),
+                        arg: self
+                            .slop
+                            .iter()
+                            .map(|s| s.to_string_lossy())
+                            .collect::<Vec<_>>()
+                            .join(" "),
                         error: e,
                     });
                 }
