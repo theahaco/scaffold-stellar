@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;
@@ -22,13 +23,17 @@ use crate::testnet::{self, contract_address, invoke_registry};
 pub struct Cmd {
     /// Name of contract to be deployed
     #[arg(long, visible_alias = "deploy-as")]
-    pub deployed_name: String,
+    pub contract_name: String,
     /// Name of published contract to deploy from
     #[arg(long)]
-    pub published_name: String,
-    /// Function name as subcommand, then arguments for that function as `--arg-name value`
-    #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
+    pub wasm_name: String,
+    /// Arguments for constructor
+    #[arg(last = true, id = "CONSTRUCTOR_ARGS")]
     pub slop: Vec<OsString>,
+
+    /// Version of the wasm to deploy
+    #[arg(long)]
+    pub version: Option<String>,
 
     #[command(flatten)]
     pub config: config::Args,
@@ -63,7 +68,7 @@ pub enum Error {
     #[error("parsing argument {arg}: {error}")]
     CannotParseArg {
         arg: String,
-        error: soroban_spec_tools::Error,
+        error: stellar_cli::commands::contract::arg_parsing::Error,
     },
     #[error("function name {0} is too long")]
     FunctionNameTooLong(String),
@@ -80,7 +85,7 @@ impl Cmd {
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = invoke_registry(&["fetch_hash", "--contract_name", &self.published_name]).await?;
+        let res = invoke_registry(&["fetch_hash", "--wasm_name", &self.wasm_name]).await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
@@ -111,35 +116,54 @@ impl Cmd {
         let (args, signers) = if self.slop.is_empty() {
             (ScVal::Void, vec![])
         } else {
-            let (_, _, host_function_params, signers) =
-                stellar_cli::commands::contract::arg_parsing::build_host_function_parameters(
-                    contract_id,
-                    &self.slop,
-                    &spec_entries,
-                    &config::Args::default(),
-                )
-                .unwrap();
-
-            (
-                ScVal::Vec(Some(
-                    vec![
-                        ScVal::Symbol(host_function_params.function_name),
-                        ScVal::Vec(Some(host_function_params.args.into())),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                )),
-                signers,
-            )
+            let res = stellar_cli::commands::contract::arg_parsing::build_host_function_parameters(
+                contract_id,
+                &self.slop,
+                &spec_entries,
+                &config::Args::default(),
+            );
+            match res {
+                Ok((_, _, host_function_params, signers)) => {
+                    if host_function_params.function_name.len() > 64 {
+                        return Err(Error::FunctionNameTooLong(
+                            host_function_params.function_name.to_string(),
+                        ));
+                    }
+                    let args = ScVal::Vec(Some(
+                        vec![
+                            ScVal::Symbol(host_function_params.function_name),
+                            ScVal::Vec(Some(host_function_params.args.into())),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                    ));
+                    (args, signers)
+                }
+                Err(stellar_cli::commands::contract::arg_parsing::Error::HelpMessage(help)) => {
+                    println!("{help}");
+                    return Ok(());
+                }
+                Err(e) => {
+                    return Err(Error::CannotParseArg {
+                        arg: self
+                            .slop
+                            .iter()
+                            .map(|s| s.to_string_lossy())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                        error: e,
+                    });
+                }
+            }
         };
 
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
             function_name: "deploy".try_into().unwrap(),
             args: [
-                ScVal::String(ScString(self.published_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
                 ScVal::Void,
-                ScVal::String(ScString(self.deployed_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
                 ))),
