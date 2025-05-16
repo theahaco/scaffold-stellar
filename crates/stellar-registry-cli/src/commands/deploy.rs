@@ -32,6 +32,7 @@ pub struct Cmd {
     pub slop: Vec<OsString>,
 
     /// Version of the wasm to deploy
+    /// E.g. `'[0,0,1]'`
     #[arg(long)]
     pub version: Option<String>,
 
@@ -85,9 +86,15 @@ impl Cmd {
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = invoke_registry(&["fetch_hash", "--wasm_name", &self.wasm_name]).await?;
-        let res = res.trim_matches('"');
-        Ok(res.parse().unwrap())
+        let mut args = vec!["fetch_hash", "--wasm_name", &self.wasm_name];
+        if let Some(version) = self.version.as_ref() {
+            args.push(version);
+        }
+        Ok(invoke_registry(&args)
+            .await?
+            .trim_matches('"')
+            .parse()
+            .unwrap())
     }
 
     pub async fn wasm(&self) -> Result<Vec<u8>, Error> {
