@@ -91,5 +91,4 @@ mod tests {
             "CAUZNARBNJOFLYURIINDQDRUOJWVGR3VOH6QWFNQEPZWRQJFCYUHSJU7".to_string()
         );
     }
-
 }
