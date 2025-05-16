@@ -2,3 +2,4 @@ target/
 .soroban/
 .env
 test_snapshots/
+.stellar/

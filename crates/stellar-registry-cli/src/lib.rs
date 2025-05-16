@@ -4,6 +4,7 @@
     clippy::missing_panics_doc
 )]
 pub mod commands;
+pub mod contract;
 pub mod testnet;
 
 pub use commands::Root;
