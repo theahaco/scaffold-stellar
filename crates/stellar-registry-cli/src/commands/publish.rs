@@ -47,35 +47,32 @@ impl Cmd {
         let spec =
             contract_spec::Spec::new(&wasm_bytes).map_err(|_| Error::CannotParseContractSpec);
 
-        // Get out its metadata and set the contract name (wasm_name), version, source_repo
-        let mut wasm_name: String = String::new();
-        let mut version: String = String::new();
-        // TODO: use source_repo when registry contract supports it
-        // let mut source_repo: String = String::new();
-        for ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) in spec?.meta {
-            match key.to_string().as_str() {
-                "wasm_name" => wasm_name = val.to_string(),
-                "version" => version = val.to_string(),
-                _ => {}
-            }
-        }
+        // Prepare a mutable vector for the base arguments
+        let mut args = vec![
+            "--wasm-file-path".to_string(),
+            self.wasm.to_string_lossy().to_string(),
+        ];
 
-        let wasm_path = self.wasm.to_string_lossy().to_string();
+        // Use `filter_map` to extract relevant metadata and format as arguments
+        args.extend(spec?.meta.iter().filter_map(|entry| match entry {
+            ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
+                let key_str = key.to_string();
+                // TODO add source repository when registry contract supports it
+                if key_str == "wasm_name" || key_str == "version" {
+                    Some(format!("--{key_str}={val}"))
+                } else {
+                    None
+                }
+            }
+        }));
+
+        // Add the author argument
         let key = self.config.key_pair()?;
         let author = stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
+        args.push(format!("--author={author}"));
 
-        invoke_registry(&[
-            "publish",
-            "--wasm-file-path",
-            &wasm_path,
-            "--version",
-            &version,
-            "--author",
-            &author,
-            "--name",
-            &wasm_name,
-        ])
-        .await?;
+        // Invoke the registry with the arguments
+        invoke_registry(&args.iter().map(std::string::String::as_str).collect::<Vec<&str>>()).await?;
 
         Ok(())
     }
