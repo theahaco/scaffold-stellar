@@ -14,6 +14,9 @@ pub struct Cmd {
     /// Path to compiled wasm
     #[arg(long)]
     pub wasm: PathBuf,
+    /// Optional author address, if not provided, the default keypair will be used
+    #[arg(long, short = 'a')]
+    pub author: Option<String>,
     /// Function name as subcommand, then arguments for that function as `--arg-name value`
     #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
     pub slop: Vec<OsString>,
@@ -66,19 +69,19 @@ impl Cmd {
             }
         }));
 
-        // Add the author argument
-        let key = self.config.key_pair()?;
-        let author = stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
+        // use the provided author or the default keypair
+        let author = self.author.clone().unwrap_or_else(|| {
+            self.config
+                .key_pair()
+                .map(|key| {
+                    stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string()
+                })
+                .unwrap_or_default()
+        });
         args.push(format!("--author={author}"));
 
         // Invoke the registry with the arguments
-        invoke_registry(
-            &args
-                .iter()
-                .map(String::as_str)
-                .collect::<Vec<_>>(),
-        )
-        .await?;
+        invoke_registry(&args.iter().map(String::as_str).collect::<Vec<_>>()).await?;
 
         Ok(())
     }
