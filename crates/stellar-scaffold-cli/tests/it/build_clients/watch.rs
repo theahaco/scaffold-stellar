@@ -122,7 +122,7 @@ soroban_token_contract.client = false
             )
             .await;
 
-            dev_process
+            watch_process
                 .kill()
                 .await
                 .expect("Failed to kill watch process");
@@ -157,7 +157,7 @@ soroban_token_contract.client = false
 "#,
             );
 
-            let mut dev_process = env
+            let mut watch_process = env
                 .stellar_scaffold_process("watch", &["--build-clients"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
