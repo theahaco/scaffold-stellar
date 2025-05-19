@@ -108,7 +108,7 @@ impl IsPublishable for W {
                 version > current_version,
                 Error::VersionMustBeGreaterThanCurrent
             );
-        };
+        }
         self.a.set(wasm_name.clone(), &author);
         self.set(&wasm_name, version, wasm_hash)
     }
