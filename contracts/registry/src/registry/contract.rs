@@ -12,7 +12,7 @@ use crate::{
     error::Error, registry::Publishable, util::hash_string, version::Version, Contract as Contract_,
 };
 
-use super::{wasm::Wasm, IsDeployable, IsRedeployable};
+use super::{wasm::W, IsDeployable, IsRedeployable};
 
 #[contracttype]
 pub struct DeployEventData {
@@ -24,11 +24,11 @@ pub struct DeployEventData {
 }
 
 #[loamstorage]
-pub struct Contract {
-    pub registry: PersistentMap<String, Address>,
+pub struct C {
+    pub r: PersistentMap<String, Address>,
 }
 
-impl Contract {
+impl C {
     fn redeploy(
         &self,
         name: &String,
@@ -42,7 +42,7 @@ impl Contract {
     }
 }
 
-impl IsDeployable for Contract {
+impl IsDeployable for C {
     fn deploy(
         &mut self,
         wasm_name: String,
@@ -52,7 +52,7 @@ impl IsDeployable for Contract {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Address, Error> {
         let env = env();
-        if self.registry.has(contract_name.clone()) {
+        if self.r.has(contract_name.clone()) {
             return Err(Error::AlreadyDeployed);
         }
         // signed by owner
@@ -60,11 +60,10 @@ impl IsDeployable for Contract {
         let hash = Contract_::fetch_hash(wasm_name.clone(), version.clone())?;
         let salt: BytesN<32> = hash_string(&contract_name).into();
         let address = deploy_and_init(salt, hash, init);
-        self.registry.set(contract_name.clone(), &address);
+        self.r.set(contract_name.clone(), &address);
 
         // Publish a deploy event
-        let version =
-            version.map_or_else(|| Wasm::default().most_recent_version(&wasm_name), Ok)?;
+        let version = version.map_or_else(|| W::default().most_recent_version(&wasm_name), Ok)?;
         let deploy_data = DeployEventData {
             wasm_name,
             contract_name,
@@ -79,7 +78,7 @@ impl IsDeployable for Contract {
     }
 
     fn fetch_contract_id(&self, contract_name: String) -> Result<Address, Error> {
-        self.registry
+        self.r
             .get(contract_name)
             .ok_or(Error::NoSuchContractDeployed)
     }
@@ -97,7 +96,7 @@ fn deploy_and_init(
         .deploy_v2(wasm_hash, args.unwrap_or_else(|| vec![]))
 }
 
-impl IsRedeployable for Contract {
+impl IsRedeployable for C {
     fn dev_deploy(
         &mut self,
         name: soroban_sdk::String,
