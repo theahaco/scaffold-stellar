@@ -4,7 +4,7 @@ use loam_sdk::soroban_sdk::{self, contracttype, env, log, Env};
 
 /// Represents the version of the contract
 #[contracttype]
-#[derive(Default, Eq, PartialEq, Clone, Debug)]
+#[derive(Default, Eq, PartialEq, PartialOrd, Clone, Debug)]
 pub struct Version(u32, u32, u32);
 
 pub const INITAL_VERSION: Version = Version(0, 0, 1);

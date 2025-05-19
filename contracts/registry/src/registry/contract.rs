@@ -2,14 +2,14 @@
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
-        self, contracttype, env, symbol_short, Address, BytesN, Env, IntoVal, PersistentMap,
-        String, Symbol,
+        self, assert_with_error, contracttype, env, symbol_short, to_string, Address, BytesN, Env, IntoVal, PersistentMap, String, Symbol
     },
     vec,
 };
+use loam_subcontract_core::Core;
 
 use crate::{
-    error::Error, registry::Publishable, util::hash_string, version::Version, Contract as Contract_,
+    error::Error, registry::Publishable, util::{hash_string, REGISTRY}, version::Version, Contract as Contract_,
 };
 
 use super::{wasm::W, IsDeployable, IsRedeployable};
@@ -48,15 +48,18 @@ impl IsDeployable for C {
         wasm_name: String,
         version: Option<Version>,
         contract_name: String,
-        owner: Address,
+        admin: Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Address, Error> {
         let env = env();
         if self.r.has(contract_name.clone()) {
             return Err(Error::AlreadyDeployed);
         }
+        if contract_name == to_string(REGISTRY) {
+            assert_with_error!(env, Contract_::admin_get().unwrap() == admin, Error::AdminOnly);
+        }
         // signed by owner
-        owner.require_auth();
+        admin.require_auth();
         let hash = Contract_::fetch_hash(wasm_name.clone(), version.clone())?;
         let salt: BytesN<32> = hash_string(&contract_name).into();
         let address = deploy_and_init(salt, hash, init);
@@ -68,7 +71,7 @@ impl IsDeployable for C {
             wasm_name,
             contract_name,
             version,
-            deployer: owner,
+            deployer: admin,
             contract_id: address.clone(),
         };
         env.events()
