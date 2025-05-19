@@ -75,8 +75,8 @@ impl Cmd {
         invoke_registry(
             &args
                 .iter()
-                .map(std::string::String::as_str)
-                .collect::<Vec<&str>>(),
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
         )
         .await?;
 
