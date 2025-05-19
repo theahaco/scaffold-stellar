@@ -121,10 +121,12 @@ impl Command {
                 cmd.meta.push(("wasm_name".to_string(), p.name.clone()));
             }
             if !p.version.to_string().is_empty() {
-                cmd.meta.push(("version".to_string(), p.version.to_string()));
+                cmd.meta
+                    .push(("version".to_string(), p.version.to_string()));
             }
             if p.repository.is_some() {
-                cmd.meta.push(("source_repo".to_string(), p.repository.clone().unwrap()));
+                cmd.meta
+                    .push(("source_repo".to_string(), p.repository.clone().unwrap()));
             }
             cmd.run(&global_args)?;
         }
