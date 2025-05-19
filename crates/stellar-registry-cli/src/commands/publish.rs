@@ -72,7 +72,13 @@ impl Cmd {
         args.push(format!("--author={author}"));
 
         // Invoke the registry with the arguments
-        invoke_registry(&args.iter().map(std::string::String::as_str).collect::<Vec<&str>>()).await?;
+        invoke_registry(
+            &args
+                .iter()
+                .map(std::string::String::as_str)
+                .collect::<Vec<&str>>(),
+        )
+        .await?;
 
         Ok(())
     }
