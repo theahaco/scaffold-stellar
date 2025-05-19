@@ -2,9 +2,7 @@
 use loam_sdk::soroban_sdk;
 use loam_subcontract_core::{admin::Admin, Core};
 
-use registry::{
-    contract::Contract as Contract_, wasm::Wasm, Deployable, Publishable, Redeployable,
-};
+use registry::{contract::C as Contract_, wasm::W as Wasm, Deployable, Publishable, Redeployable};
 
 pub mod error;
 pub mod registry;

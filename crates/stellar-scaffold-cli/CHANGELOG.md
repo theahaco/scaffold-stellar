@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1-alpha.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.1-alpha.1...stellar-scaffold-cli-v0.0.1-alpha.2) - 2025-05-19
+
+### Added
+
+- Add metadata to wasm and use in registry publish ([#46](https://github.com/AhaLabs/scaffold-stellar/pull/46))
+
 ## [0.0.1-alpha.1](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.1-alpha...stellar-scaffold-cli-v0.0.1-alpha.1) - 2025-05-13
 
 ### Other
