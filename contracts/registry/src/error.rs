@@ -26,5 +26,4 @@ pub enum Error {
     AdminOnly = 10,
     /// New version must be greater than the most recent version
     VersionMustBeGreaterThanCurrent = 11,
-
 }

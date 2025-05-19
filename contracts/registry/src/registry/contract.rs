@@ -2,14 +2,19 @@
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
-        self, assert_with_error, contracttype, env, symbol_short, to_string, Address, BytesN, Env, IntoVal, PersistentMap, String, Symbol
+        self, assert_with_error, contracttype, env, symbol_short, to_string, Address, BytesN, Env,
+        IntoVal, PersistentMap, String, Symbol,
     },
     vec,
 };
 use loam_subcontract_core::Core;
 
 use crate::{
-    error::Error, registry::Publishable, util::{hash_string, REGISTRY}, version::Version, Contract as Contract_,
+    error::Error,
+    registry::Publishable,
+    util::{hash_string, REGISTRY},
+    version::Version,
+    Contract as Contract_,
 };
 
 use super::{wasm::W, IsDeployable, IsRedeployable};
@@ -56,7 +61,11 @@ impl IsDeployable for C {
             return Err(Error::AlreadyDeployed);
         }
         if contract_name == to_string(REGISTRY) {
-            assert_with_error!(env, Contract_::admin_get().unwrap() == admin, Error::AdminOnly);
+            assert_with_error!(
+                env,
+                Contract_::admin_get().unwrap() == admin,
+                Error::AdminOnly
+            );
         }
         // signed by owner
         admin.require_auth();
