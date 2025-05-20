@@ -4769,6 +4769,7 @@ dependencies = [
  "soroban-spec-tools",
  "stellar-build",
  "stellar-rpc-client",
+ "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
  "thiserror 1.0.69",
  "tokio 1.44.2",
@@ -4838,6 +4839,7 @@ dependencies = [
  "shlex",
  "soroban-cli",
  "stellar-build",
+ "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
  "stellar-xdr",
  "strsim 0.11.1",
@@ -4861,6 +4863,22 @@ dependencies = [
  "quote",
  "stellar-build",
  "syn 2.0.100",
+]
+
+[[package]]
+name = "stellar-scaffold-test"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "assert_fs",
+ "fs_extra",
+ "soroban-cli",
+ "soroban-sdk",
+ "stellar-registry-cli",
+ "stellar-scaffold-cli",
+ "tokio 1.44.2",
+ "tokio-stream",
+ "uuid 1.16.0",
 ]
 
 [[package]]

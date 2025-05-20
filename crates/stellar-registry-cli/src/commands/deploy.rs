@@ -85,7 +85,12 @@ impl Cmd {
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = invoke_registry(&["fetch_hash", "--wasm_name", &self.wasm_name]).await?;
+        let res = invoke_registry(
+            &["fetch_hash", "--wasm_name", &self.wasm_name],
+            &self.config,
+            &self.fee,
+        )
+        .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
@@ -162,12 +167,11 @@ impl Cmd {
             function_name: "deploy".try_into().unwrap(),
             args: [
                 ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
-                ScVal::Void,
+                ScVal::Void, // TODO should be a way to pass version
                 ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
                 ))),
-                ScVal::Void,
                 args,
             ]
             .try_into()

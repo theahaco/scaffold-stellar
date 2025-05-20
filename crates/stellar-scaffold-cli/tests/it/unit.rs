@@ -1,4 +1,4 @@
-use crate::util::{AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv};
 
 #[test]
 fn no_environments_toml_ends_after_contract_build() {

@@ -1,4 +1,4 @@
-use crate::util::{AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv};
 
 #[test]
 fn run_network_from_rpc_and_passphrase() {
