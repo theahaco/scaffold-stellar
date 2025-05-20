@@ -10,22 +10,20 @@ pub enum Error {
     NoSuchVersion = 2,
     /// Contract already published
     AlreadyPublished = 3,
-
     /// No such contract deployed
     NoSuchContractDeployed = 4,
-
     /// Contract already deployed
     AlreadyDeployed = 5,
-
     /// Contract already claimed
     AlreadyClaimed = 6,
-
     /// Failed to initialize contract
     InitFailed = 7,
-
     /// Failed to redeploy a deployed contract with no coreriff macro
     RedeployDeployedFailed = 8,
-
     /// Contract doesn't have owner, impossible to perform the operation
     NoOwnerSet = 9,
+    /// Only Admin is allowed
+    AdminOnly = 10,
+    /// New version must be greater than the most recent version
+    VersionMustBeGreaterThanCurrent = 11,
 }

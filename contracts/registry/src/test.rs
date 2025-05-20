@@ -7,9 +7,10 @@ use loam_sdk::soroban_sdk::{
 };
 extern crate std;
 
-stellar_scaffold_macro::import_contract_client!(stellar_registry_contract);
-// The contract that will be deployed by the Publisher contract.
-// mod contract {
+stellar_registry::import_contract_client!(stellar_registry_contract);
+// Equivalent to:
+
+// mod stellar_registry_contract {
 //     use super::soroban_sdk;
 //     soroban_sdk::contractimport!(file = "../../../../target/stellar/stellar_registry_contract.wasm");
 // }

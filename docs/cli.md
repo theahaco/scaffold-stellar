@@ -36,7 +36,7 @@ Options:
 Start development mode with hot reloading:
 
 ```bash
-stellar scaffold dev [options]
+stellar scaffold watch [options]
 ```
 
 Options:

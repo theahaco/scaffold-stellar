@@ -186,4 +186,4 @@ after_deploy = """
 1. Create `environments.toml` in your project root
 2. Configure environments, networks, and contracts
 3. Set `STELLAR_SCAFFOLD_ENV` to choose environment
-4. Use `stellar scaffold build` or `stellar scaffold dev` to deploy and generate clients
+4. Use `stellar scaffold build` or `stellar scaffold watch` to deploy and generate clients
