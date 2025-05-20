@@ -4752,6 +4752,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-registry"
+version = "0.0.1-alpha"
+dependencies = [
+ "stellar-scaffold-macro",
+]
+
+[[package]]
 name = "stellar-registry-cli"
 version = "0.0.1-alpha.2"
 dependencies = [
@@ -4781,7 +4788,7 @@ dependencies = [
  "assert_matches",
  "loam-sdk",
  "loam-subcontract-core",
- "stellar-scaffold-macro",
+ "stellar-registry",
 ]
 
 [[package]]
