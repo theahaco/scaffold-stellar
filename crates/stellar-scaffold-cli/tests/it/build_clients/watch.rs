@@ -5,18 +5,18 @@ use tokio_stream::wrappers::LinesStream;
 
 #[ignore]
 #[tokio::test]
-async fn dev_command_watches_for_changes_and_environments_toml() {
+async fn watch_command_watches_for_changes_and_environments_toml() {
     TestEnv::from_async("soroban-init-boilerplate", |env| async {
         Box::pin(async move {
-            let mut dev_process = env
-                .stellar_scaffold_process("dev", &["--build-clients"])
+            let mut watch_process = env
+                .stellar_scaffold_process("watch", &["--build-clients"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("Failed to spawn dev process");
+                .expect("Failed to spawn watch process");
 
-            let stderr = dev_process.stderr.take().unwrap();
+            let stderr = watch_process.stderr.take().unwrap();
             let mut stderr_lines = LinesStream::new(BufReader::new(stderr).lines());
 
             // Wait for initial build to complete
@@ -31,7 +31,7 @@ async fn dev_command_watches_for_changes_and_environments_toml() {
             env.modify_file(file_changed, "// This is a test modification");
             let file_changed_path = env.cwd.join(file_changed);
 
-            // Wait for the dev process to detect changes and rebuild
+            // Wait for the watch process to detect changes and rebuild
             TestEnv::wait_for_output(
                 &mut stderr_lines,
                 &format!("File changed: {file_changed_path:?}"),
@@ -66,7 +66,7 @@ soroban_token_contract.client = false
 "#,
             );
 
-            // Wait for the dev process to detect changes and rebuild
+            // Wait for the watch process to detect changes and rebuild
             TestEnv::wait_for_output(
                 &mut stderr_lines,
                 "🌐 using network at http://localhost:8000/rpc",
@@ -99,7 +99,7 @@ soroban_token_contract.client = false
 "#,
             );
 
-            // Wait for the dev process to detect changes and rebuild
+            // Wait for the watch process to detect changes and rebuild
             TestEnv::wait_for_output(
                 &mut stderr_lines,
                 "🌐 using network at http://localhost:9000/rpc",
@@ -122,10 +122,10 @@ soroban_token_contract.client = false
             )
             .await;
 
-            dev_process
+            watch_process
                 .kill()
                 .await
-                .expect("Failed to kill dev process");
+                .expect("Failed to kill watch process");
         })
         .await;
     })
@@ -157,15 +157,15 @@ soroban_token_contract.client = false
 "#,
             );
 
-            let mut dev_process = env
-                .stellar_scaffold_process("dev", &["--build-clients"])
+            let mut watch_process = env
+                .stellar_scaffold_process("watch", &["--build-clients"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("Failed to spawn dev process");
+                .expect("Failed to spawn watch process");
 
-            let stderr = dev_process.stderr.take().unwrap();
+            let stderr = watch_process.stderr.take().unwrap();
             let mut stderr_lines = LinesStream::new(BufReader::new(stderr).lines());
 
             TestEnv::wait_for_output(
@@ -180,10 +180,10 @@ soroban_token_contract.client = false
             )
             .await;
 
-            dev_process
+            watch_process
                 .kill()
                 .await
-                .expect("Failed to kill dev process");
+                .expect("Failed to kill watch process");
         })
         .await;
     })
