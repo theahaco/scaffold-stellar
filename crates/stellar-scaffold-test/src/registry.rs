@@ -101,12 +101,12 @@ soroban_hello_world_contract.client = false
             .trim()
             .to_string();
 
-        eprintln!("✅ Registry deployed at: {}", contract_id);
+        eprintln!("✅ Registry deployed at: {contract_id}");
 
         contract_id
     }
 
-    pub async fn register_contract(&self, name: &str, wasm_path: &PathBuf) -> Command {
+    pub fn register_contract(&self, name: &str, wasm_path: &PathBuf) -> Command {
         // Add logic to register a contract
         let mut cmd = self.env.registry_cli("register");
         cmd.arg("--name").arg(name);
