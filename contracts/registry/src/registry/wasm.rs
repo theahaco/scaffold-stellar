@@ -1,9 +1,12 @@
 use loam_sdk::{
     loamstorage,
-    soroban_sdk::{self, env, Address, BytesN, Map, PersistentMap, String},
+    soroban_sdk::{
+        self, assert_with_error, env, to_string, Address, BytesN, Map, PersistentMap, String,
+    },
 };
+use loam_subcontract_core::Core as _;
 
-use crate::{error::Error, version::Version};
+use crate::{error::Error, util::REGISTRY, version::Version};
 
 use super::IsPublishable;
 
@@ -90,8 +93,22 @@ impl IsPublishable for W {
                 return Err(Error::AlreadyPublished);
             }
         }
+        if wasm_name == to_string(REGISTRY) {
+            assert_with_error!(
+                env(),
+                crate::Contract::admin_get().unwrap() == author,
+                Error::AdminOnly
+            );
+        }
         author.require_auth();
         version.log();
+        if let Ok(current_version) = self.most_recent_version(&wasm_name) {
+            assert_with_error!(
+                env(),
+                version > current_version,
+                Error::VersionMustBeGreaterThanCurrent
+            );
+        }
         self.a.set(wasm_name.clone(), &author);
         self.set(&wasm_name, version, wasm_hash)
     }
