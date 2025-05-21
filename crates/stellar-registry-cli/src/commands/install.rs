@@ -82,7 +82,7 @@ impl Cmd {
         let slop = vec!["fetch_contract_id", "--contract-name", &self.contract_name];
 
         // Use this.config directly
-        println!("Fetching contract ID via registry...");
+        eprintln!("Fetching contract ID via registry...");
         let raw = testnet::invoke_registry(
             &slop,
             &self.config,
