@@ -13,4 +13,4 @@ crate-type = ["rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stellar-scaffold-macro = { workspace = true }
+stellar-scaffold-macro = { path = "../stellar-scaffold-macro", version = "0.8.6" }
