@@ -95,13 +95,13 @@ impl Cmd {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::env;
-    use stellar_cli::config::{locator, network};
-    use stellar_scaffold_test::RegistryTest;
-
+    #[cfg(feature = "integration-tests")]
     #[tokio::test]
     async fn test_run() {
+        use super::*;
+        use std::env;
+        use stellar_cli::config::{locator, network};
+        use stellar_scaffold_test::RegistryTest;
         // Create test environment
         let registry = RegistryTest::new().await;
         let test_env = registry.clone().env;
