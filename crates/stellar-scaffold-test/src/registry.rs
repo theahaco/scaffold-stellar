@@ -74,23 +74,22 @@ soroban_hello_world_contract.client = false
         eprintln!("🪞 Deploying registry contract...");
 
         // Deploy contract using the Stellar CLI library directly with alice account
-        let deploy_args = vec![
-            "--wasm-hash".to_string(),
-            hash.clone(),
-            "--source".to_string(),
-            "alice".to_string(),
-            "--config-dir".to_string(),
-            env.cwd.to_str().unwrap().to_string(),
-            "--rpc-url".to_string(),
-            "http://localhost:8000/soroban/rpc".to_string(),
-            "--network-passphrase".to_string(),
-            "Standalone Network ; February 2017".to_string(),
-            "--".to_string(),
-            "--admin".to_string(),
-            "alice".to_string(),
+        let deploy_args = [
+            "--wasm-hash",
+            &hash,
+            "--source",
+            "alice",
+            "--config-dir",
+            env.cwd.to_str().unwrap(),
+            "--rpc-url",
+            "http://localhost:8000/soroban/rpc",
+            "--network-passphrase",
+            "Standalone Network ; February 2017",
+            "--",
+            "--admin",
+            "alice",
         ];
-        let deploy_arg_refs: Vec<&str> = deploy_args.iter().map(String::as_str).collect();
-        let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)
+        let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_args)
             .expect("Failed to parse arguments for deploy")
             .run_against_rpc_server(None, None)
             .await
