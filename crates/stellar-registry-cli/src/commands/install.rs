@@ -47,8 +47,7 @@ impl Cmd {
         let network = self.config.get_network()?;
         let network_passphrase = network.network_passphrase;
 
-        let contract_id = self.get_contract_id().await?;
-        let contract = Contract::from_string(&contract_id)?;
+        let contract = self.get_contract_id().await?;
 
         self.config.locator.save_contract_id(
             &network_passphrase,
@@ -70,12 +69,12 @@ impl Cmd {
         eprintln!("WASM file saved to: {}", out_file.display());
 
         eprintln!("✅ Successfully installed contract {}", self.contract_name);
-        eprintln!("Contract ID: {contract_id}");
+        eprintln!("Contract ID: {:?}", contract.to_string());
 
         Ok(())
     }
 
-    pub async fn get_contract_id(&self) -> Result<String, Error> {
+    pub async fn get_contract_id(&self) -> Result<Contract, Error> {
         // Prepare the arguments for invoke_registry
         let slop = vec!["fetch_contract_id", "--contract-name", &self.contract_name];
 
@@ -89,7 +88,7 @@ impl Cmd {
         .await?;
 
         let contract_id = raw.trim_matches('"').to_string();
-        Ok(contract_id)
+        Ok(contract_id.parse()?)
     }
 }
 
