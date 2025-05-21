@@ -23,7 +23,7 @@ pub(crate) fn validate(s: &String) -> Result<(), Error> {
 }
 
 /// from crate `check_keyword`
-/// https://github.com/JoelCourtney/check_keyword/blob/68486cbfa368070fdbfd383fc5840aa380bb1e6f/src/lib.rs#L120
+/// <https://github.com/JoelCourtney/check_keyword/blob/68486cbfa368070fdbfd383fc5840aa380bb1e6f/src/lib.rs#L120>
 fn is_keyword(s: &str) -> bool {
     match s {
     "as" |
