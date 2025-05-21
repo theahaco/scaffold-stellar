@@ -32,7 +32,7 @@ setup:
 
 # Build stellar-scaffold-cli test contracts to speed up testing
 build-cli-test-contracts:
-    just stellar-scaffold build --manifest-path crates/stellar-scaffold-cli/tests/fixtures/soroban-init-boilerplate/Cargo.toml
+    just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
     cargo nextest run --workspace

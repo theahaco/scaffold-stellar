@@ -36,18 +36,16 @@ pub enum Error {
     #[error(transparent)]
     Strkey(#[from] stellar_strkey::DecodeError),
     #[error(transparent)]
-    Config(#[from] stellar_cli::config::locator::Error),
+    LocatorConfig(#[from] stellar_cli::config::locator::Error),
+    #[error(transparent)]
+    Config(#[from] stellar_cli::config::Error),
 }
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         // Use the network config from flattened args
-        let network_passphrase = self
-            .config
-            .network
-            .network_passphrase
-            .clone()
-            .expect("Network passphrase required");
+        let network = self.config.get_network()?;
+        let network_passphrase = network.network_passphrase;
 
         let contract_id = self.get_contract_id().await?;
         let contract = Contract::from_string(&contract_id)?;
