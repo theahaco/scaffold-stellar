@@ -69,10 +69,10 @@ impl Cmd {
             ..Default::default()
         };
         fetch_cmd.run().await?;
-        println!("WASM file saved to: {}", out_file.display());
+        eprintln!("WASM file saved to: {}", out_file.display());
 
-        println!("✅ Successfully installed contract {}", self.contract_name);
-        println!("Contract ID: {contract_id}");
+        eprintln!("✅ Successfully installed contract {}", self.contract_name);
+        eprintln!("Contract ID: {contract_id}");
 
         Ok(())
     }
