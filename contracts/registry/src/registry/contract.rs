@@ -14,7 +14,6 @@ use crate::{
     name::validate,
     registry::Publishable,
     util::{hash_string, REGISTRY},
-    version::Version,
     Contract as Contract_,
 };
 
@@ -24,7 +23,7 @@ use super::{wasm::W, IsDeployable, IsRedeployable};
 pub struct DeployEventData {
     wasm_name: String,
     contract_name: String,
-    version: Version,
+    version: String,
     deployer: Address,
     contract_id: Address,
 }
@@ -52,7 +51,7 @@ impl IsDeployable for C {
     fn deploy(
         &mut self,
         wasm_name: String,
-        version: Option<Version>,
+        version: Option<String>,
         contract_name: String,
         admin: Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
@@ -125,7 +124,7 @@ impl IsRedeployable for C {
         &mut self,
         name: String,
         wasm_name: String,
-        version: Option<Version>,
+        version: Option<String>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let wasm_hash = Contract_::fetch_hash(wasm_name.clone(), version.clone())?;

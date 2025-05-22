@@ -1,5 +1,5 @@
 use crate::{
-    error::Error, name::is_valid, version::Version,
+    error::Error, name::is_valid,
     SorobanContract__Client as SorobanContractClient,
 };
 use assert_matches::assert_matches;
@@ -9,6 +9,10 @@ use loam_sdk::soroban_sdk::{
     to_string, Address, Bytes, BytesN, Env, IntoVal,
 };
 extern crate std;
+
+fn default_version() -> soroban_sdk::String  {
+    to_string("0.0.0")
+}
 
 stellar_registry::import_contract_client!(stellar_registry_contract);
 // Equivalent to:
@@ -56,13 +60,13 @@ fn handle_error_cases() {
 
     let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
     env.mock_all_auths();
-    let version = Version::default();
+    let version = default_version();
     client.publish(name, address, &bytes, &version);
     assert_eq!(client.fetch_hash(name, &None), wasm_hash);
 
     assert_matches!(
         client
-            .try_fetch_hash(name, &Some(version.publish_patch()))
+            .try_fetch_hash(name, &Some(to_string("0.0.1")))
             .unwrap_err(),
         Ok(Error::NoSuchVersion)
     );
@@ -82,7 +86,7 @@ fn returns_most_recent_version() {
     // client.register_name(address, name);
     let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
     env.mock_all_auths();
-    let version = Version::default();
+    let version = default_version();
     client.publish(name, address, &bytes, &version);
     let fetched_hash = client.fetch_hash(name, &None);
     let wasm_hash = env
@@ -95,20 +99,10 @@ fn returns_most_recent_version() {
         name,
         address,
         &second_hash.into_val(env),
-        &version.publish_patch(),
+        &to_string("0.0.1"),
     );
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
-
-    // let third_hash: BytesN<32> = BytesN::random(env);
-    // client.publish(name, &third_hash, &None, &None);
-    // let res = client.fetch(name, &None);
-    // assert_eq!(res, third_hash);
-
-    // let third_hash: BytesN<32> = BytesN::random(env);
-    // client.publish(name, &third_hash, &None, &None);
-    // let res = client.fetch(name, &None);
-    // assert_eq!(res, third_hash);
 }
 
 fn test_string(s: &str, result: bool) {
