@@ -1,16 +1,15 @@
 #![no_std]
-use loam_sdk::soroban_sdk;
 use loam_subcontract_core::{admin::Admin, Core};
 
 use registry::{contract::C as Contract_, wasm::W as Wasm, Deployable, Publishable, Redeployable};
 
 pub mod error;
+pub mod name;
 pub mod registry;
 pub mod util;
 pub mod version;
 
-use error::Error;
-use version::Version;
+pub use error::Error;
 
 #[loam_sdk::derive_contract(
     Core(Admin),

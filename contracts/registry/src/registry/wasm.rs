@@ -6,7 +6,7 @@ use loam_sdk::{
 };
 use loam_subcontract_core::Core as _;
 
-use crate::{error::Error, util::REGISTRY, version::Version};
+use crate::{error::Error, name::validate, util::REGISTRY, version::Version};
 
 use super::IsPublishable;
 
@@ -88,6 +88,7 @@ impl IsPublishable for W {
         wasm_hash: soroban_sdk::BytesN<32>,
         version: Version,
     ) -> Result<(), Error> {
+        validate(&wasm_name)?;
         if let Some(current) = self.author(&wasm_name) {
             if author != current {
                 return Err(Error::AlreadyPublished);
