@@ -1,10 +1,8 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
 use stellar_cli::{
     commands::contract::{fetch, invoke},
-    config::{self, UnresolvedContract},
+    config,
     fee::Args,
 };
 use stellar_strkey::Contract;
@@ -15,9 +13,6 @@ use crate::testnet;
 pub struct Cmd {
     /// Name of deployed contract
     pub contract_name: String,
-    /// Where to place the Wasm file. Default `<root>/target/stellar/<contract_name>/index.wasm`
-    #[arg(long, short = 'o', default_value = "./target/stellar/")]
-    pub out_dir: PathBuf,
 
     #[command(flatten)]
     pub config: config::Args,
@@ -49,26 +44,14 @@ impl Cmd {
 
         let contract = self.get_contract_id().await?;
 
+        // Only create alias mapping, don't fetch wasm here
         self.config.locator.save_contract_id(
             &network_passphrase,
             &contract,
             &self.contract_name,
         )?;
 
-        // Fetch and save the WASM file
-        let mut out_file = self.out_dir.join(&self.contract_name);
-        out_file.set_extension("wasm");
-
-        let fetch_cmd = fetch::Cmd {
-            contract_id: UnresolvedContract::Resolved(contract),
-            out_file: Some(out_file.clone()),
-            network: self.config.network.clone(),
-            ..Default::default()
-        };
-        fetch_cmd.run().await?;
-        eprintln!("WASM file saved to: {}", out_file.display());
-
-        eprintln!("✅ Successfully installed contract {}", self.contract_name);
+        eprintln!("✅ Successfully registered contract alias '{}'", self.contract_name);
         eprintln!("Contract ID: {:?}", contract.to_string());
 
         Ok(())
@@ -141,7 +124,6 @@ mod tests {
         // Create test command for install
         let cmd = Cmd {
             contract_name: "hello".to_owned(),
-            out_dir: test_env.cwd.to_str().unwrap().into(),
             config: config::Args {
                 locator: locator::Args {
                     global: false,
@@ -158,9 +140,6 @@ mod tests {
 
         // Run the install command
         cmd.run().await.unwrap();
-
-        // Verify the files were created in the expected location
         assert!(test_env.cwd.join(".stellar").exists());
-        assert!(test_env.cwd.join("hello.wasm").exists());
     }
 }
