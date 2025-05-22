@@ -51,7 +51,10 @@ impl Cmd {
             &self.contract_name,
         )?;
 
-        eprintln!("✅ Successfully registered contract alias '{}'", self.contract_name);
+        eprintln!(
+            "✅ Successfully registered contract alias '{}'",
+            self.contract_name
+        );
         eprintln!("Contract ID: {:?}", contract.to_string());
 
         Ok(())
