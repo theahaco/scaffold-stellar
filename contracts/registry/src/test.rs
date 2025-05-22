@@ -1,4 +1,7 @@
-use crate::{error::Error, version::Version, SorobanContract__Client as SorobanContractClient};
+use crate::{
+    error::Error, name::is_valid, version::Version,
+    SorobanContract__Client as SorobanContractClient,
+};
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
     self, env, set_env,
@@ -106,4 +109,32 @@ fn returns_most_recent_version() {
     // client.publish(name, &third_hash, &None, &None);
     // let res = client.fetch(name, &None);
     // assert_eq!(res, third_hash);
+}
+
+fn test_string(s: &str, result: bool) {
+    assert!(
+        is_valid(&to_string(s)) == result,
+        "{s} should be {}valid",
+        if result { "" } else { "in" }
+    );
+}
+
+#[test]
+fn validate_names() {
+    set_env(Env::default());
+    test_string("publish", true);
+    test_string("a_a_b", true);
+    test_string("abcdefghabcdefgh", true);
+    test_string("abcdefghabcdefghabcdefghabcdefgh", true);
+    test_string(
+        "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh",
+        true,
+    );
+    test_string(
+        "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgha",
+        false,
+    );
+    test_string("a-a_b", false);
+    test_string("_ab", false);
+    test_string("1ab", false);
 }

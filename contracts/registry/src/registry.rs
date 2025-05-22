@@ -1,9 +1,6 @@
-use loam_sdk::soroban_sdk::{self, Lazy};
+use loam_sdk::soroban_sdk::Lazy;
 
-use crate::{
-    error::Error,
-    version::{self, Version},
-};
+use crate::{error::Error, version};
 
 pub mod contract;
 pub mod wasm;
@@ -16,28 +13,31 @@ pub trait IsPublishable {
     /// Fetch the hash of a Wasm binary from the registry
     fn fetch_hash(
         &self,
-        wasm_name: soroban_sdk::String,
+        wasm_name: loam_sdk::soroban_sdk::String,
         version: Option<version::Version>,
-    ) -> Result<soroban_sdk::BytesN<32>, Error>;
+    ) -> Result<loam_sdk::soroban_sdk::BytesN<32>, Error>;
 
     /// Most recent version of the published Wasm binary
-    fn current_version(&self, wasm_name: soroban_sdk::String) -> Result<Version, Error>;
+    fn current_version(
+        &self,
+        wasm_name: loam_sdk::soroban_sdk::String,
+    ) -> Result<version::Version, Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
     fn publish(
         &mut self,
-        wasm_name: soroban_sdk::String,
-        author: soroban_sdk::Address,
-        wasm: soroban_sdk::Bytes,
+        wasm_name: loam_sdk::soroban_sdk::String,
+        author: loam_sdk::soroban_sdk::Address,
+        wasm: loam_sdk::soroban_sdk::Bytes,
         version: version::Version,
     ) -> Result<(), Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
     fn publish_hash(
         &mut self,
-        wasm_name: soroban_sdk::String,
-        author: soroban_sdk::Address,
-        wasm_hash: soroban_sdk::BytesN<32>,
+        wasm_name: loam_sdk::soroban_sdk::String,
+        author: loam_sdk::soroban_sdk::Address,
+        wasm_hash: loam_sdk::soroban_sdk::BytesN<32>,
         version: version::Version,
     ) -> Result<(), Error>;
 }
@@ -48,18 +48,18 @@ pub trait IsDeployable {
     /// If no salt provided it will use the current sequence number.
     fn deploy(
         &mut self,
-        wasm_name: soroban_sdk::String,
-        version: Option<Version>,
-        contract_name: soroban_sdk::String,
-        admin: soroban_sdk::Address,
-        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
-    ) -> Result<soroban_sdk::Address, Error>;
+        wasm_name: loam_sdk::soroban_sdk::String,
+        version: Option<version::Version>,
+        contract_name: loam_sdk::soroban_sdk::String,
+        admin: loam_sdk::soroban_sdk::Address,
+        init: Option<loam_sdk::soroban_sdk::Vec<loam_sdk::soroban_sdk::Val>>,
+    ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 
     /// Look up the contract id of a deployed contract
     fn fetch_contract_id(
         &self,
-        contract_name: soroban_sdk::String,
-    ) -> Result<soroban_sdk::Address, Error>;
+        contract_name: loam_sdk::soroban_sdk::String,
+    ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 }
 
 #[loam_sdk::subcontract]
@@ -67,18 +67,18 @@ pub trait IsRedeployable {
     /// Skips the publish step to deploy a contract directly, keeping the name
     fn dev_deploy(
         &mut self,
-        name: soroban_sdk::String,
-        wasm: soroban_sdk::Bytes,
-        upgrade_fn: Option<soroban_sdk::Symbol>,
-    ) -> Result<soroban_sdk::Address, Error>;
+        name: loam_sdk::soroban_sdk::String,
+        wasm: loam_sdk::soroban_sdk::Bytes,
+        upgrade_fn: Option<loam_sdk::soroban_sdk::Symbol>,
+    ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 
     /// Upgrades a contract by calling the upgrade function.
     /// Default is 'redeploy' and expects that first arg is the corresponding wasm hash
     fn upgrade_contract(
         &mut self,
-        name: soroban_sdk::String,
-        wasm_name: soroban_sdk::String,
+        name: loam_sdk::soroban_sdk::String,
+        wasm_name: loam_sdk::soroban_sdk::String,
         version: Option<version::Version>,
-        upgrade_fn: Option<soroban_sdk::Symbol>,
-    ) -> Result<soroban_sdk::Address, Error>;
+        upgrade_fn: Option<loam_sdk::soroban_sdk::Symbol>,
+    ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 }
