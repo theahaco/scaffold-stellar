@@ -115,7 +115,7 @@ fn test_string(s: &str, result: bool) {
     assert!(
         is_valid(&to_string(s)) == result,
         "{s} should be {}valid",
-        if !result { "in" } else { "" }
+        if result { "" } else { "in" }
     );
 }
 
