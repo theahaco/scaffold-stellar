@@ -1,7 +1,4 @@
-use crate::{
-    error::Error, name::is_valid,
-    SorobanContract__Client as SorobanContractClient,
-};
+use crate::{error::Error, name::is_valid, SorobanContract__Client as SorobanContractClient};
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
     self, env, set_env,
@@ -10,7 +7,7 @@ use loam_sdk::soroban_sdk::{
 };
 extern crate std;
 
-fn default_version() -> soroban_sdk::String  {
+fn default_version() -> soroban_sdk::String {
     to_string("0.0.0")
 }
 
@@ -131,4 +128,23 @@ fn validate_names() {
     test_string("a-a_b", false);
     test_string("_ab", false);
     test_string("1ab", false);
+}
+
+#[test]
+fn validate_version() {
+    let (client, address) = &init();
+    let env = env();
+    let name = &to_string("registry");
+    let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
+    env.mock_all_auths();
+    let version = default_version();
+    client.publish(name, address, &bytes, &version);
+    assert_eq!(
+        client.try_publish(name, address, &bytes, &to_string("0.0.0"),),
+        Err(Ok(Error::VersionMustBeGreaterThanCurrent))
+    );
+    assert_eq!(
+        client.try_publish(name, address, &bytes, &to_string("0.  0.0"),),
+        Err(Ok(Error::InvalidVersion))
+    );
 }
