@@ -12,10 +12,11 @@ pub(crate) fn is_valid(s: &String) -> bool {
     let Ok(s) = core::str::from_utf8(first) else {
         return false;
     };
-    if is_keyword(s) || s.starts_with(|c: char| c == '_' || c.is_numeric()) {
+    if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
         return false;
     }
-    s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    s.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 pub(crate) fn validate(s: &String) -> Result<(), Error> {
