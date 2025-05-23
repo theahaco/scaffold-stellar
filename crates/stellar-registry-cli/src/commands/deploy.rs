@@ -167,7 +167,7 @@ impl Cmd {
             function_name: "deploy".try_into().unwrap(),
             args: [
                 ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
-                ScVal::Void, // TODO should be a way to pass version
+                self.version.clone().map(|s|ScVal::String(ScString(s.try_into().unwrap()))).unwrap_or(ScVal::Void),
                 ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
