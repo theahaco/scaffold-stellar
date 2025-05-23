@@ -62,16 +62,10 @@ impl Cmd {
             ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
                 let key_str = key.to_string();
                 // TODO add source repository when registry contract supports it
-                match key_str.as_str() {
-                    "wasm_name" => Some(format!("--{key_str}={val}")),
-                    "version" => {
-                        let val_str = val
-                            .to_utf8_string()
-                            .expect("Invalid UTF-8 in version metadata");
-                        let version_array = val_str.split('.').collect::<Vec<&str>>().join(",");
-                        Some(format!("--{key_str}=[{version_array}]"))
-                    }
-                    _ => None,
+                if key_str == "wasm_name" || key_str == "version" {
+                    Some(format!("--{key_str}={val}"))
+                } else {
+                    None
                 }
             }
         }));

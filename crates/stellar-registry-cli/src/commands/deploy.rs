@@ -167,7 +167,9 @@ impl Cmd {
             function_name: "deploy".try_into().unwrap(),
             args: [
                 ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
-                self.version.clone().map(|s|ScVal::String(ScString(s.try_into().unwrap()))).unwrap_or(ScVal::Void),
+                self.version.clone().map_or(ScVal::Void, |s| {
+                    ScVal::String(ScString(s.try_into().unwrap()))
+                }),
                 ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
