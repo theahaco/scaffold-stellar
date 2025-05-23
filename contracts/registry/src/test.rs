@@ -125,8 +125,10 @@ fn validate_names() {
         "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgha",
         false,
     );
-    test_string("a-a_b", false);
+    test_string("a-a_b", true);
+    test_string("a-a]]]_b", false);
     test_string("_ab", false);
+    test_string("-ab", false);
     test_string("1ab", false);
 }
 

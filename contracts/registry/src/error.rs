@@ -27,7 +27,10 @@ pub enum Error {
     /// New version must be greater than the most recent version
     VersionMustBeGreaterThanCurrent = 11,
     /// Invalid name.
-    /// Must be 64 characters or less; ascii alphanumeric or '_'; start with a letter; and not be a Rust keyword
+    /// Must be 64 characters or less;
+    /// ascii alphanumeric, '-', or '_';
+    /// start with a ascii alphabetic character;
+    /// and not be a Rust keyword
     InvalidName = 12,
     /// Invalid Version. Must be valid cargo version
     InvalidVersion = 13,
