@@ -17,7 +17,7 @@ get-version () {
 }
 
 
-for i in $(cargo r build --ls); do
+for i in $(just build --ls); do
     echo "Publishing $i to registry $(get-version $i)"
 
 done

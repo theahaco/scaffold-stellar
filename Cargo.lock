@@ -4793,6 +4793,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-registry-tools-contract"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "loam-sdk",
+ "loam-subcontract-core",
+ "semver 1.0.26",
+ "stellar-registry",
+]
+
+[[package]]
 name = "stellar-rpc-client"
 version = "22.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

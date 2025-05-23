@@ -57,13 +57,13 @@ impl W {
         self.a.get(name.clone())
     }
 
-    fn validate_version(&self, version: &String, wasm_name: &String) -> Result<(), Error> {
-        let version = crate::version::parse(version)?;
-        if let Ok(current_version) = self.most_recent_version(wasm_name) {
-            if version <= crate::version::parse(&current_version)? {
-                return Err(Error::VersionMustBeGreaterThanCurrent);
-            }
-        }
+    fn validate_version(&self, _ersion: &String, _wasm_name: &String) -> Result<(), Error> {
+        // let version = crate::version::parse(version)?;
+        // if let Ok(current_version) = self.most_recent_version(wasm_name) {
+        //     if version <= crate::version::parse(&current_version)? {
+        //         return Err(Error::VersionMustBeGreaterThanCurrent);
+        //     }
+        // }
         Ok(())
     }
 }

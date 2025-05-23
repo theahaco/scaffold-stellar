@@ -7,10 +7,10 @@ pub mod error;
 pub mod name;
 pub mod registry;
 pub mod util;
-pub mod version;
+// pub mod version;
 
-#[cfg(target_family = "wasm")]
-mod alloc;
+// #[cfg(target_family = "wasm")]
+// mod alloc;
 
 pub use error::Error;
 
