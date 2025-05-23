@@ -29,4 +29,6 @@ pub enum Error {
     /// Invalid name.
     /// Must be 64 characters or less; ascii alphanumeric or '_'; start with a letter; and not be a Rust keyword
     InvalidName = 12,
+    /// Invalid Version. Must be valid cargo version
+    InvalidVersion = 13,
 }

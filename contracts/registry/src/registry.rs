@@ -1,6 +1,6 @@
 use loam_sdk::soroban_sdk::Lazy;
 
-use crate::{error::Error, version};
+use crate::error::Error;
 
 pub mod contract;
 pub mod wasm;
@@ -14,14 +14,14 @@ pub trait IsPublishable {
     fn fetch_hash(
         &self,
         wasm_name: loam_sdk::soroban_sdk::String,
-        version: Option<version::Version>,
+        version: Option<loam_sdk::soroban_sdk::String>,
     ) -> Result<loam_sdk::soroban_sdk::BytesN<32>, Error>;
 
     /// Most recent version of the published Wasm binary
     fn current_version(
         &self,
         wasm_name: loam_sdk::soroban_sdk::String,
-    ) -> Result<version::Version, Error>;
+    ) -> Result<loam_sdk::soroban_sdk::String, Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
     fn publish(
@@ -29,7 +29,7 @@ pub trait IsPublishable {
         wasm_name: loam_sdk::soroban_sdk::String,
         author: loam_sdk::soroban_sdk::Address,
         wasm: loam_sdk::soroban_sdk::Bytes,
-        version: version::Version,
+        version: loam_sdk::soroban_sdk::String,
     ) -> Result<(), Error>;
 
     /// Publish a binary. If contract had been previously published only previous author can publish again
@@ -38,7 +38,7 @@ pub trait IsPublishable {
         wasm_name: loam_sdk::soroban_sdk::String,
         author: loam_sdk::soroban_sdk::Address,
         wasm_hash: loam_sdk::soroban_sdk::BytesN<32>,
-        version: version::Version,
+        version: loam_sdk::soroban_sdk::String,
     ) -> Result<(), Error>;
 }
 
@@ -49,7 +49,7 @@ pub trait IsDeployable {
     fn deploy(
         &mut self,
         wasm_name: loam_sdk::soroban_sdk::String,
-        version: Option<version::Version>,
+        version: Option<loam_sdk::soroban_sdk::String>,
         contract_name: loam_sdk::soroban_sdk::String,
         admin: loam_sdk::soroban_sdk::Address,
         init: Option<loam_sdk::soroban_sdk::Vec<loam_sdk::soroban_sdk::Val>>,
@@ -78,7 +78,7 @@ pub trait IsRedeployable {
         &mut self,
         name: loam_sdk::soroban_sdk::String,
         wasm_name: loam_sdk::soroban_sdk::String,
-        version: Option<version::Version>,
+        version: Option<loam_sdk::soroban_sdk::String>,
         upgrade_fn: Option<loam_sdk::soroban_sdk::Symbol>,
     ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 }
