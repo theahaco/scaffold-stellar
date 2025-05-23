@@ -14,5 +14,5 @@ pub fn parse(s: &String) -> Result<semver::Version, Error> {
     let Ok(s) = core::str::from_utf8(first) else {
         return Err(Error::InvalidVersion);
     };
-    Ok(s.parse().map_err(|_| Error::InvalidVersion)?)
+    s.parse().map_err(|_| Error::InvalidVersion)
 }

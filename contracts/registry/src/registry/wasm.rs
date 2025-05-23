@@ -4,7 +4,7 @@ use loam_sdk::{
 };
 use loam_subcontract_core::Core as _;
 
-use crate::{error::Error, name::validate, util::REGISTRY, version};
+use crate::{error::Error, name::validate, util::REGISTRY};
 
 use super::IsPublishable;
 
@@ -58,10 +58,9 @@ impl W {
     }
 
     fn validate_version(&self, version: &String, wasm_name: &String) -> Result<(), Error> {
-        let parsed_version = version::parse(&version)?;
+        let version = crate::version::parse(version)?;
         if let Ok(current_version) = self.most_recent_version(wasm_name) {
-            let current_version = version::parse(&current_version)?;
-            if parsed_version <= current_version {
+            if version <= crate::version::parse(&current_version)? {
                 return Err(Error::VersionMustBeGreaterThanCurrent);
             }
         }
