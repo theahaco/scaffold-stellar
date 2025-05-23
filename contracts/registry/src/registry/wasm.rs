@@ -1,19 +1,17 @@
 use loam_sdk::{
     loamstorage,
-    soroban_sdk::{
-        self, assert_with_error, env, to_string, Address, BytesN, Map, PersistentMap, String,
-    },
+    soroban_sdk::{self, env, to_string, Address, BytesN, Map, PersistentMap, String},
 };
 use loam_subcontract_core::Core as _;
 
-use crate::{error::Error, name::validate, util::REGISTRY, version::Version};
+use crate::{error::Error, name::validate, util::REGISTRY};
 
 use super::IsPublishable;
 
 /// Contains
 #[loamstorage]
 pub struct W {
-    pub r: PersistentMap<String, Map<Version, BytesN<32>>>,
+    pub r: PersistentMap<String, Map<String, BytesN<32>>>,
     pub a: PersistentMap<String, Address>,
 }
 
@@ -26,19 +24,19 @@ impl W {
 }
 
 impl W {
-    fn registry(&self, name: &String) -> Result<Map<Version, BytesN<32>>, Error> {
+    fn registry(&self, name: &String) -> Result<Map<String, BytesN<32>>, Error> {
         self.r
             .get(name.clone())
             .ok_or(Error::NoSuchContractPublished)
     }
-    pub fn most_recent_version(&self, name: &String) -> Result<Version, Error> {
+    pub fn most_recent_version(&self, name: &String) -> Result<String, Error> {
         self.registry(name)?
             .keys()
             .first()
             .ok_or(Error::NoSuchVersion)
     }
 
-    pub fn get(&self, name: &String, version: Option<Version>) -> Result<BytesN<32>, Error> {
+    pub fn get(&self, name: &String, version: Option<String>) -> Result<BytesN<32>, Error> {
         let registry = self.registry(name)?;
         if let Some(version) = version {
             registry.get(version)
@@ -48,12 +46,7 @@ impl W {
         .ok_or(Error::NoSuchVersion)
     }
 
-    pub fn set(
-        &mut self,
-        name: &String,
-        version: Version,
-        binary: BytesN<32>,
-    ) -> Result<(), Error> {
+    pub fn set(&mut self, name: &String, version: String, binary: BytesN<32>) -> Result<(), Error> {
         let mut registry = self.r.get(name.clone()).unwrap_or_else(|| Map::new(env()));
         registry.set(version, binary);
         self.r.set(name.clone(), &registry);
@@ -63,10 +56,20 @@ impl W {
     pub fn author(&self, name: &String) -> Option<Address> {
         self.a.get(name.clone())
     }
+
+    fn validate_version(&self, version: &String, wasm_name: &String) -> Result<(), Error> {
+        let version = crate::version::parse(version)?;
+        if let Ok(current_version) = self.most_recent_version(wasm_name) {
+            if version <= crate::version::parse(&current_version)? {
+                return Err(Error::VersionMustBeGreaterThanCurrent);
+            }
+        }
+        Ok(())
+    }
 }
 
 impl IsPublishable for W {
-    fn current_version(&self, contract_name: String) -> Result<Version, Error> {
+    fn current_version(&self, contract_name: String) -> Result<String, Error> {
         self.most_recent_version(&contract_name)
     }
 
@@ -75,7 +78,7 @@ impl IsPublishable for W {
         wasm_name: String,
         author: Address,
         wasm: soroban_sdk::Bytes,
-        version: Version,
+        version: String,
     ) -> Result<(), Error> {
         let wasm_hash = env().deployer().upload_contract_wasm(wasm);
         self.publish_hash(wasm_name, author, wasm_hash, version)
@@ -86,30 +89,19 @@ impl IsPublishable for W {
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm_hash: soroban_sdk::BytesN<32>,
-        version: Version,
+        version: String,
     ) -> Result<(), Error> {
+        author.require_auth();
         validate(&wasm_name)?;
         if let Some(current) = self.author(&wasm_name) {
             if author != current {
                 return Err(Error::AlreadyPublished);
             }
         }
-        if wasm_name == to_string(REGISTRY) {
-            assert_with_error!(
-                env(),
-                crate::Contract::admin_get().unwrap() == author,
-                Error::AdminOnly
-            );
+        if wasm_name == to_string(REGISTRY) && crate::Contract::admin_get().unwrap() != author {
+            return Err(Error::AdminOnly);
         }
-        author.require_auth();
-        version.log();
-        if let Ok(current_version) = self.most_recent_version(&wasm_name) {
-            assert_with_error!(
-                env(),
-                version > current_version,
-                Error::VersionMustBeGreaterThanCurrent
-            );
-        }
+        self.validate_version(&version, &wasm_name)?;
         self.a.set(wasm_name.clone(), &author);
         self.set(&wasm_name, version, wasm_hash)
     }
@@ -117,7 +109,7 @@ impl IsPublishable for W {
     fn fetch_hash(
         &self,
         contract_name: String,
-        version: Option<Version>,
+        version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
         self.get(&contract_name, version)
     }

@@ -4789,6 +4789,7 @@ dependencies = [
  "assert_matches",
  "loam-sdk",
  "loam-subcontract-core",
+ "semver 1.0.26",
  "stellar-registry",
 ]
 

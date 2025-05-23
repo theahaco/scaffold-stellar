@@ -9,6 +9,9 @@ pub mod registry;
 pub mod util;
 pub mod version;
 
+#[cfg(target_family = "wasm")]
+mod alloc;
+
 pub use error::Error;
 
 #[loam_sdk::derive_contract(
