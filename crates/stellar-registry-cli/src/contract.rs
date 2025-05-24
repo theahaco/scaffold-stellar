@@ -32,7 +32,7 @@ impl NetworkContract for config::Args {
             if let Ok(contract_id) = std::env::var("STELLAR_REGISTRY_CONTRACT_ID") {
                 contract_id.parse()
             } else {
-                contract_id(&network_passphrase).to_string().parse()
+                contract_id(network_passphrase).to_string().parse()
             }
             .unwrap_unchecked()
         };

@@ -37,4 +37,4 @@ lto = true
 
 
 [workspace.lints.clippy]
-unexpected_cfgs = "allow"
+
