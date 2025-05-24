@@ -259,7 +259,7 @@ pub fn find_registry_wasm() -> Option<PathBuf> {
     Some(
         project_root
             .join("target")
-            .join("stellar/stellar_registry_contract.wasm"),
+            .join("stellar/registry.wasm"),
     )
 }
 

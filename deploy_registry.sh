@@ -4,7 +4,7 @@ set -e
 PATH=./target/bin:$PATH
 
 stellar contract deploy --alias registry \
-                        --wasm ./target/stellar/stellar_registry_contract.wasm \
+                        --wasm ./target/stellar/registry.wasm \
                         -- \
                         --admin default
 

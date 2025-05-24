@@ -3659,6 +3659,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
+name = "registry"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "loam-sdk",
+ "loam-subcontract-core",
+ "semver 1.0.26",
+ "stellar-registry",
+]
+
+[[package]]
 name = "reqwest"
 version = "0.9.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4794,17 +4805,6 @@ dependencies = [
  "stellar-strkey 0.0.11",
  "thiserror 1.0.69",
  "tokio 1.44.2",
-]
-
-[[package]]
-name = "stellar-registry-contract"
-version = "0.1.0"
-dependencies = [
- "assert_matches",
- "loam-sdk",
- "loam-subcontract-core",
- "semver 1.0.26",
- "stellar-registry",
 ]
 
 [[package]]
