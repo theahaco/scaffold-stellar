@@ -26,11 +26,7 @@ fn init() -> (SorobanContractClient<'static>, Address) {
     let address = Address::generate(env);
     let client = SorobanContractClient::new(
         env,
-        &env.register_at(
-            &contract_id,
-            registry::WASM,
-            (address.clone(),),
-        ),
+        &env.register_at(&contract_id, registry::WASM, (address.clone(),)),
     );
     (client, address)
 }
@@ -46,9 +42,7 @@ fn handle_error_cases() {
         Ok(Error::NoSuchContractPublished)
     );
 
-    let wasm_hash = env
-        .deployer()
-        .upload_contract_wasm(registry::WASM);
+    let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
 
     assert_matches!(
         client.try_fetch_hash(name, &None).unwrap_err(),
@@ -86,9 +80,7 @@ fn returns_most_recent_version() {
     let version = default_version();
     client.publish(name, address, &bytes, &version);
     let fetched_hash = client.fetch_hash(name, &None);
-    let wasm_hash = env
-        .deployer()
-        .upload_contract_wasm(registry::WASM);
+    let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
     assert_eq!(fetched_hash, wasm_hash);
 
     let second_hash: BytesN<32> = BytesN::random(env);

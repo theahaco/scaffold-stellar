@@ -3,11 +3,10 @@ use std::{ffi::OsString, path::PathBuf};
 use clap::Parser;
 
 use soroban_sdk::xdr::{ScMetaEntry, ScMetaV0};
-use stellar_cli::{commands::contract::invoke, config, fee};
 pub use soroban_spec_tools::contract as contract_spec;
+use stellar_cli::{commands::contract::invoke, config, fee};
 
 use crate::contract::NetworkContract;
-
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -78,11 +77,12 @@ impl Cmd {
         args.push(format!("--author={author}"));
 
         // Pass config and fee to invoke_registry
-        self.config.invoke_registry(
-            &args.iter().map(String::as_str).collect::<Vec<_>>(),
-            Some(&self.fee),
-        )
-        .await?;
+        self.config
+            .invoke_registry(
+                &args.iter().map(String::as_str).collect::<Vec<_>>(),
+                Some(&self.fee),
+            )
+            .await?;
 
         Ok(())
     }

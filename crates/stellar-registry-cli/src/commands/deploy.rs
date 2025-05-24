@@ -10,7 +10,9 @@ use soroban_sdk::xdr::{
     Transaction, TransactionExt, Uint256, VecM,
 };
 use stellar_cli::{
-    assembled::simulate_and_assemble_transaction, commands::contract::{arg_parsing, invoke}, config, fee,
+    assembled::simulate_and_assemble_transaction,
+    commands::contract::{arg_parsing, invoke},
+    config, fee,
     utils::rpc::get_remote_wasm_from_hash,
 };
 
