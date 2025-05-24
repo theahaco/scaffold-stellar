@@ -1,17 +1,4 @@
-# Soroban Project
-
-This boilerplate was created with `soroban-cli` @ `8c17d747c95ad6e7fd649053c9516fa4067ae509` using this command:
-
-```bash
-rm -rf crates/loam-cli/tests/fixtures/soroban-init-boilerplate &&
-DIR=crates/loam-cli/tests/fixtures/soroban-init-boilerplate &&
-soroban contract init "$DIR" \
-   -w increment \
-   -w custom_types \
-   -w auth \
-   --frontend-template https://github.com/stellar/soroban-astro-template &&
-cargo run -- build --manifest-path "$DIR"/Cargo.toml
-```
+# Stellar Project
 
 ## Project Structure
 

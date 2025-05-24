@@ -31,46 +31,50 @@ pub fn contract_address() -> ScAddress {
 }
 
 pub fn rpc_url() -> String {
-    "https://soroban-testnet.stellar.org:443".to_owned()
+    env::var("STELLAR_RPC_URL")
+        .unwrap_or_else(|_| "https://soroban-testnet.stellar.org:443".to_owned())
 }
 
 pub fn network_passphrase() -> String {
-    "Test SDF Network ; September 2015".to_owned()
+    env::var("STELLAR_NETWORK_PASSPHRASE")
+        .unwrap_or_else(|_| "Test SDF Network ; September 2015".to_owned())
 }
 
 pub fn network() -> network::Args {
-    if let Ok(network) = env::var("SOROBAN_NETWORK") {
+    if let Ok(network) = env::var("STELLAR_NETWORK") {
         network::Args {
             network: Some(network),
             ..Default::default()
         }
     } else {
-        let rpc_url = env::var("SOROBAN_RPC_URL").ok().or_else(|| Some(rpc_url()));
-        let network_passphrase = env::var("SOROBAN_NETWORK_PASSPHRASE")
-            .ok()
-            .or_else(|| Some(network_passphrase()));
         network::Args {
-            rpc_url,
-            network_passphrase,
+            rpc_url: Some(rpc_url()),
+            network_passphrase: Some(network_passphrase()),
             ..Default::default()
         }
     }
 }
 
-pub fn build_invoke_cmd(slop: &[&str]) -> invoke::Cmd {
+pub fn build_invoke_cmd(
+    slop: &[&str],
+    config: &stellar_cli::config::Args,
+    fee: &stellar_cli::fee::Args,
+) -> invoke::Cmd {
     invoke::Cmd {
         contract_id: contract_id(),
         slop: slop.iter().map(Into::into).collect(),
-        config: stellar_cli::config::Args {
-            network: network(),
-            ..Default::default()
-        },
+        config: config.clone(),
+        fee: fee.clone(),
         ..Default::default()
     }
 }
 
-pub async fn invoke_registry(slop: &[&str]) -> Result<String, invoke::Error> {
-    Ok(build_invoke_cmd(slop)
+pub async fn invoke_registry(
+    slop: &[&str],
+    config: &stellar_cli::config::Args,
+    fee: &stellar_cli::fee::Args,
+) -> Result<String, invoke::Error> {
+    Ok(build_invoke_cmd(slop, config, fee)
         .run_against_rpc_server(Some(&stellar_cli::commands::global::Args::default()), None)
         .await?
         .into_result()

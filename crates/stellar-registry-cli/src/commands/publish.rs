@@ -52,6 +52,7 @@ impl Cmd {
 
         // Prepare a mutable vector for the base arguments
         let mut args = vec![
+            "publish".to_string(),
             "--wasm-file-path".to_string(),
             self.wasm.to_string_lossy().to_string(),
         ];
@@ -68,8 +69,7 @@ impl Cmd {
                 }
             }
         }));
-
-        // use the provided author or the default keypair
+        // Use the provided author or the default keypair
         let author = self.author.clone().unwrap_or_else(|| {
             self.config
                 .key_pair()
@@ -80,8 +80,13 @@ impl Cmd {
         });
         args.push(format!("--author={author}"));
 
-        // Invoke the registry with the arguments
-        invoke_registry(&args.iter().map(String::as_str).collect::<Vec<_>>()).await?;
+        // Pass config and fee to invoke_registry
+        invoke_registry(
+            &args.iter().map(String::as_str).collect::<Vec<_>>(),
+            &self.config,
+            &self.fee,
+        )
+        .await?;
 
         Ok(())
     }

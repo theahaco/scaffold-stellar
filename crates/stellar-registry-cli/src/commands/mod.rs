@@ -63,7 +63,7 @@ pub enum Cmd {
     /// deploy contract from deployed Wasm
     Deploy(Box<deploy::Cmd>),
     /// install contracts
-    Install(install::Cmd),
+    Install(Box<install::Cmd>),
 }
 
 #[derive(thiserror::Error, Debug)]

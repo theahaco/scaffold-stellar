@@ -1,18 +1,20 @@
 #![allow(dead_code)]
-use assert_cmd::{assert::Assert, Command};
+use assert_cmd::{Command, assert::Assert};
 use assert_fs::TempDir;
-use fs_extra::dir::{copy, CopyOptions};
+use fs_extra::dir::{CopyOptions, copy};
 use std::env;
 use std::fs;
 use std::future::Future;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::process::Command as ProcessCommand;
 use tokio::time::{sleep, timeout};
 use tokio_stream::StreamExt;
 
+#[derive(Clone)]
 pub struct TestEnv {
-    pub temp_dir: TempDir,
+    pub temp_dir: Arc<TempDir>,
     pub cwd: PathBuf,
 }
 
@@ -39,10 +41,10 @@ impl AssertExt for Assert {
 
 impl TestEnv {
     pub fn new(template: &str) -> Self {
-        let temp_dir = TempDir::new().unwrap();
-        let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        let temp_dir = Arc::new(TempDir::new().unwrap());
+        let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
-        copy(template_dir.join(template), &temp_dir, &CopyOptions::new()).unwrap();
+        copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
 
         Self {
             cwd: temp_dir.path().join(template),
@@ -50,8 +52,39 @@ impl TestEnv {
         }
     }
 
-    pub fn new_empty() -> Self {
+    pub fn new_with_contracts(template: &str, contract_names: &[&str]) -> Self {
         let temp_dir = TempDir::new().unwrap();
+        let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+        let source_path = template_dir.join(template);
+        let dest_path = temp_dir.path().join(template);
+
+        // First, copy everything
+        let mut copy_options = CopyOptions::new();
+        copy_options.skip_exist = true;
+        copy_options.content_only = true;
+
+        copy(&source_path, &dest_path, &copy_options).unwrap();
+
+        // Remove the contracts directory entirely
+        let contracts_dir = dest_path.join("contracts");
+        if contracts_dir.exists() {
+            std::fs::remove_dir_all(&contracts_dir).unwrap();
+            std::fs::create_dir(&contracts_dir).unwrap();
+        }
+
+        for contract_name in contract_names {
+            let source_contract = source_path.join("contracts").join(contract_name);
+            copy(&source_contract, &contracts_dir, &CopyOptions::new()).unwrap();
+        }
+
+        Self {
+            cwd: dest_path,
+            temp_dir: temp_dir.into(),
+        }
+    }
+
+    pub fn new_empty() -> Self {
+        let temp_dir = Arc::new(TempDir::new().unwrap());
         Self {
             cwd: temp_dir.path().to_path_buf(),
             temp_dir,
@@ -200,10 +233,17 @@ impl TestEnv {
     ) -> std::io::Result<()> {
         let new_dir = self.temp_dir.path().join(new_dir_name);
         fs::create_dir_all(&new_dir)?;
-        let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
         copy(template_dir.join(template), &new_dir, &CopyOptions::new()).unwrap();
         self.cwd = new_dir.join(template);
         Ok(())
+    }
+
+    pub fn registry_cli(&self, cmd: &str) -> Command {
+        let mut registry = Command::cargo_bin("stellar-registry").unwrap();
+        registry.current_dir(&self.cwd);
+        registry.arg(cmd);
+        registry
     }
 }
 
@@ -211,6 +251,16 @@ pub fn find_binary(name: &str) -> Option<PathBuf> {
     let exe_path = env::current_exe().ok()?;
     let project_root = find_project_root(&exe_path)?;
     Some(project_root.join("target").join("bin").join(name))
+}
+
+pub fn find_registry_wasm() -> Option<PathBuf> {
+    let exe_path = env::current_exe().ok()?;
+    let project_root = find_project_root(&exe_path)?;
+    Some(
+        project_root
+            .join("target")
+            .join("stellar/stellar_registry_contract.wasm"),
+    )
 }
 
 fn find_project_root(start_path: &Path) -> Option<PathBuf> {

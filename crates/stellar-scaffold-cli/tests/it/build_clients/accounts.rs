@@ -1,4 +1,4 @@
-use crate::util::{AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv};
 
 #[test]
 fn create_two_accounts() {
@@ -12,7 +12,7 @@ accounts = [
     { name = "bob" },
 ]
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false

@@ -1,3 +1,3 @@
 [[profile.default.overrides]]
-filter = 'package(stellar-scaffold-cli)'
+filter = 'package(stellar-scaffold-cli) | package(stellar-registry-cli)'
 slow-timeout = { period = "90s", terminate-after = 4 }

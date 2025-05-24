@@ -264,7 +264,7 @@ mod tests {
     fn test_get_soroban_deps() {
         let pwd = std::env::current_dir().unwrap();
         println!("{pwd:?}");
-        let manifest_path = pwd.join("../stellar-scaffold-cli/tests/fixtures/soroban-init-boilerplate/contracts/hello_world/Cargo.toml");
+        let manifest_path = pwd.join("../stellar-scaffold-test/fixtures/soroban-init-boilerplate/contracts/hello_world/Cargo.toml");
         let mut c = cargo_metadata::MetadataCommand::new();
         c.manifest_path(&manifest_path);
         let metadata = c.exec().unwrap();

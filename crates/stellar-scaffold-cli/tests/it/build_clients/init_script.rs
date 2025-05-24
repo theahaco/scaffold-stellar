@@ -1,4 +1,4 @@
-use crate::util::{find_binary, TestEnv};
+use stellar_scaffold_test::{find_binary, TestEnv};
 
 #[test]
 fn build_command_runs_init() {
