@@ -16,6 +16,9 @@ pub struct Cmd {
     /// Optional author address, if not provided, the default keypair will be used
     #[arg(long, short = 'a')]
     pub author: Option<String>,
+    /// Prepares and simulates publishing with invoking
+    #[arg(long)]
+    pub dry_run: bool,
     /// Function name as subcommand, then arguments for that function as `--arg-name value`
     #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
     pub slop: Vec<OsString>,
@@ -81,9 +84,13 @@ impl Cmd {
             .invoke_registry(
                 &args.iter().map(String::as_str).collect::<Vec<_>>(),
                 Some(&self.fee),
+                self.dry_run,
             )
             .await?;
-
+        eprintln!(
+            "{}Succesfully published {args:?}",
+            if self.dry_run { "Dry Run: " } else { "" }
+        );
         Ok(())
     }
 }

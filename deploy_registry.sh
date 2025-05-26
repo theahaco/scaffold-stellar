@@ -5,19 +5,16 @@ PATH=./target/bin:$PATH
 
 stellar contract deploy --alias registry \
                         --wasm ./target/stellar/registry.wasm \
+                        --source $ADMIN \
+                        --salt 0 \
                         -- \
-                        --admin default
+                        --admin $ADMIN
 
 registry="stellar contract invoke --id registry --"
 
 $registry --help
 
-get-version () {
-    cargo pkgid $1 | cut -d'@' -f2
-}
-
-
-for i in $(cargo r build --ls); do
-    echo "Publishing $i to registry $(get-version $i)"
-
-done
+just registry publish --wasm ./target/stellar/registry.wasm \
+                         --author $ADMIN \
+                         --source $ADMIN \
+                         --dry-run

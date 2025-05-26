@@ -92,6 +92,7 @@ impl Cmd {
             .invoke_registry(
                 &["fetch_hash", "--wasm_name", &self.wasm_name],
                 Some(&self.fee),
+                true,
             )
             .await?;
         let res = res.trim_matches('"');

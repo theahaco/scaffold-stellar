@@ -18,6 +18,7 @@ pub trait NetworkContract {
         &self,
         slop: &[&str],
         fee: Option<&stellar_cli::fee::Args>,
+        view_only: bool,
     ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
 
     fn rpc_client(&self) -> Result<rpc::Client, config::Error>;
@@ -43,8 +44,9 @@ impl NetworkContract for config::Args {
         &self,
         slop: &[&str],
         fee: Option<&stellar_cli::fee::Args>,
+        view_only: bool,
     ) -> Result<String, invoke::Error> {
-        invoke_registry(slop, self, fee).await
+        invoke_registry(slop, self, fee, view_only).await
     }
 
     fn rpc_client(&self) -> Result<rpc::Client, config::Error> {
@@ -56,12 +58,14 @@ pub fn build_invoke_cmd(
     slop: &[&str],
     config: &stellar_cli::config::Args,
     fee: Option<&stellar_cli::fee::Args>,
+    view_only: bool,
 ) -> Result<invoke::Cmd, config::Error> {
     Ok(invoke::Cmd {
         contract_id: UnresolvedContract::Resolved(config.contract_id()?),
         slop: slop.iter().map(Into::into).collect(),
         config: config.clone(),
         fee: fee.cloned().unwrap_or_default(),
+        send: view_only.then_some(invoke::Send::No).unwrap_or_default(),
         ..Default::default()
     })
 }
@@ -70,8 +74,9 @@ pub async fn invoke_registry(
     slop: &[&str],
     config: &stellar_cli::config::Args,
     fee: Option<&stellar_cli::fee::Args>,
+    view_only: bool,
 ) -> Result<String, invoke::Error> {
-    Ok(build_invoke_cmd(slop, config, fee)?
+    Ok(build_invoke_cmd(slop, config, fee, view_only)?
         .run_against_rpc_server(Some(&stellar_cli::commands::global::Args::default()), None)
         .await?
         .into_result()
@@ -105,12 +110,37 @@ pub fn contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test_contract_id() {
-        let contract_id = super::contract_id("Test SDF Future Network ; October 2022");
+
+    fn test_contract_id((passphrase, contract_id): (&str, &str)) {
         assert_eq!(
-            contract_id.to_string(),
-            "CBBL2SVHBQY35LY6IE64RHS5K2M7BXXV72KXS2CKV6MU4L3Y33HANUJ2".to_string()
+            &super::contract_id(passphrase).to_string(),
+            contract_id,
+            "{passphrase}"
         );
+    }
+
+    #[test]
+    fn contract_id_deterministic() {
+        use stellar_cli::config::network::passphrase::*;
+        [
+            (
+                FUTURENET,
+                "CBBL2SVHBQY35LY6IE64RHS5K2M7BXXV72KXS2CKV6MU4L3Y33HANUJ2",
+            ),
+            (
+                TESTNET,
+                "CDG3WXXNVUWIVGY4DCGOHQ46M7IIX7PEHWC3OS5BDBE45NVTLKVHZCIL",
+            ),
+            (
+                MAINNET,
+                "CALD4U74TFHCQVER5XT4UZTTYXS7QK3FWNPNRHRHNLM27XZZDFMWH34G",
+            ),
+            (
+                LOCAL,
+                "CBNHDE2VJAMGT7H6QGCM3HXCRENYABLCD67QSDFYF6KQZ7PANRJ4IO6K",
+            ),
+        ]
+        .into_iter()
+        .for_each(test_contract_id);
     }
 }

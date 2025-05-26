@@ -65,7 +65,7 @@ impl Cmd {
 
         // Use this.config directly
         eprintln!("Fetching contract ID via registry...");
-        let raw = self.config.invoke_registry(&slop, None).await?;
+        let raw = self.config.invoke_registry(&slop, None, true).await?;
 
         let contract_id = raw.trim_matches('"').to_string();
         Ok(contract_id.parse()?)

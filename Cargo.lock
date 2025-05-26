@@ -4412,8 +4412,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-cli"
-version = "22.8.0"
-source = "git+https://github.com/stellar/stellar-cli#0931888706574f561742de78dee5b50da0370663"
+version = "22.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e049e0014fbf660be8cef1973ba5e937d54e0534ac20a6f4f37daf1500c87d97"
 dependencies = [
  "async-compression",
  "async-trait",
@@ -4466,7 +4467,7 @@ dependencies = [
  "soroban-spec",
  "soroban-spec-json",
  "soroban-spec-rust",
- "soroban-spec-tools 22.8.0 (git+https://github.com/stellar/stellar-cli)",
+ "soroban-spec-tools",
  "soroban-spec-typescript",
  "stellar-rpc-client",
  "stellar-strkey 0.0.11",
@@ -4644,8 +4645,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-json"
-version = "22.8.0"
-source = "git+https://github.com/stellar/stellar-cli#0931888706574f561742de78dee5b50da0370663"
+version = "22.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13a0ae994cf244b4b8192d71577b39e3d656710d7affd52e2d42adf7eb48be02"
 dependencies = [
  "serde",
  "serde_derive",
@@ -4674,26 +4676,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-tools"
-version = "22.8.0"
+version = "22.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed94888c7b7a23d51feb71ff3e141cbe2210cd3c3276ded222840cfd2ace1fc8"
-dependencies = [
- "base64 0.21.7",
- "ethnum",
- "hex",
- "itertools 0.10.5",
- "serde_json",
- "soroban-spec",
- "stellar-strkey 0.0.11",
- "stellar-xdr",
- "thiserror 1.0.69",
- "wasmparser",
-]
-
-[[package]]
-name = "soroban-spec-tools"
-version = "22.8.0"
-source = "git+https://github.com/stellar/stellar-cli#0931888706574f561742de78dee5b50da0370663"
+checksum = "821d43fee650eea3e0fe99071d8ddd9be1610f0dd0c3b511d89b82f97084e727"
 dependencies = [
  "base64 0.21.7",
  "ethnum",
@@ -4709,8 +4694,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-typescript"
-version = "22.8.0"
-source = "git+https://github.com/stellar/stellar-cli#0931888706574f561742de78dee5b50da0370663"
+version = "22.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58dc43fa28880f1c3d721b64e5d3f41dcc9785cda26590af41e34f8c68bee97c"
 dependencies = [
  "base64 0.21.7",
  "heck 0.4.1",
@@ -4798,7 +4784,7 @@ dependencies = [
  "shlex",
  "soroban-cli",
  "soroban-sdk",
- "soroban-spec-tools 22.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "soroban-spec-tools",
  "stellar-build",
  "stellar-rpc-client",
  "stellar-scaffold-test",
