@@ -124,6 +124,14 @@ impl Command {
                 cmd.meta
                     .push(("version".to_string(), p.version.to_string()));
             }
+            if p.homepage.is_some() {
+                cmd.meta
+                    .push(("home_domain".to_string(), p.homepage.clone().unwrap()));
+            }
+            // TODO: 'authors' is deprecated; should we use a metadata field instead?
+            if !p.authors.is_empty() {
+                cmd.meta.push(("authors".to_string(), p.authors.join(", ")));
+            }
             if p.repository.is_some() {
                 cmd.meta
                     .push(("source_repo".to_string(), p.repository.clone().unwrap()));
