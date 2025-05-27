@@ -31,6 +31,7 @@ jobs:
       - uses: taiki-e/install-action@just
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
+      - run: just setup
       - name: build since clippy needs contracts to be built
         run: just build
       - name: Run cargo clippy
