@@ -1,5 +1,5 @@
 [package]
-name = "stellar-registry-contract"
+name = "registry"
 description = "A crate for managing and deploying smart contracts on the Soroban blockchain."
 version = "0.1.0"
 authors = ["Aha Labs <hello@ahalabs.dev>"]

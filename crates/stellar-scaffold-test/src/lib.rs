@@ -1,3 +1,8 @@
+#![allow(
+    clippy::must_use_candidate,
+    clippy::missing_panics_doc,
+    clippy::missing_errors_doc
+)]
 mod common;
 mod registry;
 

@@ -10,6 +10,12 @@ export CONFIG_DIR := 'target/'
 path:
     just --list
 
+scaffold +args:
+    @cargo run --bin stellar-scaffold --quiet -- {{args}}
+
+registry +args:
+    @cargo run --bin stellar-registry --quiet -- {{args}}
+
 stellar-scaffold +args:
     @cargo run --bin stellar-scaffold -- {{args}}
 
@@ -22,9 +28,11 @@ stellar +args:
 build_contract p:
     stellar contract build --profile contracts --package {{p}}
 
+
 # build contracts
 build:
     just stellar-scaffold build
+    stellar contract optimize --wasm ./target/stellar/registry.wasm --wasm-out ./target/stellar/registry.wasm
 
 # Setup the project to use a pinned version of the CLI
 setup:

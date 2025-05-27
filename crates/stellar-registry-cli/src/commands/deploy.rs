@@ -10,14 +10,16 @@ use soroban_sdk::xdr::{
     Transaction, TransactionExt, Uint256, VecM,
 };
 use stellar_cli::{
-    assembled::simulate_and_assemble_transaction, commands::contract::invoke, config, fee,
+    assembled::simulate_and_assemble_transaction,
+    commands::contract::{arg_parsing, invoke},
+    config, fee,
     utils::rpc::get_remote_wasm_from_hash,
 };
 
 use soroban_rpc as rpc;
 pub use soroban_spec_tools::contract as contract_spec;
 
-use crate::testnet::{self, contract_address, invoke_registry};
+use crate::contract::NetworkContract;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -85,18 +87,20 @@ impl Cmd {
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = invoke_registry(
-            &["fetch_hash", "--wasm_name", &self.wasm_name],
-            &self.config,
-            &self.fee,
-        )
-        .await?;
+        let res = self
+            .config
+            .invoke_registry(
+                &["fetch_hash", "--wasm_name", &self.wasm_name],
+                Some(&self.fee),
+                true,
+            )
+            .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
 
     pub async fn wasm(&self) -> Result<Vec<u8>, Error> {
-        Ok(get_remote_wasm_from_hash(&testnet::client()?, &self.hash().await?).await?)
+        Ok(get_remote_wasm_from_hash(&self.config.rpc_client()?, &self.hash().await?).await?)
     }
 
     pub async fn spec_entries(&self) -> Result<Vec<ScSpecEntry>, Error> {
@@ -106,7 +110,7 @@ impl Cmd {
     }
 
     async fn invoke(&self) -> Result<(), Error> {
-        let client = testnet::client()?;
+        let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
@@ -114,14 +118,14 @@ impl Cmd {
         let public_strkey =
             stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
 
-        let contract_address = contract_address();
-        let contract_id = &testnet::contract_id_strkey();
+        let contract_address = self.config.contract_sc_address()?;
+        let contract_id = &self.config.contract_id()?;
         let spec_entries = self.spec_entries().await?;
 
         let (args, signers) = if self.slop.is_empty() {
             (ScVal::Void, vec![])
         } else {
-            let res = stellar_cli::commands::contract::arg_parsing::build_host_function_parameters(
+            let res = arg_parsing::build_host_function_parameters(
                 contract_id,
                 &self.slop,
                 &spec_entries,
@@ -144,7 +148,7 @@ impl Cmd {
                     ));
                     (args, signers)
                 }
-                Err(stellar_cli::commands::contract::arg_parsing::Error::HelpMessage(help)) => {
+                Err(arg_parsing::Error::HelpMessage(help)) => {
                     println!("{help}");
                     return Ok(());
                 }

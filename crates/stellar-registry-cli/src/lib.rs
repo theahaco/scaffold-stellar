@@ -5,7 +5,6 @@
 )]
 pub mod commands;
 pub mod contract;
-pub mod testnet;
 
 pub use commands::Root;
 use std::path::Path;

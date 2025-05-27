@@ -3,11 +3,10 @@ use clap::Parser;
 use stellar_cli::{
     commands::contract::{fetch, invoke},
     config,
-    fee::Args,
 };
 use stellar_strkey::Contract;
 
-use crate::testnet;
+use crate::contract::NetworkContract;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -66,12 +65,7 @@ impl Cmd {
 
         // Use this.config directly
         eprintln!("Fetching contract ID via registry...");
-        let raw = testnet::invoke_registry(
-            &slop,
-            &self.config,
-            &Args::default(), // fee::Args::default()
-        )
-        .await?;
+        let raw = self.config.invoke_registry(&slop, None, true).await?;
 
         let contract_id = raw.trim_matches('"').to_string();
         Ok(contract_id.parse()?)

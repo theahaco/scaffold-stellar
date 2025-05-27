@@ -11,12 +11,12 @@ fn default_version() -> soroban_sdk::String {
     to_string("0.0.0")
 }
 
-stellar_registry::import_contract_client!(stellar_registry_contract);
+stellar_registry::import_contract_client!(registry);
 // Equivalent to:
 
-// mod stellar_registry_contract {
+// mod registry {
 //     use super::soroban_sdk;
-//     soroban_sdk::contractimport!(file = "../../../../target/stellar/stellar_registry_contract.wasm");
+//     soroban_sdk::contractimport!(file = "../../../../target/stellar/registry.wasm");
 // }
 
 fn init() -> (SorobanContractClient<'static>, Address) {
@@ -26,11 +26,7 @@ fn init() -> (SorobanContractClient<'static>, Address) {
     let address = Address::generate(env);
     let client = SorobanContractClient::new(
         env,
-        &env.register_at(
-            &contract_id,
-            stellar_registry_contract::WASM,
-            (address.clone(),),
-        ),
+        &env.register_at(&contract_id, registry::WASM, (address.clone(),)),
     );
     (client, address)
 }
@@ -46,16 +42,14 @@ fn handle_error_cases() {
         Ok(Error::NoSuchContractPublished)
     );
 
-    let wasm_hash = env
-        .deployer()
-        .upload_contract_wasm(stellar_registry_contract::WASM);
+    let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
 
     assert_matches!(
         client.try_fetch_hash(name, &None).unwrap_err(),
         Ok(Error::NoSuchContractPublished)
     );
 
-    let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
+    let bytes = Bytes::from_slice(env, registry::WASM);
     env.mock_all_auths();
     let version = default_version();
     client.publish(name, address, &bytes, &version);
@@ -81,14 +75,12 @@ fn returns_most_recent_version() {
     let env = env();
     let name = &to_string("publisher");
     // client.register_name(address, name);
-    let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
+    let bytes = Bytes::from_slice(env, registry::WASM);
     env.mock_all_auths();
     let version = default_version();
     client.publish(name, address, &bytes, &version);
     let fetched_hash = client.fetch_hash(name, &None);
-    let wasm_hash = env
-        .deployer()
-        .upload_contract_wasm(stellar_registry_contract::WASM);
+    let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
     assert_eq!(fetched_hash, wasm_hash);
 
     let second_hash: BytesN<32> = BytesN::random(env);
@@ -137,16 +129,21 @@ fn validate_version() {
     let (client, address) = &init();
     let env = env();
     let name = &to_string("registry");
-    let bytes = Bytes::from_slice(env, stellar_registry_contract::WASM);
+    let bytes = Bytes::from_slice(env, registry::WASM);
     env.mock_all_auths();
     let version = default_version();
     client.publish(name, address, &bytes, &version);
     assert_eq!(
-        client.try_publish(name, address, &bytes, &to_string("0.0.0"),),
+        client.try_publish(name, address, &bytes, &version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
     assert_eq!(
         client.try_publish(name, address, &bytes, &to_string("0.  0.0"),),
         Err(Ok(Error::InvalidVersion))
+    );
+    client.publish(name, address, &bytes, &to_string("0.0.1"));
+    assert_eq!(
+        client.try_publish(name, address, &bytes, &version),
+        Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
 }

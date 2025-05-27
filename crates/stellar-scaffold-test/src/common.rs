@@ -256,11 +256,7 @@ pub fn find_binary(name: &str) -> Option<PathBuf> {
 pub fn find_registry_wasm() -> Option<PathBuf> {
     let exe_path = env::current_exe().ok()?;
     let project_root = find_project_root(&exe_path)?;
-    Some(
-        project_root
-            .join("target")
-            .join("stellar/stellar_registry_contract.wasm"),
-    )
+    Some(project_root.join("target").join("stellar/registry.wasm"))
 }
 
 fn find_project_root(start_path: &Path) -> Option<PathBuf> {
