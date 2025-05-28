@@ -7,7 +7,7 @@ permissions:
 on:
   push:
     tags:
-      - 'stellar-scaffold-cli-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9a-z\-]+)?'
+      - 'stellar-scaffold-cli-v[0-9]+.[0-9]+.[0-9]+*'
 
 env:
   CARGO_INCREMENTAL: 0
