@@ -121,8 +121,7 @@ impl Command {
                 cmd.meta.push(("name".to_string(), p.name.clone()));
             }
             if !p.version.to_string().is_empty() {
-                cmd.meta
-                    .push(("binver".to_string(), p.version.to_string()));
+                cmd.meta.push(("binver".to_string(), p.version.to_string()));
             }
             if p.homepage.is_some() {
                 cmd.meta
