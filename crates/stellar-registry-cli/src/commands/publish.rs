@@ -63,11 +63,16 @@ impl Cmd {
         args.extend(spec?.meta.iter().filter_map(|entry| match entry {
             ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
                 let key_str = key.to_string();
-                // TODO add source repository when registry contract supports it
-                if key_str == "wasm_name" || key_str == "version" {
-                    Some(format!("--{key_str}={val}"))
-                } else {
-                    None
+                match key_str.as_str() {
+                    "name" => {
+                        Some(format!("--wasm_name={val}"))
+                    }
+                    "binver" => {
+                        Some(format!("--version={val}"))
+                    }
+                    _ => {
+                        None
+                    }
                 }
             }
         }));

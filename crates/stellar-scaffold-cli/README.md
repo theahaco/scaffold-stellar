@@ -86,9 +86,9 @@ Contract metadata is set when running `stellar scaffold build` and adds the foll
 
 | Metadata   | Cargo.toml Key (under `package`) | Description                                      |
 |------------|----------------|--------------------------------------------------|
-| `wasm_name`| `name`         | The name of the contract                         |
-| `version`  | `version`      | The version of the contract                      |
-| `authors`   | `authors`      | The author(s) of the contract, often with an email  |
+| `name`     | `name`         | The name of the contract                         |
+| `binver`   | `version`      | The version of the WASM bytecode of the contract                      |
+| `authors`  | `authors`      | The author(s) of the contract, often with an email  |
 | `home_domain` | `homepage`  | The relevant domain to relate to this contract   |
 | `source_repo` | `repository` | The source repository URL for the contract      |
 

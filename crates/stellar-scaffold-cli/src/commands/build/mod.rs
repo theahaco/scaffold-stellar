@@ -118,17 +118,16 @@ impl Command {
             });
             cmd.package = Some(p.name.clone());
             if !p.name.is_empty() {
-                cmd.meta.push(("wasm_name".to_string(), p.name.clone()));
+                cmd.meta.push(("name".to_string(), p.name.clone()));
             }
             if !p.version.to_string().is_empty() {
                 cmd.meta
-                    .push(("version".to_string(), p.version.to_string()));
+                    .push(("binver".to_string(), p.version.to_string()));
             }
             if p.homepage.is_some() {
                 cmd.meta
                     .push(("home_domain".to_string(), p.homepage.clone().unwrap()));
             }
-            // TODO: 'authors' is deprecated; should we use a metadata field instead?
             if !p.authors.is_empty() {
                 cmd.meta.push(("authors".to_string(), p.authors.join(", ")));
             }
