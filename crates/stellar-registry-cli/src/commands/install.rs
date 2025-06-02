@@ -60,9 +60,11 @@ impl Cmd {
     }
 
     pub async fn get_contract_id(&self) -> Result<Contract, Error> {
+        if self.contract_name == "registry" {
+            return Ok(self.config.contract_id()?);
+        }
         // Prepare the arguments for invoke_registry
         let slop = vec!["fetch_contract_id", "--contract-name", &self.contract_name];
-
         // Use this.config directly
         eprintln!("Fetching contract ID via registry...");
         let raw = self.config.invoke_registry(&slop, None, true).await?;
