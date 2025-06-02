@@ -58,4 +58,5 @@ predicates = "2.1.5"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
 [features]
+default = ["stellar-cli/additional-libs"]
 integration-tests = []

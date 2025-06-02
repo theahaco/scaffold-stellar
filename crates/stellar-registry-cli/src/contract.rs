@@ -84,7 +84,7 @@ pub async fn invoke_registry(
 }
 
 pub fn stellar_address() -> stellar_strkey::ed25519::PublicKey {
-    "GBLTLNPISIK2JFDN42MXET7K7QLFSTPBAL5FLK7QUH2VM5HTCURFQGDK"
+    "GDEE3YTYZLNAS26IFFHECEWVWODJR2WFGIKMR7FCGY2GL5MZMF4SATC4"
         .parse()
         .unwrap()
 }
@@ -120,24 +120,24 @@ mod tests {
     }
 
     #[test]
-    fn contract_id_deterministic() {
+    fn generate_deterministically() {
         use stellar_cli::config::network::passphrase::*;
         [
             (
                 FUTURENET,
-                "CBBL2SVHBQY35LY6IE64RHS5K2M7BXXV72KXS2CKV6MU4L3Y33HANUJ2",
+                "CB4BOK6QWBAOGRZWDCLZDC57I7QPLQTV3LYPQOPPQQTKEVXWQ5DZ2GUB",
             ),
             (
                 TESTNET,
-                "CDG3WXXNVUWIVGY4DCGOHQ46M7IIX7PEHWC3OS5BDBE45NVTLKVHZCIL",
+                "CASPWJCMOILV6NNZ3N4Q2UC7BVANU3TZFMVVS3WX4H7N2KD3PUJKGNN7",
             ),
             (
                 MAINNET,
-                "CALD4U74TFHCQVER5XT4UZTTYXS7QK3FWNPNRHRHNLM27XZZDFMWH34G",
+                "CCDVTPUT6OBQYAES2RSYLHMA253P5WSUZQIL2AUVL77STMWUW2CDZJOY",
             ),
             (
                 LOCAL,
-                "CBNHDE2VJAMGT7H6QGCM3HXCRENYABLCD67QSDFYF6KQZ7PANRJ4IO6K",
+                "CBQX4JQ536FB74BDHYDBLSBNIRS4T74ZYW7T6XC6WL46UZKYENRWTD3A",
             ),
         ]
         .into_iter()
