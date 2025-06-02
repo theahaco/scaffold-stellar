@@ -24,8 +24,6 @@ pub enum Error {
     #[error(transparent)]
     Invoke(#[from] invoke::Error),
     #[error(transparent)]
-    StellarBuild(#[from] stellar_build::Error),
-    #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Strkey(#[from] stellar_strkey::DecodeError),
