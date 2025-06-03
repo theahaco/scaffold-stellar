@@ -3,6 +3,7 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod build;
+pub mod generate;
 pub mod init;
 pub mod update_env;
 pub mod watch;
@@ -37,6 +38,9 @@ impl Root {
         match &mut self.cmd {
             Cmd::Init(init_info) => init_info.run()?,
             Cmd::Build(build_info) => build_info.run().await?,
+            Cmd::Generate(generate) => match &mut generate.cmd {
+                generate::Command::Contract(contract) => contract.run().await?,
+            },
             Cmd::UpdateEnv(e) => e.run()?,
             Cmd::Watch(watch_info) => watch_info.run().await?,
         }
@@ -60,6 +64,9 @@ pub enum Cmd {
     /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
     Build(build::Command),
 
+    /// generate contracts
+    Generate(Box<generate::Cmd>),
+
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
 
@@ -74,6 +81,8 @@ pub enum Error {
     Init(#[from] init::Error),
     #[error(transparent)]
     BuildContracts(#[from] build::Error),
+    #[error(transparent)]
+    Contract(#[from] generate::contract::Error),
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]
