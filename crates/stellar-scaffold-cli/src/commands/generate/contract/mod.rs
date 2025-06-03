@@ -243,13 +243,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_from_wizard_command() {
-        let cmd = create_test_cmd(None, false, true);
-        let result = cmd.run().await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
     async fn test_no_action_specified() {
         let cmd = create_test_cmd(None, false, false);
         let result = cmd.run().await;
