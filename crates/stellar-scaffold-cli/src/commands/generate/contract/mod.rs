@@ -32,13 +32,6 @@ pub struct Cmd {
     pub output: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
-struct GitHubContent {
-    name: String,
-    #[serde(rename = "type")]
-    content_type: String,
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -65,14 +58,7 @@ impl Cmd {
         }
     }
 
-    async fn clone_example(&self, example_name: &str) -> Result<(), Error> {
-        eprintln!("🔍 Downloading example '{example_name}'...");
-
-        let dest_path = self
-            .output
-            .clone()
-            .unwrap_or_else(|| format!("contracts/{example_name}"));
-
+    async fn ensure_cache_updated(&self) -> Result<std::path::PathBuf, Error> {
         let cache_dir = dirs::cache_dir().ok_or_else(|| {
             Error::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -111,6 +97,19 @@ impl Cmd {
             Self::cache_repository(&repo_cache_path, &cache_ref_file, &current_ref)?;
         }
 
+        Ok(repo_cache_path)
+    }
+
+    async fn clone_example(&self, example_name: &str) -> Result<(), Error> {
+        eprintln!("🔍 Downloading example '{example_name}'...");
+
+        let dest_path = self
+            .output
+            .clone()
+            .unwrap_or_else(|| format!("contracts/{example_name}"));
+
+        let repo_cache_path = self.ensure_cache_updated().await?;
+
         // Check if the example exists
         let example_source_path = repo_cache_path.join(format!("examples/{example_name}"));
         if !example_source_path.exists() {
@@ -122,6 +121,41 @@ impl Cmd {
         Self::copy_directory_contents(&example_source_path.to_string_lossy(), &dest_path)?;
 
         eprintln!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
+        Ok(())
+    }
+
+    async fn list_examples(&self) -> Result<(), Error> {
+        eprintln!("📋 Fetching available contract examples...");
+
+        let repo_cache_path = self.ensure_cache_updated().await?;
+
+        // Read examples from the cached repository
+        let examples_path = repo_cache_path.join("examples");
+        let mut examples = Vec::new();
+
+        if examples_path.exists() {
+            for entry in fs::read_dir(examples_path)? {
+                let entry = entry?;
+                if entry.path().is_dir() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        examples.push(name.to_string());
+                    }
+                }
+            }
+            examples.sort();
+        }
+
+        eprintln!("\n📦 Available contract examples:");
+        eprintln!("────────────────────────────────");
+
+        for example in examples {
+            eprintln!("  📁 {example}");
+        }
+
+        eprintln!("\n💡 Usage:");
+        eprintln!("   stellar-registry contract generate --from <example-name>");
+        eprintln!("   Example: stellar-registry contract generate --from nft-royalties");
+
         Ok(())
     }
 
@@ -187,53 +221,6 @@ impl Cmd {
             }
         }
         Ok(())
-    }
-
-    async fn list_examples(&self) -> Result<(), Error> {
-        eprintln!("📋 Fetching available contract examples...");
-
-        let contents = self.fetch_example_names().await?;
-        eprintln!("\n📦 Available contract examples:");
-        eprintln!("────────────────────────────────");
-
-        for item in contents {
-            eprintln!("  📁 {item}");
-        }
-
-        eprintln!("\n💡 Usage:");
-        eprintln!("   stellar-registry contract generate --from <example-name>");
-        eprintln!("   Example: stellar-registry contract generate --from nft-royalties");
-
-        Ok(())
-    }
-
-    async fn fetch_example_names(&self) -> Result<Vec<String>, Error> {
-        self.fetch_example_names_from_url(
-            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/contents/examples",
-        )
-        .await
-    }
-
-    async fn fetch_example_names_from_url(&self, url: &str) -> Result<Vec<String>, Error> {
-        let client = reqwest::Client::new();
-
-        let response = client
-            .get(url)
-            .header("User-Agent", "stellar-registry-cli")
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::Reqwest(response.error_for_status().unwrap_err()));
-        }
-
-        let contents: Vec<GitHubContent> = response.json().await?;
-
-        Ok(contents
-            .into_iter()
-            .filter(|item| item.content_type == "dir")
-            .map(|item| item.name)
-            .collect())
     }
 }
 
@@ -386,39 +373,5 @@ mod tests {
             fs::read_to_string(dest_dir.join("subdir/nested.txt")).unwrap(),
             "nested content"
         );
-    }
-
-    #[tokio::test]
-    async fn test_fetch_example_names() {
-        let cmd = create_test_cmd(None, false, false);
-
-        let _m = mock(
-            "GET",
-            "/repos/OpenZeppelin/stellar-contracts/contents/examples",
-        )
-        .with_status(200)
-        .with_header("content-type", "application/json")
-        .with_body(
-            r#"[
-                {"name": "nft-royalties", "type": "dir"}, 
-                {"name": "ownable", "type": "dir"},
-                {"name": "README.md", "type": "file"}
-            ]"#,
-        )
-        .create();
-
-        let mock_url = format!(
-            "{}/repos/OpenZeppelin/stellar-contracts/contents/examples",
-            server_url()
-        );
-        let result = cmd.fetch_example_names_from_url(&mock_url).await;
-
-        assert!(result.is_ok());
-
-        let examples = result.unwrap();
-        assert_eq!(examples.len(), 2);
-        assert!(examples.contains(&"nft-royalties".to_string()));
-        assert!(examples.contains(&"ownable".to_string()));
-        assert!(!examples.contains(&"README.md".to_string()));
     }
 }
