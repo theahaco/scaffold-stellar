@@ -65,7 +65,7 @@ pub enum Cmd {
     Build(build::Command),
 
     /// generate contracts
-    Generate(Box<generate::Cmd>),
+    Generate(generate::Cmd),
 
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),

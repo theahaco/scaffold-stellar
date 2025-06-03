@@ -56,7 +56,7 @@ impl Cmd {
     }
 
     fn clone_example(&self, example_name: &str) -> Result<(), Error> {
-        println!("🔍 Downloading example '{example_name}'...");
+        eprintln!("🔍 Downloading example '{example_name}'...");
 
         let dest_path = self
             .output
@@ -106,7 +106,7 @@ impl Cmd {
         std::fs::remove_dir_all(format!("{dest_path}/.git")).ok();
         std::fs::remove_dir_all(format!("{dest_path}/examples")).ok();
 
-        println!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
+        eprintln!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
         Ok(())
     }
 
@@ -130,19 +130,19 @@ impl Cmd {
     }
 
     async fn list_examples(&self) -> Result<(), Error> {
-        println!("📋 Fetching available contract examples...");
+        eprintln!("📋 Fetching available contract examples...");
 
         let contents = self.fetch_example_names().await?;
-        println!("\n📦 Available contract examples:");
-        println!("────────────────────────────────");
+        eprintln!("\n📦 Available contract examples:");
+        eprintln!("────────────────────────────────");
 
         for item in contents {
-            println!("  📁 {item}");
+            eprintln!("  📁 {item}");
         }
 
-        println!("\n💡 Usage:");
-        println!("   stellar-registry contract generate --from <example-name>");
-        println!("   Example: stellar-registry contract generate --from nft-royalties");
+        eprintln!("\n💡 Usage:");
+        eprintln!("   stellar-registry contract generate --from <example-name>");
+        eprintln!("   Example: stellar-registry contract generate --from nft-royalties");
 
         Ok(())
     }
@@ -176,35 +176,25 @@ impl Cmd {
             .collect())
     }
 }
+
 fn open_wizard() -> Result<(), Error> {
-    println!("🧙 Opening OpenZeppelin Contract Wizard...");
+    eprintln!("🧙 Opening OpenZeppelin Contract Wizard...");
 
     let url = "https://wizard.openzeppelin.com/stellar";
-    let result = if cfg!(target_os = "windows") {
-        Command::new("cmd").args(["/C", "start", url]).status()
-    } else if cfg!(target_os = "macos") {
-        Command::new("open").arg(url).status()
-    } else {
-        Command::new("xdg-open").arg(url).status()
-    };
 
-    let status = result
-        .map_err(|e| Error::BrowserFailed(format!("Failed to execute browser command: {e}")))?;
+    webbrowser::open(url)
+        .map_err(|e| Error::BrowserFailed(format!("Failed to open browser: {e}")))?;
 
-    if status.success() {
-        println!("✅ Opened Contract Wizard in your default browser");
-        println!("\n📋 Instructions:");
-        println!("   1. Configure your contract in the wizard");
-        println!("   2. Click 'Download' to get your contract files");
-        println!("   3. Extract the downloaded ZIP file");
-        println!("   4. Move the contract folder to your contracts/ directory");
-        println!("   5. Add the contract to your workspace Cargo.toml if needed");
-        println!("\n💡 The wizard will generate a complete Soroban contract with your selected features!");
-    } else {
-        return Err(Error::BrowserFailed(
-            "Browser command returned non-zero exit code".to_string(),
-        ));
-    }
+    eprintln!("✅ Opened Contract Wizard in your default browser");
+    eprintln!("\n📋 Instructions:");
+    eprintln!("   1. Configure your contract in the wizard");
+    eprintln!("   2. Click 'Download' to get your contract files");
+    eprintln!("   3. Extract the downloaded ZIP file");
+    eprintln!("   4. Move the contract folder to your contracts/ directory");
+    eprintln!("   5. Add the contract to your workspace Cargo.toml if needed");
+    eprintln!(
+        "\n💡 The wizard will generate a complete Soroban contract with your selected features!"
+    );
 
     Ok(())
 }
