@@ -48,9 +48,9 @@ pub enum Error {
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         match (&self.from, self.ls, self.from_wizard) {
-            (Some(example_name), false, false) => self.clone_example(example_name),
-            (None, true, false) => self.list_examples().await,
-            (None, false, true) => open_wizard(),
+            (Some(example_name), _, _) => self.clone_example(example_name),
+            (_, true, _) => self.list_examples().await,
+            (_, _, true) => open_wizard(),
             _ => Err(Error::NoActionSpecified),
         }
     }
