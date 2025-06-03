@@ -4,13 +4,8 @@ use serde::Deserialize;
 use std::{fs, path::Path};
 
 #[derive(Deserialize)]
-struct RefResponse {
-    object: RefObject,
-}
-
-#[derive(Deserialize)]
-struct RefObject {
-    sha: String,
+struct Release {
+    tag_name: String,
 }
 
 #[derive(Parser, Debug)]
@@ -66,19 +61,20 @@ impl Cmd {
             ))
         })?;
 
-        let repo_cache_path = cache_dir.join("stellar-scaffold-cli/openzeppelin-stellar-contracts");
-        let cache_ref_file = repo_cache_path.join(".main_ref");
-
-        // Get the current main branch ref (lightweight API call)
-        let current_ref = Self::fetch_main_ref().await?;
+        let base_cache_path = cache_dir.join("stellar-scaffold-cli/openzeppelin-stellar-contracts");
+        
+        // Get the latest release tag
+        let latest_release = Self::fetch_latest_release().await?;
+        let repo_cache_path = base_cache_path.join(&latest_release.tag_name);
+        let cache_ref_file = repo_cache_path.join(".release_ref");
 
         let should_update_cache = if repo_cache_path.exists() {
-            if let Ok(cached_ref) = fs::read_to_string(&cache_ref_file) {
-                if cached_ref.trim() == current_ref {
-                    eprintln!("📂 Using cached repository (up to date)...");
+            if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
+                if cached_tag.trim() == latest_release.tag_name {
+                    eprintln!("📂 Using cached repository (release {})...", latest_release.tag_name);
                     false
                 } else {
-                    eprintln!("📂 Repository has updates. Refreshing cache...");
+                    eprintln!("📂 New release available ({}). Updating cache...", latest_release.tag_name);
                     true
                 }
             } else {
@@ -86,7 +82,7 @@ impl Cmd {
                 true
             }
         } else {
-            eprintln!("📂 Cache not found. Downloading...");
+            eprintln!("📂 Cache not found. Downloading release {}...", latest_release.tag_name);
             true
         };
 
@@ -94,7 +90,7 @@ impl Cmd {
             if repo_cache_path.exists() {
                 fs::remove_dir_all(&repo_cache_path)?;
             }
-            Self::cache_repository(&repo_cache_path, &cache_ref_file, &current_ref)?;
+            Self::cache_repository(&repo_cache_path, &cache_ref_file, &latest_release.tag_name)?;
         }
 
         Ok(repo_cache_path)
@@ -159,14 +155,15 @@ impl Cmd {
         Ok(())
     }
 
-    async fn fetch_main_ref() -> Result<String, Error> {
-        Self::fetch_main_ref_from_url(
-            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/git/refs/heads/main",
+
+    async fn fetch_latest_release() -> Result<Release, Error> {
+        Self::fetch_latest_release_from_url(
+            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/latest",
         )
         .await
     }
 
-    async fn fetch_main_ref_from_url(url: &str) -> Result<String, Error> {
+    async fn fetch_latest_release_from_url(url: &str) -> Result<Release, Error> {
         let client = reqwest::Client::new();
         let response = client
             .get(url)
@@ -178,29 +175,28 @@ impl Cmd {
             return Err(Error::Reqwest(response.error_for_status().unwrap_err()));
         }
 
-        let ref_data: RefResponse = response.json().await?;
-        Ok(ref_data.object.sha)
+        let release: Release = response.json().await?;
+        Ok(release)
     }
 
-    fn cache_repository(
+        fn cache_repository(
         repo_cache_path: &Path,
         cache_ref_file: &Path,
-        current_ref: &str,
+        tag_name: &str,
     ) -> Result<(), Error> {
         fs::create_dir_all(repo_cache_path)?;
 
-        degit::degit(
-            "OpenZeppelin/stellar-contracts",
-            &repo_cache_path.to_string_lossy(),
-        );
+        // Use the specific tag instead of main branch
+        let repo_ref = format!("OpenZeppelin/stellar-contracts#{tag_name}");
+        degit::degit(&repo_ref, &repo_cache_path.to_string_lossy());
 
         if repo_cache_path.read_dir()?.next().is_none() {
             return Err(Error::GitCloneFailed(
-                "Failed to download repository to cache".to_string(),
+                format!("Failed to download repository release {tag_name} to cache"),
             ));
         }
 
-        fs::write(cache_ref_file, current_ref)?;
+        fs::write(cache_ref_file, tag_name)?;
         Ok(())
     }
 
@@ -279,40 +275,39 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_fetch_main_ref() {
+     #[tokio::test]
+    async fn test_fetch_latest_release() {
         let _m = mock(
             "GET",
-            "/repos/OpenZeppelin/stellar-contracts/git/refs/heads/main",
+            "/repos/OpenZeppelin/stellar-contracts/releases/latest",
         )
         .with_status(200)
         .with_header("content-type", "application/json")
         .with_body(
             r#"{
-                "ref": "refs/heads/main",
-                "object": {
-                    "sha": "abc123def456789",
-                    "type": "commit"
-                }
+                "tag_name": "v1.2.3",
+                "name": "Release v1.2.3",
+                "published_at": "2024-01-15T10:30:00Z"
             }"#,
         )
         .create();
 
         let mock_url = format!(
-            "{}/repos/OpenZeppelin/stellar-contracts/git/refs/heads/main",
+            "{}/repos/OpenZeppelin/stellar-contracts/releases/latest",
             server_url()
         );
-        let result = Cmd::fetch_main_ref_from_url(&mock_url).await;
+        let result = Cmd::fetch_latest_release_from_url(&mock_url).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "abc123def456789");
+        let release = result.unwrap();
+        assert_eq!(release.tag_name, "v1.2.3");
     }
 
     #[tokio::test]
-    async fn test_fetch_main_ref_error() {
+    async fn test_fetch_latest_release_error() {
         let _m = mock(
             "GET",
-            "/repos/OpenZeppelin/stellar-contracts/git/refs/heads/main",
+            "/repos/OpenZeppelin/stellar-contracts/releases/latest",
         )
         .with_status(404)
         .with_header("content-type", "application/json")
@@ -320,10 +315,10 @@ mod tests {
         .create();
 
         let mock_url = format!(
-            "{}/repos/OpenZeppelin/stellar-contracts/git/refs/heads/main",
+            "{}/repos/OpenZeppelin/stellar-contracts/releases/latest",
             server_url()
         );
-        let result = Cmd::fetch_main_ref_from_url(&mock_url).await;
+        let result = Cmd::fetch_latest_release_from_url(&mock_url).await;
 
         assert!(result.is_err());
     }
