@@ -3,6 +3,7 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod deploy;
+pub mod generate;
 pub mod install;
 pub mod publish;
 
@@ -43,6 +44,9 @@ impl Root {
             Cmd::Publish(p) => p.run().await?,
             Cmd::Install(i) => i.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
+            Cmd::Generate(generate) => match &mut generate.cmd {
+                generate::Command::Contract(contract) => contract.run().await?,
+            },
         }
         Ok(())
     }
@@ -64,6 +68,8 @@ pub enum Cmd {
     Deploy(Box<deploy::Cmd>),
     /// install contracts
     Install(Box<install::Cmd>),
+    /// generate contracts
+    Generate(Box<generate::Cmd>),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -74,4 +80,6 @@ pub enum Error {
     Deploy(#[from] deploy::Error),
     #[error(transparent)]
     Install(#[from] install::Error),
+    #[error(transparent)]
+    Contract(#[from] generate::contract::Error),
 }
