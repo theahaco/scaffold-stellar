@@ -100,7 +100,7 @@ stellar contract invoke --id registry -- --help
 
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
 
-The first step is adding mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here]( https://developers.stellar.org/docs/data/rpc/rpc-providers)
+The first step is adding Mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here]( https://developers.stellar.org/docs/data/rpc/rpc-providers)
 
 Then you must add it with the following command:
 ```bash
