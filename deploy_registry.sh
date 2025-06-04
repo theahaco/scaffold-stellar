@@ -6,7 +6,7 @@ PATH=./target/bin:$PATH
 stellar contract deploy --alias registry \
                         --wasm ./target/stellar/registry.wasm \
                         --source "$ADMIN" \
-                        --salt 1 \
+                        --salt 0 \
                         -- \
                         --admin "$ADMIN"
 

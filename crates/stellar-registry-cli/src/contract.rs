@@ -84,7 +84,7 @@ pub async fn invoke_registry(
 }
 
 pub fn stellar_address() -> stellar_strkey::ed25519::PublicKey {
-    "GDEE3YTYZLNAS26IFFHECEWVWODJR2WFGIKMR7FCGY2GL5MZMF4SATC4"
+    "GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M"
         .parse()
         .unwrap()
 }
@@ -109,7 +109,8 @@ pub fn contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
 }
 
 #[cfg(test)]
-mod tests {
+mod generate_id {
+    use stellar_cli::config::network::passphrase::*;
 
     fn test_contract_id((passphrase, contract_id): (&str, &str)) {
         assert_eq!(
@@ -118,29 +119,23 @@ mod tests {
             "{passphrase}"
         );
     }
+    #[test]
+    fn futurenet() {
+        test_contract_id((FUTURENET, "CACPZCQSLEGF6QOSBF42X6LOUQXQB2EJRDKNKQO6US6ZZH5FD6EB325M"));
+    }
 
     #[test]
-    fn generate_deterministically() {
-        use stellar_cli::config::network::passphrase::*;
-        [
-            (
-                FUTURENET,
-                "CB4BOK6QWBAOGRZWDCLZDC57I7QPLQTV3LYPQOPPQQTKEVXWQ5DZ2GUB",
-            ),
-            (
-                TESTNET,
-                "CASPWJCMOILV6NNZ3N4Q2UC7BVANU3TZFMVVS3WX4H7N2KD3PUJKGNN7",
-            ),
-            (
-                MAINNET,
-                "CCDVTPUT6OBQYAES2RSYLHMA253P5WSUZQIL2AUVL77STMWUW2CDZJOY",
-            ),
-            (
-                LOCAL,
-                "CBQX4JQ536FB74BDHYDBLSBNIRS4T74ZYW7T6XC6WL46UZKYENRWTD3A",
-            ),
-        ]
-        .into_iter()
-        .for_each(test_contract_id);
+    fn testnet() {
+        test_contract_id((TESTNET, "CBCOGWBDGBFWR5LQFKRQUPFIG6OLOON35PBKUPB6C542DFZI3OMBOGHX"));
+    }
+
+    #[test]
+    fn mainnet() {
+        test_contract_id((MAINNET, "CC3SILHAJ5O75KMSJ5J6I5HV753OTPWEVMZUYHS4QEM2ZTISQRAOMMF4"));
+    }
+
+    #[test]
+    fn local() {
+        test_contract_id((LOCAL, "CCMHAZ6QTUUF2W4PUBW5BAI6R75BVKIUVHJU6IBQTWCS5RBASDOKHF7T"));
     }
 }

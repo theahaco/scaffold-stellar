@@ -73,7 +73,7 @@ pub trait IsRedeployable {
     ) -> Result<loam_sdk::soroban_sdk::Address, Error>;
 
     /// Upgrades a contract by calling the upgrade function.
-    /// Default is 'redeploy' and expects that first arg is the corresponding wasm hash
+    /// Default is 'upgrade' and expects that first arg is the corresponding wasm hash
     fn upgrade_contract(
         &mut self,
         name: loam_sdk::soroban_sdk::String,
