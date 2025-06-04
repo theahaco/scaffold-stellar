@@ -88,13 +88,16 @@ pub fn import_contract(tokens: TokenStream) -> TokenStream {
 }
 
 struct RegistryImportArgs {
-    name: syn::Ident,
+    module_name: syn::Ident,
+    registry_name: syn::LitStr,
     network: Option<String>,
 }
 
 impl syn::parse::Parse for RegistryImportArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let name = input.parse()?;
+        let module_name = input.parse()?;
+        input.parse::<syn::Token![,]>()?;
+        let registry_name = input.parse()?;
 
         let mut network = None;
 
@@ -113,40 +116,34 @@ impl syn::parse::Parse for RegistryImportArgs {
         }
 
         Ok(RegistryImportArgs {
-            name,
+            module_name,
+            registry_name,
             network,
         })
     }
 }
 
 async fn import_from_registry_impl(args: RegistryImportArgs) -> Result<TokenStream, String> {
-    let contract_name = args.name.to_string();
+    let module_name = args.module_name;
+    let contract_name = args.registry_name.value();
     let network = args.network.as_deref().unwrap_or("testnet");
 
-    // Create config for the network
     let config = create_config_for_network(network);
-
-    // Get contract ID from registry using the CLI
     let contract_id = fetch_contract_id_from_registry(&config, &contract_name).await?;
-
-    // Get WASM hash and ensure it's cached
     let wasm_path = ensure_wasm_cached_from_contract(&config, &contract_id).await?;
-
-    // Generate the client code
-    let name = args.name;
-    let contract_id_str = contract_id.to_string();
     let wasm_path_str = wasm_path.to_str().ok_or("Invalid path")?;
+    let contract_id_str = contract_id.to_string();
 
     Ok(quote! {
-        pub(crate) mod #name {
+        pub mod #module_name {
             #![allow(clippy::ref_option, clippy::too_many_arguments)]
             use super::soroban_sdk;
 
             soroban_sdk::contractimport!(file = #wasm_path_str);
 
-            impl Client {
-                /// Creates a new client for the contract deployed at the registry
-                pub fn new(env: &soroban_sdk::Env) -> Self {
+            impl<'a> Client<'a> {
+                /// Creates a new client instance for the registered contract
+                pub fn new_from_registry(env: &'a soroban_sdk::Env) -> Self {
                     let contract_id = soroban_sdk::Address::from_string(
                         &soroban_sdk::String::from_str(env, #contract_id_str)
                     );
