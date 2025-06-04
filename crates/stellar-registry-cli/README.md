@@ -85,17 +85,6 @@ Then can interact with it the contract with `stellar-cli`:
 stellar contract invoke --id my-token -- --help
 ```
 
-## Registry Contract
-
-You can install the registry contract like any other:
-```bash
-stellar registry install registry
-```
-
-```
-stellar contract invoke --id registry -- --help
-```
-
 ### Transitioning to Mainnet
 
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
