@@ -62,7 +62,7 @@ impl Cmd {
         })?;
 
         let base_cache_path = cache_dir.join("stellar-scaffold-cli/openzeppelin-stellar-contracts");
-        
+
         // Get the latest release tag
         let latest_release = Self::fetch_latest_release().await?;
         let repo_cache_path = base_cache_path.join(&latest_release.tag_name);
@@ -71,10 +71,16 @@ impl Cmd {
         let should_update_cache = if repo_cache_path.exists() {
             if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
                 if cached_tag.trim() == latest_release.tag_name {
-                    eprintln!("📂 Using cached repository (release {})...", latest_release.tag_name);
+                    eprintln!(
+                        "📂 Using cached repository (release {})...",
+                        latest_release.tag_name
+                    );
                     false
                 } else {
-                    eprintln!("📂 New release available ({}). Updating cache...", latest_release.tag_name);
+                    eprintln!(
+                        "📂 New release available ({}). Updating cache...",
+                        latest_release.tag_name
+                    );
                     true
                 }
             } else {
@@ -82,7 +88,10 @@ impl Cmd {
                 true
             }
         } else {
-            eprintln!("📂 Cache not found. Downloading release {}...", latest_release.tag_name);
+            eprintln!(
+                "📂 Cache not found. Downloading release {}...",
+                latest_release.tag_name
+            );
             true
         };
 
@@ -155,7 +164,6 @@ impl Cmd {
         Ok(())
     }
 
-
     async fn fetch_latest_release() -> Result<Release, Error> {
         Self::fetch_latest_release_from_url(
             "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/latest",
@@ -179,7 +187,7 @@ impl Cmd {
         Ok(release)
     }
 
-        fn cache_repository(
+    fn cache_repository(
         repo_cache_path: &Path,
         cache_ref_file: &Path,
         tag_name: &str,
@@ -191,9 +199,9 @@ impl Cmd {
         degit::degit(&repo_ref, &repo_cache_path.to_string_lossy());
 
         if repo_cache_path.read_dir()?.next().is_none() {
-            return Err(Error::GitCloneFailed(
-                format!("Failed to download repository release {tag_name} to cache"),
-            ));
+            return Err(Error::GitCloneFailed(format!(
+                "Failed to download repository release {tag_name} to cache"
+            )));
         }
 
         fs::write(cache_ref_file, tag_name)?;
@@ -275,7 +283,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-     #[tokio::test]
+    #[tokio::test]
     async fn test_fetch_latest_release() {
         let _m = mock(
             "GET",
