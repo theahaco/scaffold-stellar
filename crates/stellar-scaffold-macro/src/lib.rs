@@ -61,12 +61,15 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
 /// for the specific contract ID.
 ///
 /// # Arguments
-/// * `name` - The name of the contract in the registry
+/// * `name` - The module name to use for the imported contract
+/// * `registry_name` - Optional name of the contract in the registry (defaults to module name)
 /// * `network` - Optional network (defaults to "testnet")
 ///
 /// # Example
 /// ```ignore
 /// import_contract!(hello_world);
+/// import_contract!(hello_world, "hello-world");
+/// import_contract!(hello_world, "hello-world", network = "mainnet");
 /// import_contract!(hello_world, network = "mainnet");
 /// ```
 #[proc_macro]
@@ -89,20 +92,26 @@ pub fn import_contract(tokens: TokenStream) -> TokenStream {
 
 struct RegistryImportArgs {
     module_name: syn::Ident,
-    registry_name: syn::LitStr,
+    registry_name: Option<syn::LitStr>,
     network: Option<String>,
 }
 
 impl syn::parse::Parse for RegistryImportArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let module_name = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let registry_name = input.parse()?;
-
+        
+        let mut registry_name = None;
         let mut network = None;
 
         while !input.is_empty() {
             input.parse::<syn::Token![,]>()?;
+            
+            // Check if it's a string literal (registry name) or an identifier (parameter)
+            if input.peek(syn::LitStr) {
+                registry_name = Some(input.parse()?);
+                continue;
+            }
+
             let key: syn::Ident = input.parse()?;
             input.parse::<syn::Token![=]>()?;
 
@@ -125,7 +134,9 @@ impl syn::parse::Parse for RegistryImportArgs {
 
 async fn import_from_registry_impl(args: RegistryImportArgs) -> Result<TokenStream, String> {
     let module_name = args.module_name;
-    let contract_name = args.registry_name.value();
+    let contract_name = args.registry_name
+        .map(|s| s.value())
+        .unwrap_or_else(|| module_name.to_string());
     let network = args.network.as_deref().unwrap_or("testnet");
 
     let config = create_config_for_network(network);
