@@ -443,6 +443,8 @@ export default new Client.Client({{
         self.validate_contract_names(contracts)?;
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
+        let mut results: Vec<(String, Result<(), String>)> = Vec::new();
+
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -454,8 +456,38 @@ export default new Client.Client({{
                 continue;
             }
 
-            self.process_single_contract(&name, settings, network, &env)
-                .await?;
+            match self
+                .process_single_contract(&name, settings, network, &env)
+                .await
+            {
+                Ok(()) => {
+                    eprintln!("✅ Successfully generated client for: {name}");
+                    results.push((name, Ok(())));
+                }
+                Err(e) => {
+                    eprintln!("⛔ Failed to generate client for: {name} - Error: {e}");
+                    results.push((name, Err(e.to_string())));
+                }
+            }
+        }
+
+        // Print summary
+        let (success_count, failure_count) = results.iter().fold((0, 0), |(s, f), r| match r.1 {
+            Ok(()) => (s + 1, f),
+            Err(_) => (s, f + 1),
+        });
+
+        eprintln!("\nClient Generation Summary:");
+        eprintln!("Successfully processed: {success_count}");
+        eprintln!("Failed: {failure_count}");
+
+        if failure_count > 0 {
+            eprintln!("\nFailures:");
+            for (name, result) in &results {
+                if let Err(e) = result {
+                    eprintln!("  {name} - Error: {e}");
+                }
+            }
         }
 
         Ok(())
