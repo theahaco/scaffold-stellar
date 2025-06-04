@@ -43,7 +43,7 @@ Options:
 
 ## Configuration
 
-`stellar-cli` povides a way to use a default config for accounts and networks:
+`stellar-cli` provides a way to use a default config for accounts and networks:
 ```bash
 stellar keys use alice
 ```
@@ -96,7 +96,7 @@ stellar registry install registry
 stellar contract invoke --id registry -- --help
 ```
 
-### Transitioning to mainnet
+### Transitioning to Mainnet
 
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
 
@@ -121,7 +121,7 @@ echo STELLAR_NETWORK=mainnet >> .env
 
 ## Publishing and then deploying
 
-Publishing and deploing are exactly the same!
+Publishing and deploying are exactly the same!
 
 
 ## See Also
