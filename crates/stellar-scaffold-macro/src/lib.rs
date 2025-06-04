@@ -99,13 +99,13 @@ struct RegistryImportArgs {
 impl syn::parse::Parse for RegistryImportArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let module_name = input.parse()?;
-        
+
         let mut registry_name = None;
         let mut network = None;
 
         while !input.is_empty() {
             input.parse::<syn::Token![,]>()?;
-            
+
             // Check if it's a string literal (registry name) or an identifier (parameter)
             if input.peek(syn::LitStr) {
                 registry_name = Some(input.parse()?);
@@ -134,9 +134,9 @@ impl syn::parse::Parse for RegistryImportArgs {
 
 async fn import_from_registry_impl(args: RegistryImportArgs) -> Result<TokenStream, String> {
     let module_name = args.module_name;
-    let contract_name = args.registry_name
-        .map(|s| s.value())
-        .unwrap_or_else(|| module_name.to_string());
+    let contract_name = args
+        .registry_name
+        .map_or_else(|| module_name.to_string(), |s| s.value());
     let network = args.network.as_deref().unwrap_or("testnet");
 
     let config = create_config_for_network(network);
@@ -234,7 +234,9 @@ async fn ensure_wasm_cached_from_contract(
         xdr::LedgerEntryData::ContractData(data) => match &data.val {
             ScVal::ContractInstance(instance) => match &instance.executable {
                 xdr::ContractExecutable::Wasm(hash) => hash.clone(),
-                xdr::ContractExecutable::StellarAsset => return Err("Contract is not using WASM executable".to_string()),
+                xdr::ContractExecutable::StellarAsset => {
+                    return Err("Contract is not using WASM executable".to_string())
+                }
             },
             _ => return Err("Invalid contract instance data".to_string()),
         },
