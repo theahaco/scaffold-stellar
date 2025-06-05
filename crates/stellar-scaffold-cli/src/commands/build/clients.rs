@@ -35,6 +35,10 @@ pub struct Args {
     pub env: Option<ScaffoldEnv>,
     #[arg(skip)]
     pub workspace_root: Option<std::path::PathBuf>,
+    /// Directory where wasm files are located
+    #[arg(skip)]
+    pub out_dir: Option<std::path::PathBuf>,
+
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -461,13 +465,18 @@ export default new Client.Client({{
         Ok(())
     }
 
-    fn get_wasm_path(&self, contract_name: &str) -> std::path::PathBuf {
-        let workspace_root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace_root not set");
-        let target_dir = workspace_root.join("target");
-        stellar_build::stellar_wasm_out_file(&target_dir, contract_name)
+        fn get_wasm_path(&self, contract_name: &str) -> std::path::PathBuf {
+        // Check if out_dir was specified and use it, otherwise fall back to target directory
+        if let Some(out_dir) = &self.out_dir {
+            out_dir.join(format!("{}.wasm", contract_name))
+        } else {
+            let workspace_root = self
+                .workspace_root
+                .as_ref()
+                .expect("workspace_root not set");
+            let target_dir = workspace_root.join("target");
+            stellar_build::stellar_wasm_out_file(&target_dir, contract_name)
+        }
     }
 
     fn validate_contract_names(
