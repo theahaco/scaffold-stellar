@@ -4,16 +4,16 @@ use std::{ffi::OsString, path::PathBuf};
 use clap::Parser;
 use ed25519_dalek::SigningKey;
 
-use soroban_sdk::xdr::{
-    self, AccountId, HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo, MuxedAccount,
-    Operation, OperationBody, Preconditions, ScSpecEntry, ScString, ScVal, SequenceNumber,
-    Transaction, TransactionExt, Uint256, VecM,
-};
 use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
     commands::contract::{arg_parsing, invoke},
     config, fee,
     utils::rpc::get_remote_wasm_from_hash,
+    xdr::{
+        self, AccountId, HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo,
+        MuxedAccount, Operation, OperationBody, Preconditions, ScSpecEntry, ScString, ScVal,
+        SequenceNumber, Transaction, TransactionExt, Uint256, VecM,
+    },
 };
 
 use soroban_rpc as rpc;
@@ -32,11 +32,9 @@ pub struct Cmd {
     /// Arguments for constructor
     #[arg(last = true, id = "CONSTRUCTOR_ARGS")]
     pub slop: Vec<OsString>,
-
     /// Version of the wasm to deploy
     #[arg(long)]
     pub version: Option<String>,
-
     #[command(flatten)]
     pub config: config::Args,
     #[command(flatten)]
@@ -49,8 +47,6 @@ pub enum Error {
     Invoke(#[from] invoke::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[error(transparent)]
-    StellarBuild(#[from] stellar_build::Error),
     #[error(transparent)]
     Install(#[from] super::install::Error),
     #[error(transparent)]

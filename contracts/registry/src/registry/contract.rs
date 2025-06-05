@@ -34,14 +34,14 @@ pub struct C {
 }
 
 impl C {
-    fn redeploy(
+    fn upgrade(
         &self,
         name: &String,
         wasm_hash: &BytesN<32>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let contract_id = self.fetch_contract_id(name.clone())?;
-        let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("redeploy"));
+        let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("upgrade"));
         env().invoke_contract::<()>(&contract_id, &fn_name, vec![wasm_hash.into_val(env())]);
         Ok(contract_id)
     }
@@ -117,7 +117,7 @@ impl IsRedeployable for C {
         upgrade_fn: Option<soroban_sdk::Symbol>,
     ) -> Result<soroban_sdk::Address, Error> {
         let wasm_hash = env().deployer().upload_contract_wasm(wasm);
-        self.redeploy(&name, &wasm_hash, upgrade_fn)
+        self.upgrade(&name, &wasm_hash, upgrade_fn)
     }
 
     fn upgrade_contract(
@@ -128,6 +128,6 @@ impl IsRedeployable for C {
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let wasm_hash = Contract_::fetch_hash(wasm_name.clone(), version.clone())?;
-        self.redeploy(&name, &wasm_hash, upgrade_fn)
+        self.upgrade(&name, &wasm_hash, upgrade_fn)
     }
 }

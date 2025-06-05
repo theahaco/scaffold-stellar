@@ -2,9 +2,12 @@ use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;
 
-use soroban_sdk::xdr::{ScMetaEntry, ScMetaV0};
 pub use soroban_spec_tools::contract as contract_spec;
-use stellar_cli::{commands::contract::invoke, config, fee};
+use stellar_cli::{
+    commands::contract::invoke,
+    config, fee,
+    xdr::{ScMetaEntry, ScMetaV0},
+};
 
 use crate::contract::NetworkContract;
 
