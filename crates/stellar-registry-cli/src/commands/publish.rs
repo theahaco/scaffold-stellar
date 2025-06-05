@@ -70,13 +70,7 @@ impl Cmd {
             ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
                 let key_str = key.to_string();
                 match key_str.as_str() {
-                    "name" => {
-                        if self.wasm_name.is_none() {
-                            Some(format!("--wasm_name={val}"))
-                        } else {
-                            None
-                        }
-                    }
+                    "name" => self.wasm_name.is_none().then(|| format!("--wasm_name={val}")),
                     "binver" => Some(format!("--version={val}")),
                     _ => None,
                 }
