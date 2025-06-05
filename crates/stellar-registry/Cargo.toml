@@ -1,6 +1,6 @@
 [package]
 name = "stellar-registry"
-version = "0.0.1-alpha"
+version = "0.0.1"
 edition = "2021"
 description = "A smart contract library for using stellar registry to import other smart contracts"
 license = "Apache-2.0"
