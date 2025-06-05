@@ -4755,7 +4755,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stellar-build"
-version = "0.0.1-alpha"
+version = "0.0.1"
 dependencies = [
  "cargo_metadata",
  "thiserror 1.0.69",
@@ -4764,14 +4764,14 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry"
-version = "0.0.1-alpha"
+version = "0.0.1"
 dependencies = [
  "stellar-scaffold-macro",
 ]
 
 [[package]]
 name = "stellar-registry-cli"
-version = "0.0.1-alpha.2"
+version = "0.0.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4820,7 +4820,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.1-alpha.2"
+version = "0.0.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
