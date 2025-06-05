@@ -5,16 +5,15 @@ PATH=./target/bin:$PATH
 
 stellar contract deploy --alias registry \
                         --wasm ./target/stellar/registry.wasm \
-                        --source $ADMIN \
+                        --source "$ADMIN" \
                         --salt 0 \
                         -- \
-                        --admin $ADMIN
+                        --admin "$ADMIN"
 
 registry="stellar contract invoke --id registry --"
 
 $registry --help
 
 just registry publish --wasm ./target/stellar/registry.wasm \
-                         --author $ADMIN \
-                         --source $ADMIN \
-                         --dry-run
+                         --author "$ADMIN" \
+                         --source "$ADMIN"

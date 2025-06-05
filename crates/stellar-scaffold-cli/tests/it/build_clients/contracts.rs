@@ -324,6 +324,73 @@ soroban_token_contract.client = false
 }
 
 #[test]
+fn contract_built_with_out_dir() {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        env.set_environments_toml(
+            r#"
+development.accounts = [
+    { name = "alice" },
+]
+
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+soroban_hello_world_contract.client = true
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+        );
+
+        let out_dir = env.cwd.join("custom_wasm_output");
+
+        let stderr = env
+            .scaffold("build")
+            .arg("--out-dir")
+            .arg(&out_dir)
+            .assert()
+            .success()
+            .stderr_as_str();
+
+        assert!(stderr.contains("creating keys for \"alice\"\n"));
+        assert!(stderr.contains("using network at http://localhost:8000/rpc\n"));
+        assert!(
+            stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
+        );
+        assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
+        assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
+        assert!(stderr.contains("importing \"soroban_hello_world_contract\" contract"));
+
+        // Check that WASM file was copied to custom out_dir
+        assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
+
+        // Check that contract client files are still generated
+        assert!(env
+            .cwd
+            .join("packages/soroban_hello_world_contract")
+            .exists());
+        assert!(env
+            .cwd
+            .join("src/contracts/soroban_hello_world_contract.ts")
+            .exists());
+
+        // Check dist/index.js and dist/index.d.ts exist after npm run build
+        let dist_dir = env.cwd.join("packages/soroban_hello_world_contract/dist");
+        assert!(
+            dist_dir.join("index.js").exists(),
+            "index.js missing for soroban_hello_world_contract"
+        );
+        assert!(
+            dist_dir.join("index.d.ts").exists(),
+            "index.d.ts missing for soroban_hello_world_contract"
+        );
+    });
+}
+
+#[test]
 fn contracts_with_failures_show_summary() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         // First pass - build wasm and create accounts

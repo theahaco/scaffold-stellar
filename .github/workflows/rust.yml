@@ -26,7 +26,7 @@ jobs:
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - run: rustup component add rustfmt clippy
-      - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config # required for the machine to build properly
+      - run: sudo apt-get update # required for the machine to build properly
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@just
       - uses: cargo-bins/cargo-binstall@main

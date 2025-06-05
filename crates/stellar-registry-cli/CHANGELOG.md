@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.1...stellar-registry-cli-v0.0.2) - 2025-06-05
+
+### Added
+
+- *(registry)* Update readme with instructions for mainnet; Update to newest loam_sdk; Use correct contract Ids ([#86](https://github.com/AhaLabs/scaffold-stellar/pull/86))
+
 ## [0.0.1-alpha.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.1-alpha.1...stellar-registry-cli-v0.0.1-alpha.2) - 2025-05-19
 
 ### Added

@@ -2635,7 +2635,7 @@ checksum = "23fb14cb19457329c82206317a5663005a4d404783dc74f4252769b0d5f42856"
 [[package]]
 name = "loam-build"
 version = "0.7.3"
-source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
+source = "git+https://github.com/loambuild/loam?rev=096da30cedd371651906cfbed034b955c7b50ab4#096da30cedd371651906cfbed034b955c7b50ab4"
 dependencies = [
  "cargo_metadata",
  "thiserror 1.0.69",
@@ -2645,7 +2645,7 @@ dependencies = [
 [[package]]
 name = "loam-sdk"
 version = "0.6.16"
-source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
+source = "git+https://github.com/loambuild/loam?rev=096da30cedd371651906cfbed034b955c7b50ab4#096da30cedd371651906cfbed034b955c7b50ab4"
 dependencies = [
  "loam-sdk-macro",
  "loam-soroban-sdk",
@@ -2654,7 +2654,7 @@ dependencies = [
 [[package]]
 name = "loam-sdk-macro"
 version = "0.8.6"
-source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
+source = "git+https://github.com/loambuild/loam?rev=096da30cedd371651906cfbed034b955c7b50ab4#096da30cedd371651906cfbed034b955c7b50ab4"
 dependencies = [
  "Inflector",
  "cargo_metadata",
@@ -2676,7 +2676,7 @@ dependencies = [
 [[package]]
 name = "loam-soroban-sdk"
 version = "0.6.16"
-source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
+source = "git+https://github.com/loambuild/loam?rev=096da30cedd371651906cfbed034b955c7b50ab4#096da30cedd371651906cfbed034b955c7b50ab4"
 dependencies = [
  "loam-sdk-macro",
  "soroban-sdk",
@@ -2685,7 +2685,7 @@ dependencies = [
 [[package]]
 name = "loam-subcontract-core"
 version = "0.7.9"
-source = "git+https://github.com/loambuild/loam#9c6b74e4173e6d9bb3e697aa86924d431f27c0bd"
+source = "git+https://github.com/loambuild/loam?rev=096da30cedd371651906cfbed034b955c7b50ab4#096da30cedd371651906cfbed034b955c7b50ab4"
 dependencies = [
  "loam-sdk",
 ]
@@ -4755,7 +4755,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stellar-build"
-version = "0.0.1-alpha"
+version = "0.0.1"
 dependencies = [
  "cargo_metadata",
  "thiserror 1.0.69",
@@ -4764,14 +4764,14 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry"
-version = "0.0.1-alpha"
+version = "0.0.1"
 dependencies = [
  "stellar-scaffold-macro",
 ]
 
 [[package]]
 name = "stellar-registry-cli"
-version = "0.0.1-alpha.2"
+version = "0.0.2"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4783,9 +4783,7 @@ dependencies = [
  "sha2 0.10.8",
  "shlex",
  "soroban-cli",
- "soroban-sdk",
  "soroban-spec-tools",
- "stellar-build",
  "stellar-rpc-client",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
@@ -4820,7 +4818,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.1-alpha.2"
+version = "0.0.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
