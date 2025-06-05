@@ -38,7 +38,6 @@ pub struct Args {
     /// Directory where wasm files are located
     #[arg(skip)]
     pub out_dir: Option<std::path::PathBuf>,
-
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -465,10 +464,10 @@ export default new Client.Client({{
         Ok(())
     }
 
-        fn get_wasm_path(&self, contract_name: &str) -> std::path::PathBuf {
+    fn get_wasm_path(&self, contract_name: &str) -> std::path::PathBuf {
         // Check if out_dir was specified and use it, otherwise fall back to target directory
         if let Some(out_dir) = &self.out_dir {
-            out_dir.join(format!("{}.wasm", contract_name))
+            out_dir.join(format!("{contract_name}.wasm"))
         } else {
             let workspace_root = self
                 .workspace_root

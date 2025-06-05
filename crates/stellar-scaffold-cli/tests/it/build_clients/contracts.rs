@@ -346,7 +346,7 @@ soroban_token_contract.client = false
         );
 
         let out_dir = env.cwd.join("custom_wasm_output");
-        
+
         let stderr = env
             .scaffold("build")
             .arg("--out-dir")
@@ -357,17 +357,25 @@ soroban_token_contract.client = false
 
         assert!(stderr.contains("creating keys for \"alice\"\n"));
         assert!(stderr.contains("using network at http://localhost:8000/rpc\n"));
-        assert!(stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
+        assert!(
+            stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
+        );
         assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
         assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
         assert!(stderr.contains("importing \"soroban_hello_world_contract\" contract"));
 
         // Check that WASM file was copied to custom out_dir
         assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
-        
+
         // Check that contract client files are still generated
-        assert!(env.cwd.join("packages/soroban_hello_world_contract").exists());
-        assert!(env.cwd.join("src/contracts/soroban_hello_world_contract.ts").exists());
+        assert!(env
+            .cwd
+            .join("packages/soroban_hello_world_contract")
+            .exists());
+        assert!(env
+            .cwd
+            .join("src/contracts/soroban_hello_world_contract.ts")
+            .exists());
 
         // Check dist/index.js and dist/index.d.ts exist after npm run build
         let dist_dir = env.cwd.join("packages/soroban_hello_world_contract/dist");
