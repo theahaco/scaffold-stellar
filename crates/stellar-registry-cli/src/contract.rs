@@ -121,21 +121,33 @@ mod generate_id {
     }
     #[test]
     fn futurenet() {
-        test_contract_id((FUTURENET, "CACPZCQSLEGF6QOSBF42X6LOUQXQB2EJRDKNKQO6US6ZZH5FD6EB325M"));
+        test_contract_id((
+            FUTURENET,
+            "CACPZCQSLEGF6QOSBF42X6LOUQXQB2EJRDKNKQO6US6ZZH5FD6EB325M",
+        ));
     }
 
     #[test]
     fn testnet() {
-        test_contract_id((TESTNET, "CBCOGWBDGBFWR5LQFKRQUPFIG6OLOON35PBKUPB6C542DFZI3OMBOGHX"));
+        test_contract_id((
+            TESTNET,
+            "CBCOGWBDGBFWR5LQFKRQUPFIG6OLOON35PBKUPB6C542DFZI3OMBOGHX",
+        ));
     }
 
     #[test]
     fn mainnet() {
-        test_contract_id((MAINNET, "CC3SILHAJ5O75KMSJ5J6I5HV753OTPWEVMZUYHS4QEM2ZTISQRAOMMF4"));
+        test_contract_id((
+            MAINNET,
+            "CC3SILHAJ5O75KMSJ5J6I5HV753OTPWEVMZUYHS4QEM2ZTISQRAOMMF4",
+        ));
     }
 
     #[test]
     fn local() {
-        test_contract_id((LOCAL, "CCMHAZ6QTUUF2W4PUBW5BAI6R75BVKIUVHJU6IBQTWCS5RBASDOKHF7T"));
+        test_contract_id((
+            LOCAL,
+            "CCMHAZ6QTUUF2W4PUBW5BAI6R75BVKIUVHJU6IBQTWCS5RBASDOKHF7T",
+        ));
     }
 }
