@@ -468,25 +468,24 @@ export default new Client.Client({{
                     results.push((name, Ok(())));
                 }
                 Err(e) => {
-                    eprintln!("⛔ Failed to generate client for: {name} - Error: {e}");
+                    eprintln!("⛔ Failed to generate client for: {name}");
                     results.push((name, Err(e.to_string())));
                 }
             }
         }
 
+        // Partition results into successes and failures
+        let (successes, failures): (Vec<_>, Vec<_>) =
+            results.into_iter().partition(|(_, result)| result.is_ok());
+
         // Print summary
-        let (success_count, failure_count) = results.iter().fold((0, 0), |(s, f), r| match r.1 {
-            Ok(()) => (s + 1, f),
-            Err(_) => (s, f + 1),
-        });
-
         eprintln!("\nClient Generation Summary:");
-        eprintln!("Successfully processed: {success_count}");
-        eprintln!("Failed: {failure_count}");
+        eprintln!("Successfully processed: {}", successes.len());
+        eprintln!("Failed: {}", failures.len());
 
-        if failure_count > 0 {
+        if !failures.is_empty() {
             eprintln!("\nFailures:");
-            for (name, result) in &results {
+            for (name, result) in &failures {
                 if let Err(e) = result {
                     eprintln!("  {name} - Error: {e}");
                 }
