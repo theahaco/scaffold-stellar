@@ -139,7 +139,9 @@ impl Command {
 
         if self.build_clients {
             let mut build_clients_args = self.build_clients_args.clone();
+            // Pass through the workspace_root and out_dir from the build command
             build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
+            build_clients_args.out_dir.clone_from(&self.build.out_dir);
             build_clients_args
                 .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;
