@@ -129,21 +129,22 @@ fn validate_version() {
     let (client, address) = &init();
     let env = env();
     let name = &to_string("registry");
-    let bytes = Bytes::from_slice(env, registry::WASM);
+    let bytes = &Bytes::from_slice(env, registry::WASM);
     env.mock_all_auths();
-    let version = default_version();
-    client.publish(name, address, &bytes, &version);
+    let version = &to_string("0.0.0");
+    let new_version = &to_string("0.0.1");
+    client.publish(name, address, bytes, version);
     assert_eq!(
-        client.try_publish(name, address, &bytes, &version),
+        client.try_publish(name, address, bytes, version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
     assert_eq!(
-        client.try_publish(name, address, &bytes, &to_string("0.  0.0"),),
+        client.try_publish(name, address, bytes, &to_string("0.  0.0"),),
         Err(Ok(Error::InvalidVersion))
     );
-    client.publish(name, address, &bytes, &to_string("0.0.1"));
+    client.publish(name, address, bytes, new_version);
     assert_eq!(
-        client.try_publish(name, address, &bytes, &version),
+        client.try_publish(name, address, bytes, version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
 }

@@ -26,8 +26,6 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-stellar-build = { path = "../stellar-build", version = "0.0.1-alpha" }
-
 clap = { version = "4.1.8", features = [
     "derive",
     "env",
@@ -35,7 +33,6 @@ clap = { version = "4.1.8", features = [
     "string",
 ] }
 stellar-cli = { workspace = true }
-soroban-sdk = { workspace = true }
 
 soroban-spec-tools = "22.6.0"
 soroban-rpc = { workspace = true }
@@ -58,4 +55,5 @@ predicates = "2.1.5"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
 [features]
+default = ["stellar-cli/additional-libs"]
 integration-tests = []

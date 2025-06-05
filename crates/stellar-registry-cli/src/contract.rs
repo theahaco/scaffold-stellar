@@ -84,7 +84,7 @@ pub async fn invoke_registry(
 }
 
 pub fn stellar_address() -> stellar_strkey::ed25519::PublicKey {
-    "GBLTLNPISIK2JFDN42MXET7K7QLFSTPBAL5FLK7QUH2VM5HTCURFQGDK"
+    "GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M"
         .parse()
         .unwrap()
 }
@@ -109,7 +109,8 @@ pub fn contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
 }
 
 #[cfg(test)]
-mod tests {
+mod generate_id {
+    use stellar_cli::config::network::passphrase::*;
 
     fn test_contract_id((passphrase, contract_id): (&str, &str)) {
         assert_eq!(
@@ -118,29 +119,35 @@ mod tests {
             "{passphrase}"
         );
     }
+    #[test]
+    fn futurenet() {
+        test_contract_id((
+            FUTURENET,
+            "CACPZCQSLEGF6QOSBF42X6LOUQXQB2EJRDKNKQO6US6ZZH5FD6EB325M",
+        ));
+    }
 
     #[test]
-    fn contract_id_deterministic() {
-        use stellar_cli::config::network::passphrase::*;
-        [
-            (
-                FUTURENET,
-                "CBBL2SVHBQY35LY6IE64RHS5K2M7BXXV72KXS2CKV6MU4L3Y33HANUJ2",
-            ),
-            (
-                TESTNET,
-                "CDG3WXXNVUWIVGY4DCGOHQ46M7IIX7PEHWC3OS5BDBE45NVTLKVHZCIL",
-            ),
-            (
-                MAINNET,
-                "CALD4U74TFHCQVER5XT4UZTTYXS7QK3FWNPNRHRHNLM27XZZDFMWH34G",
-            ),
-            (
-                LOCAL,
-                "CBNHDE2VJAMGT7H6QGCM3HXCRENYABLCD67QSDFYF6KQZ7PANRJ4IO6K",
-            ),
-        ]
-        .into_iter()
-        .for_each(test_contract_id);
+    fn testnet() {
+        test_contract_id((
+            TESTNET,
+            "CBCOGWBDGBFWR5LQFKRQUPFIG6OLOON35PBKUPB6C542DFZI3OMBOGHX",
+        ));
+    }
+
+    #[test]
+    fn mainnet() {
+        test_contract_id((
+            MAINNET,
+            "CC3SILHAJ5O75KMSJ5J6I5HV753OTPWEVMZUYHS4QEM2ZTISQRAOMMF4",
+        ));
+    }
+
+    #[test]
+    fn local() {
+        test_contract_id((
+            LOCAL,
+            "CCMHAZ6QTUUF2W4PUBW5BAI6R75BVKIUVHJU6IBQTWCS5RBASDOKHF7T",
+        ));
     }
 }
