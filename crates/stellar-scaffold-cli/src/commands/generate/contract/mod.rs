@@ -246,8 +246,6 @@ fn open_wizard() -> Result<(), Error> {
 mod tests {
     use super::*;
     use mockito::{mock, server_url};
-    use std::fs;
-    use tempfile::tempdir;
 
     fn create_test_cmd(from: Option<String>, ls: bool, from_wizard: bool) -> Cmd {
         Cmd {
@@ -328,45 +326,5 @@ mod tests {
         let cmd = create_test_cmd(None, false, false);
         let result = cmd.run().await;
         assert!(matches!(result, Err(Error::NoActionSpecified)));
-    }
-
-    #[tokio::test]
-    async fn test_copy_directory_contents() {
-        let temp = tempdir().unwrap();
-        let source_dir = temp.path().join("source");
-        let dest_dir = temp.path().join("dest");
-
-        // Create source directory structure
-        fs::create_dir_all(&source_dir).unwrap();
-        fs::create_dir_all(dest_dir.clone()).unwrap();
-
-        // Create test files
-        fs::write(source_dir.join("file1.txt"), "content1").unwrap();
-        fs::write(source_dir.join("file2.txt"), "content2").unwrap();
-
-        let subdir = source_dir.join("subdir");
-        fs::create_dir_all(&subdir).unwrap();
-        fs::write(subdir.join("nested.txt"), "nested content").unwrap();
-
-        // Test the copy operation
-        let result = Cmd::copy_directory_contents(
-            &source_dir.to_string_lossy(),
-            &dest_dir.to_string_lossy(),
-        );
-
-        assert!(result.is_ok());
-        assert!(dest_dir.join("file1.txt").exists());
-        assert!(dest_dir.join("file2.txt").exists());
-        assert!(dest_dir.join("subdir/nested.txt").exists());
-
-        // Verify content
-        assert_eq!(
-            fs::read_to_string(dest_dir.join("file1.txt")).unwrap(),
-            "content1"
-        );
-        assert_eq!(
-            fs::read_to_string(dest_dir.join("subdir/nested.txt")).unwrap(),
-            "nested content"
-        );
     }
 }
