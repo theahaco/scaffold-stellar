@@ -123,7 +123,7 @@ impl Cmd {
 
         // Create destination and copy contents
         fs::create_dir_all(&dest_path)?;
-        Self::copy_directory_contents(&example_source_path.to_string_lossy(), &dest_path)?;
+        Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         eprintln!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
         Ok(())
@@ -208,22 +208,14 @@ impl Cmd {
         Ok(())
     }
 
-    fn copy_directory_contents(source: &str, dest: &str) -> Result<(), Error> {
-        for entry in std::fs::read_dir(source)? {
-            let entry = entry?;
-            let source_path = entry.path();
-            let dest_path = Path::new(dest).join(entry.file_name());
+    fn copy_directory_contents(source: &Path, dest: &Path) -> Result<(), Error> {
+        let copy_options = fs_extra::dir::CopyOptions::new()
+            .overwrite(true)
+            .copy_inside(true);
 
-            if source_path.is_dir() {
-                std::fs::create_dir_all(&dest_path)?;
-                Self::copy_directory_contents(
-                    &source_path.to_string_lossy(),
-                    &dest_path.to_string_lossy(),
-                )?;
-            } else {
-                std::fs::copy(&source_path, &dest_path)?;
-            }
-        }
+        fs_extra::dir::copy(source, dest, &copy_options)
+            .map_err(|e| Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+
         Ok(())
     }
 }
