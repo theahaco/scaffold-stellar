@@ -64,23 +64,17 @@ impl Cmd {
         let base_cache_path = cache_dir.join("stellar-scaffold-cli/openzeppelin-stellar-contracts");
 
         // Get the latest release tag
-        let latest_release = Self::fetch_latest_release().await?;
-        let repo_cache_path = base_cache_path.join(&latest_release.tag_name);
+        let Release { tag_name } = Self::fetch_latest_release().await?;
+        let repo_cache_path = base_cache_path.join(&tag_name);
         let cache_ref_file = repo_cache_path.join(".release_ref");
 
         let should_update_cache = if repo_cache_path.exists() {
             if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
-                if cached_tag.trim() == latest_release.tag_name {
-                    eprintln!(
-                        "📂 Using cached repository (release {})...",
-                        latest_release.tag_name
-                    );
+                if cached_tag.trim() == tag_name {
+                    eprintln!( "📂 Using cached repository (release {tag_name})...");
                     false
                 } else {
-                    eprintln!(
-                        "📂 New release available ({}). Updating cache...",
-                        latest_release.tag_name
-                    );
+                    eprintln!("📂 New release available ({tag_name}). Updating cache...");
                     true
                 }
             } else {
@@ -88,10 +82,7 @@ impl Cmd {
                 true
             }
         } else {
-            eprintln!(
-                "📂 Cache not found. Downloading release {}...",
-                latest_release.tag_name
-            );
+            eprintln!("📂 Cache not found. Downloading release {tag_name}...");
             true
         };
 
@@ -99,7 +90,7 @@ impl Cmd {
             if repo_cache_path.exists() {
                 fs::remove_dir_all(&repo_cache_path)?;
             }
-            Self::cache_repository(&repo_cache_path, &cache_ref_file, &latest_release.tag_name)?;
+            Self::cache_repository(&repo_cache_path, &cache_ref_file, &tag_name)?;
         }
 
         Ok(repo_cache_path)
