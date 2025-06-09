@@ -176,7 +176,7 @@ after_deploy = """
 
 ## Environment Variables
 
-- `STELLAR_SCAFFOLD_ENV`: Set the current environment (development/testing/staging/production)
+- `STELLAR_ENV`: Set the current environment (development/testing/staging/production)
 - `STELLAR_ACCOUNT`: Default account for transactions (set automatically)
 - `STELLAR_RPC_URL`: RPC endpoint URL (set from network config)
 - `STELLAR_NETWORK_PASSPHRASE`: Network passphrase (set from network config)
@@ -185,5 +185,5 @@ after_deploy = """
 
 1. Create `environments.toml` in your project root
 2. Configure environments, networks, and contracts
-3. Set `STELLAR_SCAFFOLD_ENV` to choose environment
+3. Set `STELLAR_ENV` to choose environment
 4. Use `stellar scaffold build` or `stellar scaffold watch` to deploy and generate clients

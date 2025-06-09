@@ -10,7 +10,7 @@ pub const ENV_FILE: &str = "environments.toml";
 pub enum Error {
     #[error("⛔ ️parsing environments.toml: {0}")]
     ParsingToml(#[from] toml::de::Error),
-    #[error("⛔ ️no settings for current STELLAR_SCAFFOLD_ENV ({0:?}) found in environments.toml")]
+    #[error("⛔ ️no settings for current STELLAR_ENV ({0:?}) found in environments.toml")]
     NoSettingsForCurrentEnv(String),
     #[error("⛔ ️reading environments.toml as a string: {0}")]
     ParsingString(#[from] std::io::Error),

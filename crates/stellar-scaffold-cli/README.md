@@ -10,7 +10,7 @@ Stellar Scaffold CLI comes with three main commands:
   * Build smart contracts with metadata and handle dependencies
   * Generate TypeScript client packages for frontend integration
   
-  The build process respects environment configurations from `environments.toml` and handles contract deployment states based on the current environment (controlled via `STELLAR_SCAFFOLD_ENV`).
+  The build process respects environment configurations from `environments.toml` and handles contract deployment states based on the current environment (controlled via `STELLAR_ENV`).
 
 * `stellar scaffold watch` - Development mode that monitors contract source files and `environments.toml` for changes, automatically rebuilding as needed. Defaults to using the `development` environment.
 
@@ -94,7 +94,7 @@ Contract metadata is set when running `stellar scaffold build` and adds the foll
 
 ## Environment Variables
 
-- `STELLAR_SCAFFOLD_ENV`: Sets current environment (development/staging/production)
+- `STELLAR_ENV`: Sets current environment (development/staging/production)
 - `STELLAR_ACCOUNT`: Default account for transactions
 - `STELLAR_RPC_URL`: RPC endpoint URL
 - `STELLAR_NETWORK_PASSPHRASE`: Network passphrase
