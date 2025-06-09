@@ -71,7 +71,7 @@ impl Cmd {
         let should_update_cache = if repo_cache_path.exists() {
             if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
                 if cached_tag.trim() == tag_name {
-                    eprintln!( "📂 Using cached repository (release {tag_name})...");
+                    eprintln!("📂 Using cached repository (release {tag_name})...");
                     false
                 } else {
                     eprintln!("📂 New release available ({tag_name}). Updating cache...");
