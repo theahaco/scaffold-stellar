@@ -36,7 +36,7 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Init(init_info) => init_info.run()?,
+            Cmd::Init(init_info) => init_info.run().await?,
             Cmd::Build(build_info) => build_info.run().await?,
             Cmd::Generate(generate) => match &mut generate.cmd {
                 generate::Command::Contract(contract) => contract.run().await?,
