@@ -5037,8 +5037,13 @@ version = "0.8.6"
 dependencies = [
  "proc-macro2",
  "quote",
+ "soroban-cli",
  "stellar-build",
+ "stellar-registry-cli",
+ "stellar-rpc-client",
+ "stellar-strkey 0.0.11",
  "syn 2.0.100",
+ "tokio 1.44.2",
 ]
 
 [[package]]
