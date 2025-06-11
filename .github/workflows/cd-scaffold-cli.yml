@@ -64,6 +64,10 @@ jobs:
         if: contains(matrix.target, '-musl')
       - run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
         if: endsWith(matrix.target, 'windows-msvc')
+      - name: Set up OpenSSL for MUSL
+        if: contains(matrix.target, '-musl')
+        run: |
+          echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: stellar-scaffold
@@ -72,3 +76,5 @@ jobs:
           zip: windows
           archive: $tag-$target
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
