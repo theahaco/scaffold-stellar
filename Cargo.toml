@@ -34,7 +34,4 @@ panic = "abort"
 codegen-units = 1
 lto = true
 
-[patch.crates-io]
-openssl = { version = "0.10", features = ["vendored"] }
-
 [workspace.lints.clippy]
