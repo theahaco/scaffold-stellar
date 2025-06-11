@@ -89,7 +89,7 @@ impl Cmd {
         }
 
         // Add version if specified
-        if let Some(ref version) = self.binver{
+        if let Some(ref version) = self.binver {
             args.push(format!("--version={version}"));
         }
 
