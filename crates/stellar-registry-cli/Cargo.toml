@@ -5,11 +5,11 @@ homepage = "https://github.com/ahalabs/scaffold-stellar"
 authors = ["Aha Labs <hello@ahalabs.dev>"]
 license = "Apache-2.0"
 readme = "../../README.md"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 rust-version = "1.70"
 autobins = false
-repository = "https://github.com/ahalabs/stellar-scaffold/tree/main/crates/stellar-registry-cli"
+repository = "https://github.com/ahalabs/scaffold-stellar/tree/main/crates/stellar-registry-cli"
 
 [[bin]]
 name = "stellar-registry"
@@ -55,5 +55,5 @@ predicates = "2.1.5"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
 [features]
-default = ["stellar-cli/additional-libs"]
+default = []
 integration-tests = []
