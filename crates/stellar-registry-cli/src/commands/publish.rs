@@ -88,6 +88,11 @@ impl Cmd {
             args.push(format!("--wasm_name={wasm_name}"));
         }
 
+        // Add version if specified
+        if let Some(ref version) = self.binver{
+            args.push(format!("--version={version}"));
+        }
+
         // Use the provided author or the source account
         let author = if let Some(author) = self.author.clone() {
             author
