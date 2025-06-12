@@ -202,7 +202,7 @@ impl Cmd {
     fn copy_directory_contents(source: &Path, dest: &Path) -> Result<(), Error> {
         let copy_options = fs_extra::dir::CopyOptions::new()
             .overwrite(true)
-            .copy_inside(true);
+            .content_only(true);
 
         fs_extra::dir::copy(source, dest, &copy_options)
             .map_err(|e| Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
