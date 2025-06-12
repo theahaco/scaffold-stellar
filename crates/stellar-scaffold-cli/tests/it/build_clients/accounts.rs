@@ -85,8 +85,7 @@ seed_phrase = "own social that glimpse hurry lion arrange spot vault clip leisur
 "#).unwrap();
 
         // Run scaffold_build and assert success
-        env
-            .scaffold_build("development", true)
+        env.scaffold_build("development", true)
             .assert()
             .success()
             .stderr_as_str();
