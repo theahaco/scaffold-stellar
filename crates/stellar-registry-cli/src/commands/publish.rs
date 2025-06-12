@@ -19,6 +19,12 @@ pub struct Cmd {
     /// Optional author address, if not provided, the default keypair will be used
     #[arg(long, short = 'a')]
     pub author: Option<String>,
+    /// Wasm name, if not provided, will try to extract from contract metadata
+    #[arg(long)]
+    pub wasm_name: Option<String>,
+    /// Wasm binary version, if not provided, will try to extract from contract metadata
+    #[arg(long)]
+    pub binver: Option<String>,
     /// Prepares and simulates publishing with invoking
     #[arg(long)]
     pub dry_run: bool,
@@ -67,12 +73,26 @@ impl Cmd {
             ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
                 let key_str = key.to_string();
                 match key_str.as_str() {
-                    "name" => Some(format!("--wasm_name={val}")),
-                    "binver" => Some(format!("--version={val}")),
+                    "name" => self
+                        .wasm_name
+                        .is_none()
+                        .then(|| format!("--wasm_name={val}")),
+                    "binver" => self.binver.is_none().then(|| format!("--version={val}")),
                     _ => None,
                 }
             }
         }));
+
+        // Add wasm_name if specified
+        if let Some(ref wasm_name) = self.wasm_name {
+            args.push(format!("--wasm_name={wasm_name}"));
+        }
+
+        // Add version if specified
+        if let Some(ref version) = self.binver {
+            args.push(format!("--version={version}"));
+        }
+
         // Use the provided author or the source account
         let author = if let Some(author) = self.author.clone() {
             author
