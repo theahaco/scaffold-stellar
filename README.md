@@ -70,8 +70,8 @@ cargo install stellar-registry-cli
 
 1. Install the required CLI tools:
 ```bash
-# Install scaffold-stellar CLI
-cargo install scaffold-stellar-cli
+# Install stellar-scaffold CLI
+cargo install stellar-scaffold-cli
 
 # Install registry CLI (needed for deployments)
 cargo install stellar-registry-cli
