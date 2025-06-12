@@ -1,10 +1,10 @@
 [package]
 name = "stellar-build"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "A library for gathering Contracts"
 license = "Apache-2.0"
-repository = "https://github.com/ahalabs/stellar-scaffold/tree/main/crates/stellar-build"
+repository = "https://github.com/ahalabs/scaffold-stellar/tree/main/crates/stellar-build"
 
 
 [lib]

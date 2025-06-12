@@ -105,6 +105,10 @@ mod tests {
             .registry_cli("publish")
             .arg("--wasm")
             .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("hello")
             .assert()
             .success();
 
@@ -114,7 +118,9 @@ mod tests {
             .arg("--contract-name")
             .arg("hello")
             .arg("--wasm-name")
-            .arg("soroban-hello-world-contract")
+            .arg("hello")
+            .arg("version")
+            .arg("0.0.2")
             .assert()
             .success();
 

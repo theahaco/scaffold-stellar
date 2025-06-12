@@ -1,10 +1,10 @@
 [package]
 name = "stellar-registry"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "A smart contract library for using stellar registry to import other smart contracts"
 license = "Apache-2.0"
-repository = "https://github.com/ahalabs/stellar-scaffold/tree/main/crates/stellar-registry"
+repository = "https://github.com/ahalabs/scaffold-stellar/tree/main/crates/stellar-registry"
 
 
 [lib]
@@ -13,4 +13,4 @@ crate-type = ["rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stellar-scaffold-macro = { path = "../stellar-scaffold-macro", version = "0.8.6" }
+stellar-scaffold-macro = { path = "../stellar-scaffold-macro", version = "0.8.7" }
