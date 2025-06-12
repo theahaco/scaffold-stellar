@@ -50,14 +50,13 @@ impl Cmd {
 
         if metadata(&self.project_path).is_err() || read_dir(&self.project_path)?.next().is_none() {
             return Err(Error::DegitError(format!(
-                "Failed to clone template into {:?}: directory is empty or missing",
-                self.project_path
+                "Failed to clone template into {project_str}: directory is empty or missing",
             )));
         }
 
         self.update_fungible_token_example().await?;
 
-        eprintln!("✅ Project successfully created at {:?}", self.project_path);
+        eprintln!("✅ Project successfully created at {project_str}");
         Ok(())
     }
 
