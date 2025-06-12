@@ -88,6 +88,8 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
     NpmCommandFailure(std::path::PathBuf, String),
+    #[error(transparent)]
+    AccountFund(#[from] cli::keys::fund::Error),
 }
 
 impl Args {
@@ -109,7 +111,9 @@ impl Args {
         // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
-        Self::handle_accounts(current_env.accounts.as_deref()).await?;
+        self.clone()
+            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
+            .await?;
         self.clone()
             .handle_contracts(
                 current_env.contracts.as_ref(),
@@ -338,7 +342,11 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn handle_accounts(accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
+    async fn handle_accounts(
+        self,
+        accounts: Option<&[env_toml::Account]>,
+        network: &Network,
+    ) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -358,18 +366,40 @@ export default new Client.Client({{
 
         for account in accounts {
             eprintln!("🔐 creating keys for {:?}", account.name);
-            cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
-                .run(&stellar_cli::commands::global::Args::default())
+            let args = stellar_cli::commands::global::Args {
+                locator: self.clone().get_config_locator(),
+                ..Default::default()
+            };
+
+            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
+                .run(&args)
                 .await
-                .or_else(|e| {
-                    if e.to_string().contains("already exists") {
-                        // ignore "already exists" errors
-                        eprintln!("{e}");
-                        Ok(())
-                    } else {
-                        Err(e)
+            {
+                Ok(()) => {}
+                Err(e) if e.to_string().contains("already exists") => {
+                    eprintln!("{e}");
+
+                    // Only re-fund in testing/development & non-mainnet
+                    let is_dev_env = matches!(
+                        self.clone()
+                            .stellar_scaffold_env(ScaffoldEnv::Production)
+                            .as_str(),
+                        "testing" | "development"
+                    );
+                    let is_not_mainnet = network
+                        .clone()
+                        .network_passphrase
+                        .expect("network must contain network passphrase")
+                        != "Public Global Stellar Network ; September 2015";
+                    if is_dev_env && is_not_mainnet {
+                        eprintln!("💸 re-funding {:?}", account.name);
+                        cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
+                            .run(&args)
+                            .await?;
                     }
-                })?;
+                }
+                Err(e) => return Err(e.into()),
+            }
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);
