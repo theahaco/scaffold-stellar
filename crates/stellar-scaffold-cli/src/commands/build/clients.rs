@@ -64,6 +64,8 @@ pub enum Error {
     ScriptParseFailure(String),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
+    #[error("⛔ ️STELLAR_ACCOUNT environment variable not set")]
+    StellarAccountNotSet,
     #[error(transparent)]
     ContractInstall(#[from] cli::contract::upload::Error),
     #[error(transparent)]
@@ -112,7 +114,7 @@ impl Args {
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
         self.clone()
-            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
+            .handle_accounts(current_env.accounts.as_deref())
             .await?;
         self.clone()
             .handle_contracts(
@@ -345,7 +347,6 @@ export default new Client.Client({{
     async fn handle_accounts(
         self,
         accounts: Option<&[env_toml::Account]>,
-        network: &Network,
     ) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
@@ -371,32 +372,14 @@ export default new Client.Client({{
                 ..Default::default()
             };
 
-            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
+            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name])?
                 .run(&args)
                 .await
             {
                 Ok(()) => {}
                 Err(e) if e.to_string().contains("already exists") => {
                     eprintln!("{e}");
-
-                    // Only re-fund in testing/development & non-mainnet
-                    let is_dev_env = matches!(
-                        self.clone()
-                            .stellar_scaffold_env(ScaffoldEnv::Production)
-                            .as_str(),
-                        "testing" | "development"
-                    );
-                    let is_not_mainnet = network
-                        .clone()
-                        .network_passphrase
-                        .expect("network must contain network passphrase")
-                        != "Public Global Stellar Network ; September 2015";
-                    if is_dev_env && is_not_mainnet {
-                        eprintln!("💸 re-funding {:?}", account.name);
-                        cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
-                            .run(&args)
-                            .await?;
-                    }
+                    // Just log that the identity already exists, funding will happen on-demand
                 }
                 Err(e) => return Err(e.into()),
             }
@@ -555,20 +538,19 @@ export default new Client.Client({{
 
             // Deploy new contract if we got here
             let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            // Run after_deploy script if in development or test environment
+            if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
+                eprintln!("🚀 Running after_deploy script for {name:?}");
+                self.run_after_deploy_script(
+                    name,
+                    &contract_id,
+                    settings.after_deploy.as_ref().unwrap(),
+                )
+                .await?;
+            }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
         };
-
-        // Run after_deploy script if in development or test environment
-        if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-            eprintln!("🚀 Running after_deploy script for {name:?}");
-            self.run_after_deploy_script(
-                name,
-                &contract_id,
-                settings.after_deploy.as_ref().unwrap(),
-            )
-            .await?;
-        }
 
         self.clone()
             .generate_contract_bindings(name, &contract_id.to_string())
@@ -583,19 +565,61 @@ export default new Client.Client({{
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
         eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
-        let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
+
+        let upload_result = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
         .run_against_rpc_server(None, None)
-        .await?
-        .into_result()
-        .expect("no hash returned by 'contract upload'")
-        .to_string();
-        eprintln!("    ↳ hash: {hash}");
-        Ok(hash)
+        .await;
+
+        match upload_result {
+            Ok(hash) => {
+                let hash_str = hash
+                    .into_result()
+                    .expect("no hash returned by 'contract upload'")
+                    .to_string();
+                eprintln!("    ↳ hash: {hash_str}");
+                Ok(hash_str)
+            }
+            Err(e) if e.to_string().contains("Account not found") => {
+                eprintln!("Account not found, attempting to fund...");
+
+                // Get the default account name from environment
+                let account_name = std::env::var("STELLAR_ACCOUNT")
+                    .map_err(|_| Error::StellarAccountNotSet)?;
+
+                // Fund the account
+                let args = stellar_cli::commands::global::Args {
+                    locator: self.clone().get_config_locator(),
+                    ..Default::default()
+                };
+
+                eprintln!("💸 funding {account_name:?}");
+                cli::keys::fund::Cmd::parse_arg_vec(&[&account_name])?
+                    .run(&args)
+                    .await?;
+
+                // Retry the upload
+                eprintln!("🔄 retrying wasm upload...");
+                let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
+                    "--wasm",
+                    wasm_path
+                        .to_str()
+                        .expect("we do not support non-utf8 paths"),
+                ])?
+                .run_against_rpc_server(None, None)
+                .await?
+                .into_result()
+                .expect("no hash returned by 'contract upload'")
+                .to_string();
+                eprintln!("    ↳ hash: {hash}");
+                Ok(hash)
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     fn parse_script_line(line: &str) -> Result<(Option<String>, Vec<String>), Error> {
