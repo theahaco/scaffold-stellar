@@ -82,15 +82,18 @@ The build process ensures:
 
 ### Setting contract metadata
 
-Contract metadata is set when running `stellar scaffold build` and adds the following fields from your contract's Cargo.toml to the contract metadata.
-
-| Metadata   | Cargo.toml Key (under `package`) | Description                                      |
-|------------|----------------|--------------------------------------------------|
-| `name`     | `name`         | The name of the contract                         |
-| `binver`   | `version`      | The version of the WASM bytecode of the contract                      |
-| `authors`  | `authors`      | The author(s) of the contract, often with an email  |
-| `home_domain` | `homepage`  | The relevant domain to relate to this contract   |
-| `source_repo` | `repository` | The source repository URL for the contract      |
+Contract metadata is set when running `stellar scaffold build`. You can configure metadata with 
+`[package.metadata.stellar]` section in your `Cargo.toml` file.
+For example:
+```toml
+[package.metadata.stellar]
+# When set to `true` will copy over [package] section's `name`, `authors`, `homepage`, `repository` and `version` (renamed to `binver` to comply with SEP-47)
+cargo_inherit = true
+# Override one of the inherited values
+name = "my-awesome-contract"
+homepage = "ahalabs.dev"
+repository = "https://github.com/AhaLabs/scaffold-stellar"
+```
 
 ## Environment Variables
 

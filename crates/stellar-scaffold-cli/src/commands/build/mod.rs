@@ -218,8 +218,12 @@ impl Command {
                     meta_map.remove("rsver");
                     meta_map.remove("rssdkver");
                     meta_map.remove("cargo_inherit");
+                    // Override version
+                    if let Some(version) = meta_map.remove("version") {
+                        meta_map.insert("binver".to_string(), version);
+                    }
 
-                    meta_map.iter().for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())))
+                    meta_map.iter().for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
                 }
             }
         }
