@@ -64,8 +64,6 @@ pub enum Error {
     ScriptParseFailure(String),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
-    #[error("⛔ ️STELLAR_ACCOUNT environment variable not set")]
-    StellarAccountNotSet,
     #[error(transparent)]
     ContractInstall(#[from] cli::contract::upload::Error),
     #[error(transparent)]
@@ -344,10 +342,7 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn handle_accounts(
-        self,
-        accounts: Option<&[env_toml::Account]>,
-    ) -> Result<(), Error> {
+    async fn handle_accounts(self, accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -589,7 +584,7 @@ export default new Client.Client({{
 
                 // Get the default account name from environment
                 let account_name = std::env::var("STELLAR_ACCOUNT")
-                    .map_err(|_| Error::StellarAccountNotSet)?;
+                    .expect("STELLAR_ACCOUNT should be set earlier in handle_accounts");
 
                 // Fund the account
                 let args = stellar_cli::commands::global::Args {
