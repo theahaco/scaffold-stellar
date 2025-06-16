@@ -1,11 +1,14 @@
 #![allow(clippy::struct_excessive_bools)]
 use std::{fmt::Debug, io, path::Path, process::ExitStatus};
-
+use std::collections::BTreeMap;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
+use cargo_metadata::camino::Utf8PathBuf;
 use clap::Parser;
+use serde_json::Value;
 use stellar_cli::commands::{contract::build, global};
-
+use stellar_cli::commands::contract::build::Cmd;
 use clients::ScaffoldEnv;
+use crate::commands::build::Error::EmptyPackageName;
 
 pub mod clients;
 pub mod docker;
@@ -60,6 +63,8 @@ pub enum Error {
     Build(#[from] build::Error),
     #[error("Failed to start docker container")]
     DockerStart,
+    #[error("package name is empty: {0}")]
+    EmptyPackageName(Utf8PathBuf),
 }
 
 impl Command {
@@ -110,31 +115,7 @@ impl Command {
         let global_args = global::Args::default();
 
         for p in &packages {
-            let mut cmd = self.build.clone();
-            cmd.out_dir = cmd.out_dir.or_else(|| {
-                Some(stellar_build::deps::stellar_wasm_out_dir(
-                    target_dir.as_std_path(),
-                ))
-            });
-            cmd.package = Some(p.name.clone());
-            if !p.name.is_empty() {
-                cmd.meta.push(("name".to_string(), p.name.clone()));
-            }
-            if !p.version.to_string().is_empty() {
-                cmd.meta.push(("binver".to_string(), p.version.to_string()));
-            }
-            if p.homepage.is_some() {
-                cmd.meta
-                    .push(("home_domain".to_string(), p.homepage.clone().unwrap()));
-            }
-            if !p.authors.is_empty() {
-                cmd.meta.push(("authors".to_string(), p.authors.join(", ")));
-            }
-            if p.repository.is_some() {
-                cmd.meta
-                    .push(("source_repo".to_string(), p.repository.clone().unwrap()));
-            }
-            cmd.run(&global_args)?;
+            self.create_cmd(p, target_dir)?.run(&global_args)?;
         }
 
         if self.build_clients {
@@ -191,5 +172,85 @@ impl Command {
         // only collecting non-dependency metadata, features have no impact on
         // the output.
         cmd.exec()
+    }
+
+    fn create_cmd(&self, p: &Package, target_dir: &Utf8PathBuf) -> Result<Cmd, Error> {
+        let mut cmd = self.build.clone();
+        cmd.out_dir = cmd.out_dir.or_else(|| {
+            Some(stellar_build::deps::stellar_wasm_out_dir(
+                target_dir.as_std_path(),
+            ))
+        });
+
+        // Name is required in Cargo toml, so it should fail regardless
+        if p.name.is_empty() {
+            return Err(EmptyPackageName(p.manifest_path.clone()));
+        }
+
+        cmd.package = Some(p.name.clone());
+
+        if let Value::Object(map) = &p.metadata {
+            if let Some(val) = &map.get("stellar") {
+                if let Value::Object(stellar_meta) = val {
+                    let mut meta_map = BTreeMap::new();
+
+                    // When cargo_inherit is set, copy meta from Cargo toml
+                    if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
+                        meta_map.insert("name".to_string(), p.name.clone());
+
+                        if !p.version.to_string().is_empty() {
+                            meta_map.insert("binver".to_string(), p.version.to_string());
+                        }
+                        if !p.authors.is_empty() {
+                            meta_map.insert("authors".to_string(), p.authors.join(", "));
+                        }
+                        if p.homepage.is_some() {
+                            meta_map.insert("homepage".to_string(), p.homepage.clone().unwrap());
+                        }
+                        if p.repository.is_some() {
+                            meta_map.insert("repository".to_string(), p.repository.clone().unwrap());
+                        }
+                    }
+
+                    Self::rec_add_meta("".to_string(), &mut meta_map, val);
+
+                    // Reserved keys
+                    meta_map.remove("rsver");
+                    meta_map.remove("rssdkver");
+                    meta_map.remove("cargo_inherit");
+
+                    meta_map.iter().for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())))
+                }
+            }
+        }
+
+
+        return Ok(cmd);
+    }
+
+    fn rec_add_meta(prefix: String, meta_map: &mut BTreeMap<String, String>, value: &Value) {
+        match value {
+            Value::Null => {}
+            Value::Bool(bool) => { meta_map.insert(prefix, bool.to_string()); }
+            Value::Number(n) => { meta_map.insert(prefix, n.to_string()); }
+            Value::String(s) => { meta_map.insert(prefix, s.clone()); }
+            Value::Array(array) => {
+                for (pos, e) in array.iter().enumerate() {
+                    Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e)
+                }
+            }
+            Value::Object(map) => {
+                println!("{}: {:?}", prefix, map);
+                let mut separator = "";
+                if !prefix.is_empty() {
+                    separator = ".";
+                }
+                map.iter().for_each(
+                    |(k, v)| {
+                        Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v)
+                    }
+                )
+            }
+        }
     }
 }
