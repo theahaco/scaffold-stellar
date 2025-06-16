@@ -87,7 +87,7 @@ Contract metadata is set when running `stellar scaffold build`. You can configur
 For example:
 ```toml
 [package.metadata.stellar]
-# When set to `true` will copy over [package] section's `name`, `authors`, `homepage`, `repository` and `version` (renamed to `binver` to comply with SEP-47)
+# When set to `true` will copy over [package] section's `name`, `authors`, `homepage` (renamed to `home_domain` to comply with SEP-47), `repository` (renamed to `source_repo` to comply with SEP-47) and `version` (renamed to `binver` to comply with SEP-47)
 cargo_inherit = true
 # Override one of the inherited values
 name = "my-awesome-contract"

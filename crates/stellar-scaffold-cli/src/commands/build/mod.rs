@@ -218,9 +218,15 @@ impl Command {
                     meta_map.remove("rsver");
                     meta_map.remove("rssdkver");
                     meta_map.remove("cargo_inherit");
-                    // Override version
+                    // Rename some fields
                     if let Some(version) = meta_map.remove("version") {
                         meta_map.insert("binver".to_string(), version);
+                    }
+                    if let Some(repository) = meta_map.remove("repository") {
+                        meta_map.insert("source_repo".to_string(), repository);
+                    }
+                    if let Some(homepage) = meta_map.remove("homepage") {
+                        meta_map.insert("home_domain".to_string(), homepage);
                     }
 
                     meta_map.iter().for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
