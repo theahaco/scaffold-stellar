@@ -239,12 +239,21 @@ impl Command {
             Value::Number(n) => { meta_map.insert(prefix, n.to_string()); }
             Value::String(s) => { meta_map.insert(prefix, s.clone()); }
             Value::Array(array) => {
-                for (pos, e) in array.iter().enumerate() {
-                    Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e)
+                if array.iter().all(|x| Self::is_simple(x)) {
+                    let s = array.iter().map(|x| {
+                        match x {
+                            Value::String(str) => {str.clone()}
+                           _ => x.to_string()
+                        }
+                    }).collect::<Vec<_>>().join(",");
+                    meta_map.insert(prefix, s);
+                } else {
+                    for (pos, e) in array.iter().enumerate() {
+                        Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e)
+                    }
                 }
             }
             Value::Object(map) => {
-                println!("{}: {:?}", prefix, map);
                 let mut separator = "";
                 if !prefix.is_empty() {
                     separator = ".";
@@ -255,6 +264,13 @@ impl Command {
                     }
                 )
             }
+        }
+    }
+
+    fn is_simple(val: &Value) -> bool  {
+        return match val {
+            Value::Array(_) | Value::Object(_) => false,
+            _ => true
         }
     }
 }
