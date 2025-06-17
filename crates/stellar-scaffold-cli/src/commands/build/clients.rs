@@ -577,27 +577,19 @@ export default new Client.Client({{
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
         eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
-
-        let upload_result = cli::contract::upload::Cmd::parse_arg_vec(&[
+        let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
         .run_against_rpc_server(None, None)
-        .await;
-
-        match upload_result {
-            Ok(hash) => {
-                let hash_str = hash
-                    .into_result()
-                    .expect("no hash returned by 'contract upload'")
-                    .to_string();
-                eprintln!("    ↳ hash: {hash_str}");
-                Ok(hash_str)
-            }
-            Err(e) => Err(e.into()),
-        }
+        .await?
+        .into_result()
+        .expect("no hash returned by 'contract upload'")
+        .to_string();
+        eprintln!("    ↳ hash: {hash}");
+        Ok(hash)
     }
 
     fn parse_script_line(line: &str) -> Result<(Option<String>, Vec<String>), Error> {
