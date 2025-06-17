@@ -62,6 +62,8 @@ pub enum Error {
     MissingContractID(String),
     #[error("⛔ ️Unable to parse script: {0:?}")]
     ScriptParseFailure(String),
+    #[error(transparent)]
+    RpcClient(#[from] soroban_rpc::Error),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
     #[error(transparent)]
@@ -112,7 +114,7 @@ impl Args {
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
         self.clone()
-            .handle_accounts(current_env.accounts.as_deref())
+            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
             .await?;
         self.clone()
             .handle_contracts(
@@ -342,7 +344,11 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn handle_accounts(self, accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
+    async fn handle_accounts(
+        self,
+        accounts: Option<&[env_toml::Account]>,
+        network: &Network,
+    ) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -367,21 +373,32 @@ export default new Client.Client({{
                 ..Default::default()
             };
 
-            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name])?
+            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
                 .run(&args)
                 .await
             {
                 Ok(()) => {}
                 Err(e) if e.to_string().contains("already exists") => {
                     eprintln!("{e}");
-                    // Just log that the identity already exists, funding will happen on-demand
+                    // Check if account exists on chain
+                    let rpc_client = soroban_rpc::Client::new(
+                        network
+                            .rpc_url
+                            .as_ref()
+                            .expect("network contains the RPC url"),
+                    )?;
+                    if (rpc_client.get_account(&account.name).await).is_err() {
+                        eprintln!("Account not found on chain, funding...");
+                        cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
+                            .run(&args)
+                            .await?;
+                    }
                 }
                 Err(e) => return Err(e.into()),
             }
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);
-
         Ok(())
     }
 
@@ -578,40 +595,6 @@ export default new Client.Client({{
                     .to_string();
                 eprintln!("    ↳ hash: {hash_str}");
                 Ok(hash_str)
-            }
-            Err(e) if e.to_string().contains("Account not found") => {
-                eprintln!("Account not found, attempting to fund...");
-
-                // Get the default account name from environment
-                let account_name = std::env::var("STELLAR_ACCOUNT")
-                    .expect("STELLAR_ACCOUNT should be set earlier in handle_accounts");
-
-                // Fund the account
-                let args = stellar_cli::commands::global::Args {
-                    locator: self.clone().get_config_locator(),
-                    ..Default::default()
-                };
-
-                eprintln!("💸 funding {account_name:?}");
-                cli::keys::fund::Cmd::parse_arg_vec(&[&account_name])?
-                    .run(&args)
-                    .await?;
-
-                // Retry the upload
-                eprintln!("🔄 retrying wasm upload...");
-                let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
-                    "--wasm",
-                    wasm_path
-                        .to_str()
-                        .expect("we do not support non-utf8 paths"),
-                ])?
-                .run_against_rpc_server(None, None)
-                .await?
-                .into_result()
-                .expect("no hash returned by 'contract upload'")
-                .to_string();
-                eprintln!("    ↳ hash: {hash}");
-                Ok(hash)
             }
             Err(e) => Err(e.into()),
         }
