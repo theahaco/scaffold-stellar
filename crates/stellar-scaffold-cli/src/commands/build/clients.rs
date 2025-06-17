@@ -298,6 +298,10 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
+            "--config-dir",
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
         ])?
         .run()
         .await?;
@@ -601,9 +605,17 @@ export default new Client.Client({{
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
         eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
+            "--config-dir",
+            workspace_root
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
@@ -651,11 +663,20 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let mut deploy_args = vec![
             "--alias".to_string(),
             name.to_string(),
             "--wasm-hash".to_string(),
             hash.to_string(),
+            "--config-dir".to_string(),
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths")
+                .to_string(),
         ];
 
         if let Some(constructor_script) = &settings.constructor_args {
@@ -732,8 +753,19 @@ export default new Client.Client({{
 
             let (source_account, command_parts) = Self::parse_script_line(line)?;
 
+            let workspace_root = self
+                .workspace_root
+                .as_ref()
+                .expect("workspace_root must be set before running");
             let contract_id_arg = contract_id.to_string();
-            let mut args = vec!["--id", &contract_id_arg];
+            let mut args = vec![
+                "--id",
+                &contract_id_arg,
+                "--config-dir",
+                workspace_root
+                    .to_str()
+                    .expect("we do not support non-utf8 paths"),
+            ];
             if let Some(account) = source_account.as_ref() {
                 args.extend_from_slice(&["--source-account", account]);
             }
