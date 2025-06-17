@@ -50,10 +50,12 @@ pub enum Error {
     ParsingNetwork(#[from] cli::network::Error),
     #[error(transparent)]
     GeneratingKey(#[from] cli::keys::generate::Error),
-    #[error(transparent)]
-    PublicKey(#[from] cli::keys::public_key::Error),
     #[error("⛔ ️can only have one default account; marked as default: {0:?}")]
     OnlyOneDefaultAccount(Vec<String>),
+    #[error(transparent)]
+    InvalidPublicKey(#[from] cli::keys::public_key::Error),
+    #[error(transparent)]
+    AddressParsing(#[from] stellar_cli::config::address::Error),
     #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
@@ -375,10 +377,20 @@ export default new Client.Client({{
                 ..Default::default()
             };
 
-            match cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
-                .run(&args)
-                .await
-            {
+            let generate_cmd = cli::keys::generate::Cmd {
+                name: account.name.clone().parse()?,
+                fund: true,
+                config_locator: self.get_config_locator(),
+                network: Self::get_network_args(network),
+                seed: None,
+                hd_path: None,
+                no_fund: false,
+                as_secret: false,
+                secure_store: false,
+                overwrite: false,
+            };
+
+            match generate_cmd.run(&args).await {
                 Ok(()) => {}
                 Err(e) if e.to_string().contains("already exists") => {
                     eprintln!("{e}");
@@ -389,14 +401,21 @@ export default new Client.Client({{
                             .as_ref()
                             .expect("network contains the RPC url"),
                     )?;
-                    let address = cli::keys::public_key::Cmd::parse_arg_vec(&[&account.name])?
-                        .public_key()
-                        .await?;
+
+                    let public_key_cmd = cli::keys::public_key::Cmd {
+                        name: account.name.clone().parse()?,
+                        locator: self.get_config_locator(),
+                        hd_path: None,
+                    };
+                    let address = public_key_cmd.public_key().await?;
+
                     if (rpc_client.get_account(&address.to_string()).await).is_err() {
                         eprintln!("Account not found on chain, funding...");
-                        cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
-                            .run(&args)
-                            .await?;
+                        let fund_cmd = cli::keys::fund::Cmd {
+                            network: Self::get_network_args(network),
+                            address: public_key_cmd,
+                        };
+                        fund_cmd.run(&args).await?;
                     }
                 }
                 Err(e) => return Err(e.into()),
