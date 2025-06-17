@@ -393,7 +393,7 @@ export default new Client.Client({{
                         .public_key()
                         .await?;
                     if (rpc_client.get_account(&address.to_string()).await).is_err() {
-                        eprintln!("Account not found on chain, funding... {}", account.name);
+                        eprintln!("Account not found on chain, funding...");
                         cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
                             .run(&args)
                             .await?;
