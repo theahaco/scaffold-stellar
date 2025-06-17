@@ -50,6 +50,8 @@ pub enum Error {
     ParsingNetwork(#[from] cli::network::Error),
     #[error(transparent)]
     GeneratingKey(#[from] cli::keys::generate::Error),
+    #[error(transparent)]
+    PublicKey(#[from] cli::keys::public_key::Error),
     #[error("⛔ ️can only have one default account; marked as default: {0:?}")]
     OnlyOneDefaultAccount(Vec<String>),
     #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
@@ -387,8 +389,11 @@ export default new Client.Client({{
                             .as_ref()
                             .expect("network contains the RPC url"),
                     )?;
-                    if (rpc_client.get_account(&account.name).await).is_err() {
-                        eprintln!("Account not found on chain, funding...");
+                    let address = cli::keys::public_key::Cmd::parse_arg_vec(&[&account.name])?
+                        .public_key()
+                        .await?;
+                    if (rpc_client.get_account(&address.to_string()).await).is_err() {
+                        eprintln!("Account not found on chain, funding... {}", account.name);
                         cli::keys::fund::Cmd::parse_arg_vec(&[&account.name])?
                             .run(&args)
                             .await?;
