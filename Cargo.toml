@@ -34,5 +34,4 @@ panic = "abort"
 codegen-units = 1
 lto = true
 
-
 [workspace.lints.clippy]
