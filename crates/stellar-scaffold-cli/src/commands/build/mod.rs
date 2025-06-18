@@ -1,14 +1,14 @@
 #![allow(clippy::struct_excessive_bools)]
-use std::{fmt::Debug, io, path::Path, process::ExitStatus};
-use std::collections::BTreeMap;
-use cargo_metadata::{Metadata, MetadataCommand, Package};
-use cargo_metadata::camino::Utf8PathBuf;
-use clap::Parser;
-use serde_json::Value;
-use stellar_cli::commands::{contract::build, global};
-use stellar_cli::commands::contract::build::Cmd;
-use clients::ScaffoldEnv;
 use crate::commands::build::Error::EmptyPackageName;
+use cargo_metadata::camino::Utf8PathBuf;
+use cargo_metadata::{Metadata, MetadataCommand, Package};
+use clap::Parser;
+use clients::ScaffoldEnv;
+use serde_json::Value;
+use std::collections::BTreeMap;
+use std::{fmt::Debug, io, path::Path, process::ExitStatus};
+use stellar_cli::commands::contract::build::Cmd;
+use stellar_cli::commands::{contract::build, global};
 
 pub mod clients;
 pub mod docker;
@@ -208,7 +208,8 @@ impl Command {
                             meta_map.insert("homepage".to_string(), p.homepage.clone().unwrap());
                         }
                         if p.repository.is_some() {
-                            meta_map.insert("repository".to_string(), p.repository.clone().unwrap());
+                            meta_map
+                                .insert("repository".to_string(), p.repository.clone().unwrap());
                         }
                     }
 
@@ -229,11 +230,12 @@ impl Command {
                         meta_map.insert("home_domain".to_string(), homepage);
                     }
 
-                    meta_map.iter().for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
+                    meta_map
+                        .iter()
+                        .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
                 }
             }
         }
-
 
         return Ok(cmd);
     }
@@ -241,17 +243,25 @@ impl Command {
     fn rec_add_meta(prefix: String, meta_map: &mut BTreeMap<String, String>, value: &Value) {
         match value {
             Value::Null => {}
-            Value::Bool(bool) => { meta_map.insert(prefix, bool.to_string()); }
-            Value::Number(n) => { meta_map.insert(prefix, n.to_string()); }
-            Value::String(s) => { meta_map.insert(prefix, s.clone()); }
+            Value::Bool(bool) => {
+                meta_map.insert(prefix, bool.to_string());
+            }
+            Value::Number(n) => {
+                meta_map.insert(prefix, n.to_string());
+            }
+            Value::String(s) => {
+                meta_map.insert(prefix, s.clone());
+            }
             Value::Array(array) => {
                 if array.iter().all(|x| Self::is_simple(x)) {
-                    let s = array.iter().map(|x| {
-                        match x {
-                            Value::String(str) => {str.clone()}
-                           _ => x.to_string()
-                        }
-                    }).collect::<Vec<_>>().join(",");
+                    let s = array
+                        .iter()
+                        .map(|x| match x {
+                            Value::String(str) => str.clone(),
+                            _ => x.to_string(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
                     meta_map.insert(prefix, s);
                 } else {
                     for (pos, e) in array.iter().enumerate() {
@@ -264,19 +274,17 @@ impl Command {
                 if !prefix.is_empty() {
                     separator = ".";
                 }
-                map.iter().for_each(
-                    |(k, v)| {
-                        Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v)
-                    }
-                )
+                map.iter().for_each(|(k, v)| {
+                    Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v)
+                })
             }
         }
     }
 
-    fn is_simple(val: &Value) -> bool  {
+    fn is_simple(val: &Value) -> bool {
         return match val {
             Value::Array(_) | Value::Object(_) => false,
-            _ => true
-        }
+            _ => true,
+        };
     }
 }
