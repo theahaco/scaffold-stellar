@@ -603,6 +603,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo_toml"
+version = "0.20.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88da5a13c620b4ca0078845707ea9c3faf11edbc3ffd8497d11d686211cd1ac0"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4989,9 +4999,11 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "cargo_metadata",
+ "cargo_toml",
  "clap 4.5.35",
  "degit",
  "dirs",
+ "flate2",
  "fs_extra",
  "heck 0.5.0",
  "hex",
@@ -5014,11 +5026,13 @@ dependencies = [
  "shlex",
  "soroban-cli",
  "stellar-build",
+ "stellar-rpc-client",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
  "stellar-xdr",
  "strsim 0.11.1",
  "symlink",
+ "tar",
  "tempfile",
  "thiserror 1.0.69",
  "tokio 1.44.2",
