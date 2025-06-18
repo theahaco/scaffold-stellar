@@ -421,7 +421,9 @@ fn open_wizard() -> Result<(), Error> {
     eprintln!("   3. Extract the downloaded ZIP file");
     eprintln!("   4. Move the contract folder to your contracts/ directory");
     eprintln!("   5. Add the contract to your workspace Cargo.toml if needed");
-    eprintln!("   6. You may need to modify your environments.toml file to add constructor arguments");
+    eprintln!(
+        "   6. You may need to modify your environments.toml file to add constructor arguments"
+    );
     eprintln!(
         "\n💡 The wizard will generate a complete Soroban contract with your selected features!"
     );
