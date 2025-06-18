@@ -209,27 +209,29 @@ members = []
         eprintln!("📋 Fetching available contract examples...");
 
         let repo_cache_path = self.ensure_cache_updated().await?;
-
-        // Read examples from the cached repository
         let examples_path = repo_cache_path.join("examples");
-        let mut examples = Vec::new();
 
-        if examples_path.exists() {
-            for entry in fs::read_dir(examples_path)? {
-                let entry = entry?;
-                if entry.path().is_dir() {
-                    if let Some(name) = entry.file_name().to_str() {
-                        examples.push(name.to_string());
-                    }
-                }
-            }
-            examples.sort();
-        }
+        let mut examples: Vec<String> = if examples_path.exists() {
+            fs::read_dir(examples_path)?
+                .filter_map(std::result::Result::ok)
+                .filter(|entry| entry.path().is_dir())
+                .filter_map(|entry| {
+                    entry
+                        .file_name()
+                        .to_str()
+                        .map(std::string::ToString::to_string)
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        examples.sort();
 
         eprintln!("\n📦 Available contract examples:");
         eprintln!("────────────────────────────────");
 
-        for example in examples {
+        for example in &examples {
             eprintln!("  📁 {example}");
         }
 
