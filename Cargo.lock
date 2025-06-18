@@ -5026,6 +5026,7 @@ dependencies = [
  "shlex",
  "soroban-cli",
  "stellar-build",
+ "stellar-rpc-client",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
  "stellar-xdr",

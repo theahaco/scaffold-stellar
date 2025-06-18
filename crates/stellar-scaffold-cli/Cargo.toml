@@ -29,6 +29,7 @@ doctest = false
 openssl = { version = "0.10", features = ["vendored"] }
 stellar-build = { path = "../stellar-build", version = "0.0.2" }
 stellar-cli = { workspace = true}
+soroban-rpc = { workspace = true}
 clap = { version = "4.1.8", features = [
     "derive",
     "env",

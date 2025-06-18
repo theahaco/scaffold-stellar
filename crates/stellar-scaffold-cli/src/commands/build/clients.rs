@@ -52,6 +52,10 @@ pub enum Error {
     GeneratingKey(#[from] cli::keys::generate::Error),
     #[error("⛔ ️can only have one default account; marked as default: {0:?}")]
     OnlyOneDefaultAccount(Vec<String>),
+    #[error(transparent)]
+    InvalidPublicKey(#[from] cli::keys::public_key::Error),
+    #[error(transparent)]
+    AddressParsing(#[from] stellar_cli::config::address::Error),
     #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
@@ -62,6 +66,8 @@ pub enum Error {
     MissingContractID(String),
     #[error("⛔ ️Unable to parse script: {0:?}")]
     ScriptParseFailure(String),
+    #[error(transparent)]
+    RpcClient(#[from] soroban_rpc::Error),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
     #[error(transparent)]
@@ -88,6 +94,8 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
     NpmCommandFailure(std::path::PathBuf, String),
+    #[error(transparent)]
+    AccountFund(#[from] cli::keys::fund::Error),
 }
 
 impl Args {
@@ -109,7 +117,9 @@ impl Args {
         // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
-        Self::handle_accounts(current_env.accounts.as_deref()).await?;
+        self.clone()
+            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
+            .await?;
         self.clone()
             .handle_contracts(
                 current_env.contracts.as_ref(),
@@ -288,6 +298,10 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
+            "--config-dir",
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
         ])?
         .run()
         .await?;
@@ -338,7 +352,11 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn handle_accounts(accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
+    async fn handle_accounts(
+        &self,
+        accounts: Option<&[env_toml::Account]>,
+        network: &Network,
+    ) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -358,22 +376,56 @@ export default new Client.Client({{
 
         for account in accounts {
             eprintln!("🔐 creating keys for {:?}", account.name);
-            cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
-                .run(&stellar_cli::commands::global::Args::default())
-                .await
-                .or_else(|e| {
-                    if e.to_string().contains("already exists") {
-                        // ignore "already exists" errors
-                        eprintln!("{e}");
-                        Ok(())
-                    } else {
-                        Err(e)
+            let args = stellar_cli::commands::global::Args {
+                locator: self.clone().get_config_locator(),
+                ..Default::default()
+            };
+
+            let generate_cmd = cli::keys::generate::Cmd {
+                name: account.name.clone().parse()?,
+                fund: true,
+                config_locator: self.get_config_locator(),
+                network: Self::get_network_args(network),
+                seed: None,
+                hd_path: None,
+                no_fund: false,
+                as_secret: false,
+                secure_store: false,
+                overwrite: false,
+            };
+
+            match generate_cmd.run(&args).await {
+                Err(e) if e.to_string().contains("already exists") => {
+                    eprintln!("{e}");
+                    // Check if account exists on chain
+                    let rpc_client = soroban_rpc::Client::new(
+                        network
+                            .rpc_url
+                            .as_ref()
+                            .expect("network contains the RPC url"),
+                    )?;
+
+                    let public_key_cmd = cli::keys::public_key::Cmd {
+                        name: account.name.clone().parse()?,
+                        locator: self.get_config_locator(),
+                        hd_path: None,
+                    };
+                    let address = public_key_cmd.public_key().await?;
+
+                    if (rpc_client.get_account(&address.to_string()).await).is_err() {
+                        eprintln!("Account not found on chain, funding...");
+                        let fund_cmd = cli::keys::fund::Cmd {
+                            network: Self::get_network_args(network),
+                            address: public_key_cmd,
+                        };
+                        fund_cmd.run(&args).await?;
                     }
-                })?;
+                }
+                other_result => other_result?,
+            }
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);
-
         Ok(())
     }
 
@@ -525,20 +577,19 @@ export default new Client.Client({{
 
             // Deploy new contract if we got here
             let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            // Run after_deploy script if in development or test environment
+            if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
+                eprintln!("🚀 Running after_deploy script for {name:?}");
+                self.run_after_deploy_script(
+                    name,
+                    &contract_id,
+                    settings.after_deploy.as_ref().unwrap(),
+                )
+                .await?;
+            }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
         };
-
-        // Run after_deploy script if in development or test environment
-        if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-            eprintln!("🚀 Running after_deploy script for {name:?}");
-            self.run_after_deploy_script(
-                name,
-                &contract_id,
-                settings.after_deploy.as_ref().unwrap(),
-            )
-            .await?;
-        }
 
         self.clone()
             .generate_contract_bindings(name, &contract_id.to_string())
@@ -553,9 +604,17 @@ export default new Client.Client({{
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
         eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
+            "--config-dir",
+            workspace_root
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
@@ -603,11 +662,20 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let mut deploy_args = vec![
             "--alias".to_string(),
             name.to_string(),
             "--wasm-hash".to_string(),
             hash.to_string(),
+            "--config-dir".to_string(),
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths")
+                .to_string(),
         ];
 
         if let Some(constructor_script) = &settings.constructor_args {
@@ -684,8 +752,19 @@ export default new Client.Client({{
 
             let (source_account, command_parts) = Self::parse_script_line(line)?;
 
+            let workspace_root = self
+                .workspace_root
+                .as_ref()
+                .expect("workspace_root must be set before running");
             let contract_id_arg = contract_id.to_string();
-            let mut args = vec!["--id", &contract_id_arg];
+            let mut args = vec![
+                "--id",
+                &contract_id_arg,
+                "--config-dir",
+                workspace_root
+                    .to_str()
+                    .expect("we do not support non-utf8 paths"),
+            ];
             if let Some(account) = source_account.as_ref() {
                 args.extend_from_slice(&["--source-account", account]);
             }
