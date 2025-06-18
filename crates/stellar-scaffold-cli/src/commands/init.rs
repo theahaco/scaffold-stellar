@@ -1,8 +1,8 @@
 use clap::Parser;
 use degit::degit;
 use std::fs::{metadata, read_dir, remove_dir_all};
-use std::io;
 use std::path::PathBuf;
+use std::{env, io};
 
 use super::generate;
 
@@ -61,6 +61,9 @@ impl Cmd {
     }
 
     async fn update_fungible_token_example(&self) -> Result<(), Error> {
+        let original_dir = env::current_dir()?;
+        env::set_current_dir(&self.project_path)?;
+
         let contracts_path = self.project_path.join("contracts");
         let fungible_token_path = contracts_path.join("fungible-token-interface");
 
@@ -72,10 +75,16 @@ impl Cmd {
             from: Some("fungible-token-interface".to_owned()),
             ls: false,
             from_wizard: false,
-            output: Some(contracts_path.to_string_lossy().into_owned()),
+            output: Some(
+                contracts_path
+                    .join("fungible-token-interface")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
         }
         .run()
         .await?;
+        env::set_current_dir(original_dir)?;
         Ok(())
     }
 }
