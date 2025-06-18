@@ -143,16 +143,12 @@ members = []
 
             if let Some(existing_dep) = workspace_deps.clone().get(&dep) {
                 // Check if we need to update the tag
-                if let cargo_toml::Dependency::Detailed(detail) = existing_dep {
-                    if let Some(existing_tag) = &detail.tag {
-                        if existing_tag != tag {
-                            workspace_deps.insert(
-                                dep.clone(),
-                                cargo_toml::Dependency::Detailed(Box::new(git_dep)),
-                            );
-                            updated_deps.push((dep, existing_tag.clone()));
-                        }
-                    }
+                if let Detailed(DependencyDetail { tag: Some(existing_tag), ..}) = &existing_dep && existing_tag != tag {
+                      workspace_deps.insert(
+                          dep.clone(),
+                          cargo_toml::Dependency::Detailed(Box::new(git_dep)),
+                      );
+                      updated_deps.push((dep, existing_tag.clone()));
                 }
             } else {
                 workspace_deps.insert(
