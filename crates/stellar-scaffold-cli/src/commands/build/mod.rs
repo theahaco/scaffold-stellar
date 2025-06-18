@@ -213,7 +213,7 @@ impl Command {
                         }
                     }
 
-                    Self::rec_add_meta("".to_string(), &mut meta_map, val);
+                    Self::rec_add_meta(String::new(), &mut meta_map, val);
 
                     // Reserved keys
                     meta_map.remove("rsver");
@@ -237,7 +237,7 @@ impl Command {
             }
         }
 
-        return Ok(cmd);
+        Ok(cmd)
     }
 
     fn rec_add_meta(prefix: String, meta_map: &mut BTreeMap<String, String>, value: &Value) {
@@ -253,7 +253,7 @@ impl Command {
                 meta_map.insert(prefix, s.clone());
             }
             Value::Array(array) => {
-                if array.iter().all(|x| Self::is_simple(x)) {
+                if array.iter().all(Self::is_simple) {
                     let s = array
                         .iter()
                         .map(|x| match x {
@@ -265,7 +265,7 @@ impl Command {
                     meta_map.insert(prefix, s);
                 } else {
                     for (pos, e) in array.iter().enumerate() {
-                        Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e)
+                        Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e);
                     }
                 }
             }
@@ -275,16 +275,13 @@ impl Command {
                     separator = ".";
                 }
                 map.iter().for_each(|(k, v)| {
-                    Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v)
-                })
+                    Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v);
+                });
             }
         }
     }
 
     fn is_simple(val: &Value) -> bool {
-        return match val {
-            Value::Array(_) | Value::Object(_) => false,
-            _ => true,
-        };
+        !matches!(val, Value::Array(_) | Value::Object(_))
     }
 }
