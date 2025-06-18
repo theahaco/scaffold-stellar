@@ -353,7 +353,7 @@ export default new Client.Client({{
     }
 
     async fn handle_accounts(
-        self,
+        &self,
         accounts: Option<&[env_toml::Account]>,
         network: &Network,
     ) -> Result<(), Error> {
@@ -395,7 +395,6 @@ export default new Client.Client({{
             };
 
             match generate_cmd.run(&args).await {
-                Ok(()) => {}
                 Err(e) if e.to_string().contains("already exists") => {
                     eprintln!("{e}");
                     // Check if account exists on chain
@@ -422,7 +421,7 @@ export default new Client.Client({{
                         fund_cmd.run(&args).await?;
                     }
                 }
-                Err(e) => return Err(e.into()),
+                other_result => other_result?,
             }
         }
 
