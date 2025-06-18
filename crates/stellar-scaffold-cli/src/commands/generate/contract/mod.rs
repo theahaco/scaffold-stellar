@@ -98,6 +98,7 @@ impl Cmd {
         }
 
         eprintln!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
+        eprintln!("💡 You may need to modify your environments.toml to add constructor arguments!");
         Ok(())
     }
 
@@ -420,6 +421,7 @@ fn open_wizard() -> Result<(), Error> {
     eprintln!("   3. Extract the downloaded ZIP file");
     eprintln!("   4. Move the contract folder to your contracts/ directory");
     eprintln!("   5. Add the contract to your workspace Cargo.toml if needed");
+    eprintln!("   6. You may need to modify your environments.toml file to add constructor arguments");
     eprintln!(
         "\n💡 The wizard will generate a complete Soroban contract with your selected features!"
     );
