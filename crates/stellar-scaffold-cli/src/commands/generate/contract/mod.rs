@@ -189,24 +189,20 @@ members = []
 
     fn extract_stellar_dependencies(cargo_toml_content: &str) -> Result<Vec<String>, Error> {
         let manifest: cargo_toml::Manifest = toml::from_str(cargo_toml_content)?;
-        let mut deps = Vec::new();
 
-        for (dep_name, dep_detail) in &manifest.dependencies {
-            if dep_name.starts_with("stellar-") {
-                match dep_detail {
-                    cargo_toml::Dependency::Inherited(_) | cargo_toml::Dependency::Simple(_) => {
-                        deps.push(dep_name.clone());
-                    }
-                    cargo_toml::Dependency::Detailed(detail) => {
-                        if detail.inherited || detail.git.is_some() {
-                            deps.push(dep_name.clone());
-                        }
-                    }
+        Ok(manifest
+            .dependencies
+            .iter()
+            .filter(|(dep_name, _)| dep_name.starts_with("stellar-"))
+            .filter_map(|(dep_name, dep_detail)| match dep_detail {
+                cargo_toml::Dependency::Detailed(detail)
+                    if !(detail.inherited || detail.git.is_some()) =>
+                {
+                    None
                 }
-            }
-        }
-
-        Ok(deps)
+                _ => Some(dep_name.clone()),
+            })
+            .collect())
     }
 
     async fn list_examples(&self) -> Result<(), Error> {
