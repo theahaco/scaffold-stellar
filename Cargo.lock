@@ -4946,7 +4946,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry-cli"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4994,7 +4994,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "assert_cmd",
  "assert_fs",
