@@ -87,6 +87,23 @@ stellar contract invoke --id my-token -- --help
 
 ### Transitioning to Mainnet
 
+Before you are ready to publish and deploy your contract on mainnet you need to be confident that it is safe.
+
+## Contract Security
+
+Make sure you are following [security best practices recommended by the stellar docs.](https://developers.stellar.org/docs/build/security-docs)
+
+### Security tooling
+
+You can use [scout soroban](https://github.com/CoinFabrik/scout-soroban) to statically analyze your code for potential security issues.
+
+### Contract Auditing
+
+For an additional level of security you can get your contract audited. Stellar has an [Audit Bank](https://stellar.org/blog/developers/soroban-security-audit-bank-raising-the-standard-for-smart-contract-security) that will help connect you with experienced audit providers and help cover the costs of the audit. See [here if you qualify.](https://stellarcommunityfund.gitbook.io/scf-handbook/supporting-programs/audit-bank/official-rules)
+
+
+### Publishing to Mainnet
+
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
 
 The first step is adding Mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here]( https://developers.stellar.org/docs/data/rpc/rpc-providers)
@@ -110,8 +127,7 @@ echo STELLAR_NETWORK=mainnet >> .env
 
 ## Publishing and then deploying
 
-Publishing and deploying are exactly the same!
-
+Publishing and deploying are exactly the same as other networks, except now you use real lumens!
 
 ## See Also
 
