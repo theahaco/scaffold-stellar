@@ -4,10 +4,16 @@ Command line interface for managing smart contract deployments through the Stell
 
 ## Installation
 
-Install directly from the repository:
+Install from cargo:
 
 ```bash
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
+cargo install  stellar-registry-cli
+```
+
+Or [`cargo-binstall`](github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall stellar-registry-cli
 ```
 
 ## Commands
@@ -106,7 +112,7 @@ For an additional level of security you can get your contract audited. Stellar h
 
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
 
-The first step is adding Mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here]( https://developers.stellar.org/docs/data/rpc/rpc-providers)
+The first step is adding Mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here](https://developers.stellar.org/docs/data/rpc/rpc-providers)
 
 Then you must add it with the following command:
 ```bash
