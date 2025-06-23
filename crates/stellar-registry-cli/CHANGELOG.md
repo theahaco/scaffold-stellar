@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.3...stellar-registry-cli-v0.0.4) - 2025-06-18
+
+### Fixed
+
+- update readmes to point to current directory instead of project ([#109](https://github.com/AhaLabs/scaffold-stellar/pull/109))
+- [registry-cli] add wasm_name arg to publish  ([#90](https://github.com/AhaLabs/scaffold-stellar/pull/90))
+
 ## [0.0.3](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.2...stellar-registry-cli-v0.0.3) - 2025-06-11
 
 ### Fixed
