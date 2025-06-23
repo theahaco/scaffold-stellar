@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::{env, io};
 
 use super::generate;
+use stellar_cli::print::Print;
 
 const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
 
@@ -37,11 +38,17 @@ impl Cmd {
     /// /// From the command line
     /// stellar scaffold init /path/to/project
     /// ```
-    pub async fn run(&self) -> Result<(), Error> {
-        eprintln!(
-            "ℹ️  Creating new Stellar project in {:?}",
+    pub async fn run(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
+
+        printer.infoln(format!(
+            "Creating new Stellar project in {:?}",
             self.project_path
-        );
+        ));
+
         let project_str = self
             .project_path
             .to_str()
@@ -54,13 +61,16 @@ impl Cmd {
             )));
         }
 
-        self.update_fungible_token_example().await?;
+        self.update_fungible_token_example(global_args).await?;
 
-        eprintln!("✅ Project successfully created at {project_str}");
+        printer.checkln(format!("Project successfully created at {project_str}"));
         Ok(())
     }
 
-    async fn update_fungible_token_example(&self) -> Result<(), Error> {
+    async fn update_fungible_token_example(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
         let original_dir = env::current_dir()?;
         env::set_current_dir(&self.project_path)?;
 
@@ -70,6 +80,9 @@ impl Cmd {
         if fungible_token_path.exists() {
             remove_dir_all(&fungible_token_path)?;
         }
+
+        let mut quiet_global_args = global_args.clone();
+        quiet_global_args.quiet = true;
 
         generate::contract::Cmd {
             from: Some("fungible-token-interface".to_owned()),
@@ -82,7 +95,7 @@ impl Cmd {
                     .into_owned(),
             ),
         }
-        .run()
+        .run(&quiet_global_args)
         .await?;
         env::set_current_dir(original_dir)?;
         Ok(())
