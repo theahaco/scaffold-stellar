@@ -3,6 +3,8 @@ use flate2::read::GzDecoder;
 use reqwest;
 use serde::Deserialize;
 use std::{fs, path::Path};
+use stellar_cli::commands::global;
+use stellar_cli::print::Print;
 use tar::Archive;
 
 #[derive(Deserialize)]
@@ -52,24 +54,30 @@ pub enum Error {
 }
 
 impl Cmd {
-    pub async fn run(&self) -> Result<(), Error> {
+    pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         match (&self.from, self.ls, self.from_wizard) {
-            (Some(example_name), _, _) => self.clone_example(example_name).await,
-            (_, true, _) => self.list_examples().await,
-            (_, _, true) => open_wizard(),
+            (Some(example_name), _, _) => self.clone_example(example_name, global_args).await,
+            (_, true, _) => self.list_examples(global_args).await,
+            (_, _, true) => open_wizard(global_args),
             _ => Err(Error::NoActionSpecified),
         }
     }
 
-    async fn clone_example(&self, example_name: &str) -> Result<(), Error> {
-        eprintln!("🔍 Downloading example '{example_name}'...");
+    async fn clone_example(
+        &self,
+        example_name: &str,
+        global_args: &global::Args,
+    ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
+
+        printer.infoln(format!("Downloading example '{example_name}'..."));
 
         let dest_path = self
             .output
             .clone()
             .unwrap_or_else(|| format!("contracts/{example_name}"));
 
-        let repo_cache_path = self.ensure_cache_updated().await?;
+        let repo_cache_path = self.ensure_cache_updated(global_args).await?;
 
         // Check if the example exists
         let example_source_path = repo_cache_path.join(format!("examples/{example_name}"));
@@ -91,14 +99,19 @@ impl Cmd {
                 workspace_cargo_path,
                 &example_source_path,
                 &tag_name,
+                global_args,
             )?;
         } else {
-            eprintln!("⚠️  Warning: No workspace Cargo.toml found in current directory.");
-            eprintln!("   You'll need to manually add required dependencies to your workspace.");
+            printer.warnln("Warning: No workspace Cargo.toml found in current directory.");
+            printer
+                .println("   You'll need to manually add required dependencies to your workspace.");
         }
 
-        eprintln!("✅ Successfully downloaded example '{example_name}' to {dest_path}");
-        eprintln!("💡 You may need to modify your environments.toml to add constructor arguments!");
+        printer.checkln(format!(
+            "Successfully downloaded example '{example_name}' to {dest_path}"
+        ));
+        printer
+            .infoln("You may need to modify your environments.toml to add constructor arguments!");
         Ok(())
     }
 
@@ -106,7 +119,10 @@ impl Cmd {
         workspace_path: &Path,
         example_path: &Path,
         tag: &str,
+        global_args: &global::Args,
     ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
+
         let example_cargo_content = fs::read_to_string(example_path.join("Cargo.toml"))?;
         let deps = Self::extract_stellar_dependencies(&example_cargo_content)?;
         if deps.is_empty() {
@@ -171,16 +187,16 @@ members = []
             fs::write(workspace_path, toml_string)?;
 
             if !added_deps.is_empty() {
-                eprintln!("📦 Added the following dependencies to workspace:");
+                printer.infoln("Added the following dependencies to workspace:");
                 for dep in added_deps {
-                    eprintln!("   • {dep}");
+                    printer.println(format!("   • {dep}"));
                 }
             }
 
             if !updated_deps.is_empty() {
-                eprintln!("🔄 Updated the following dependencies:");
+                printer.infoln("Updated the following dependencies:");
                 for (dep, old_tag) in updated_deps {
-                    eprintln!("   • {dep}: {old_tag} -> {tag}");
+                    printer.println(format!("   • {dep}: {old_tag} -> {tag}"));
                 }
             }
         }
@@ -206,10 +222,12 @@ members = []
             .collect())
     }
 
-    async fn list_examples(&self) -> Result<(), Error> {
-        eprintln!("📋 Fetching available contract examples...");
+    async fn list_examples(&self, global_args: &global::Args) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
 
-        let repo_cache_path = self.ensure_cache_updated().await?;
+        printer.infoln("Fetching available contract examples...");
+
+        let repo_cache_path = self.ensure_cache_updated(global_args).await?;
         let examples_path = repo_cache_path.join("examples");
 
         let mut examples: Vec<String> = if examples_path.exists() {
@@ -229,16 +247,16 @@ members = []
 
         examples.sort();
 
-        eprintln!("\n📦 Available contract examples:");
-        eprintln!("────────────────────────────────");
+        printer.println("\nAvailable contract examples:");
+        printer.println("────────────────────────────────");
 
         for example in &examples {
-            eprintln!("  📁 {example}");
+            printer.println(format!("  📁 {example}"));
         }
 
-        eprintln!("\n💡 Usage:");
-        eprintln!("   stellar-scaffold contract generate --from <example-name>");
-        eprintln!("   Example: stellar-scaffold contract generate --from nft-royalties");
+        printer.println("\nUsage:");
+        printer.println("   stellar-scaffold contract generate --from <example-name>");
+        printer.println("   Example: stellar-scaffold contract generate --from nft-royalties");
 
         Ok(())
     }
@@ -351,7 +369,12 @@ members = []
         Ok(())
     }
 
-    async fn ensure_cache_updated(&self) -> Result<std::path::PathBuf, Error> {
+    async fn ensure_cache_updated(
+        &self,
+        global_args: &global::Args,
+    ) -> Result<std::path::PathBuf, Error> {
+        let printer = Print::new(global_args.quiet);
+
         let cache_dir = dirs::cache_dir().ok_or_else(|| {
             Error::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -369,18 +392,22 @@ members = []
         let should_update_cache = if repo_cache_path.exists() {
             if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
                 if cached_tag.trim() == tag_name {
-                    eprintln!("📂 Using cached repository (release {tag_name})...");
+                    printer.infoln(format!("Using cached repository (release {tag_name})..."));
                     false
                 } else {
-                    eprintln!("📂 New release available ({tag_name}). Updating cache...");
+                    printer.infoln(format!(
+                        "New release available ({tag_name}). Updating cache..."
+                    ));
                     true
                 }
             } else {
-                eprintln!("📂 Cache metadata missing. Updating...");
+                printer.infoln("Cache metadata missing. Updating...");
                 true
             }
         } else {
-            eprintln!("📂 Cache not found. Downloading release {tag_name}...");
+            printer.infoln(format!(
+                "Cache not found. Downloading release {tag_name}..."
+            ));
             true
         };
 
@@ -406,26 +433,28 @@ members = []
     }
 }
 
-fn open_wizard() -> Result<(), Error> {
-    eprintln!("🧙 Opening OpenZeppelin Contract Wizard...");
+fn open_wizard(global_args: &global::Args) -> Result<(), Error> {
+    let printer = Print::new(global_args.quiet);
+
+    printer.infoln("Opening OpenZeppelin Contract Wizard...");
 
     let url = "https://wizard.openzeppelin.com/stellar";
 
     webbrowser::open(url)
         .map_err(|e| Error::BrowserFailed(format!("Failed to open browser: {e}")))?;
 
-    eprintln!("✅ Opened Contract Wizard in your default browser");
-    eprintln!("\n📋 Instructions:");
-    eprintln!("   1. Configure your contract in the wizard");
-    eprintln!("   2. Click 'Download' to get your contract files");
-    eprintln!("   3. Extract the downloaded ZIP file");
-    eprintln!("   4. Move the contract folder to your contracts/ directory");
-    eprintln!("   5. Add the contract to your workspace Cargo.toml if needed");
-    eprintln!(
-        "   6. You may need to modify your environments.toml file to add constructor arguments"
+    printer.checkln("Opened Contract Wizard in your default browser");
+    printer.println("\nInstructions:");
+    printer.println("   1. Configure your contract in the wizard");
+    printer.println("   2. Click 'Download' to get your contract files");
+    printer.println("   3. Extract the downloaded ZIP file");
+    printer.println("   4. Move the contract folder to your contracts/ directory");
+    printer.println("   5. Add the contract to your workspace Cargo.toml if needed");
+    printer.println(
+        "   6. You may need to modify your environments.toml file to add constructor arguments",
     );
-    eprintln!(
-        "\n💡 The wizard will generate a complete Soroban contract with your selected features!"
+    printer.infoln(
+        "The wizard will generate a complete Soroban contract with your selected features!",
     );
 
     Ok(())
@@ -448,6 +477,7 @@ mod tests {
     #[tokio::test]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
+        let global_args = global::Args::default();
 
         let _m = mock(
             "GET",
@@ -458,7 +488,7 @@ mod tests {
         .with_body(r#"[{"name": "example1", "type": "dir"}, {"name": "example2", "type": "dir"}]"#)
         .create();
 
-        let result = cmd.run().await;
+        let result = cmd.run(&global_args).await;
         assert!(result.is_ok());
     }
 
@@ -513,7 +543,8 @@ mod tests {
     #[tokio::test]
     async fn test_no_action_specified() {
         let cmd = create_test_cmd(None, false, false);
-        let result = cmd.run().await;
+        let global_args = global::Args::default();
+        let result = cmd.run(&global_args).await;
         assert!(matches!(result, Err(Error::NoActionSpecified)));
     }
 }

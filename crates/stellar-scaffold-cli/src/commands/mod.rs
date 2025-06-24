@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
+use stellar_cli;
 
 pub mod build;
 pub mod generate;
@@ -17,6 +18,9 @@ const ABOUT: &str = "Build smart contracts with frontend support";
     disable_help_subcommand = true,
 )]
 pub struct Root {
+    #[clap(flatten)]
+    pub global_args: stellar_cli::commands::global::Args,
+
     #[command(subcommand)]
     pub cmd: Cmd,
 }
@@ -36,10 +40,10 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Init(init_info) => init_info.run()?,
-            Cmd::Build(build_info) => build_info.run().await?,
+            Cmd::Init(init_info) => init_info.run(&self.global_args).await?,
+            Cmd::Build(build_info) => build_info.run().await?, // todo pass global args to build and watch
             Cmd::Generate(generate) => match &mut generate.cmd {
-                generate::Command::Contract(contract) => contract.run().await?,
+                generate::Command::Contract(contract) => contract.run(&self.global_args).await?,
             },
             Cmd::UpdateEnv(e) => e.run()?,
             Cmd::Watch(watch_info) => watch_info.run().await?,
