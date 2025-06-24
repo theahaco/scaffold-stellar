@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::{env, io};
 
 use super::generate;
-use stellar_cli::print::Print;
+use stellar_cli::{commands::global, print::Print};
 
 const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
 
@@ -38,10 +38,7 @@ impl Cmd {
     /// /// From the command line
     /// stellar scaffold init /path/to/project
     /// ```
-    pub async fn run(
-        &self,
-        global_args: &stellar_cli::commands::global::Args,
-    ) -> Result<(), Error> {
+    pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         let printer = Print::new(global_args.quiet);
 
         printer.infoln(format!(
@@ -67,10 +64,7 @@ impl Cmd {
         Ok(())
     }
 
-    async fn update_fungible_token_example(
-        &self,
-        global_args: &stellar_cli::commands::global::Args,
-    ) -> Result<(), Error> {
+    async fn update_fungible_token_example(&self, global_args: &global::Args) -> Result<(), Error> {
         let original_dir = env::current_dir()?;
         env::set_current_dir(&self.project_path)?;
 

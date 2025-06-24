@@ -3,6 +3,7 @@ use flate2::read::GzDecoder;
 use reqwest;
 use serde::Deserialize;
 use std::{fs, path::Path};
+use stellar_cli::commands::global;
 use stellar_cli::print::Print;
 use tar::Archive;
 
@@ -53,10 +54,7 @@ pub enum Error {
 }
 
 impl Cmd {
-    pub async fn run(
-        &self,
-        global_args: &stellar_cli::commands::global::Args,
-    ) -> Result<(), Error> {
+    pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         match (&self.from, self.ls, self.from_wizard) {
             (Some(example_name), _, _) => self.clone_example(example_name, global_args).await,
             (_, true, _) => self.list_examples(global_args).await,
@@ -68,7 +66,7 @@ impl Cmd {
     async fn clone_example(
         &self,
         example_name: &str,
-        global_args: &stellar_cli::commands::global::Args,
+        global_args: &global::Args,
     ) -> Result<(), Error> {
         let printer = Print::new(global_args.quiet);
 
@@ -121,7 +119,7 @@ impl Cmd {
         workspace_path: &Path,
         example_path: &Path,
         tag: &str,
-        global_args: &stellar_cli::commands::global::Args,
+        global_args: &global::Args,
     ) -> Result<(), Error> {
         let printer = Print::new(global_args.quiet);
 
@@ -224,10 +222,7 @@ members = []
             .collect())
     }
 
-    async fn list_examples(
-        &self,
-        global_args: &stellar_cli::commands::global::Args,
-    ) -> Result<(), Error> {
+    async fn list_examples(&self, global_args: &global::Args) -> Result<(), Error> {
         let printer = Print::new(global_args.quiet);
 
         printer.infoln("Fetching available contract examples...");
@@ -376,7 +371,7 @@ members = []
 
     async fn ensure_cache_updated(
         &self,
-        global_args: &stellar_cli::commands::global::Args,
+        global_args: &global::Args,
     ) -> Result<std::path::PathBuf, Error> {
         let printer = Print::new(global_args.quiet);
 
@@ -438,7 +433,7 @@ members = []
     }
 }
 
-fn open_wizard(global_args: &stellar_cli::commands::global::Args) -> Result<(), Error> {
+fn open_wizard(global_args: &global::Args) -> Result<(), Error> {
     let printer = Print::new(global_args.quiet);
 
     printer.infoln("Opening OpenZeppelin Contract Wizard...");
@@ -482,7 +477,7 @@ mod tests {
     #[tokio::test]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
-        let global_args = stellar_cli::commands::global::Args::default();
+        let global_args = global::Args::default();
 
         let _m = mock(
             "GET",
@@ -548,7 +543,7 @@ mod tests {
     #[tokio::test]
     async fn test_no_action_specified() {
         let cmd = create_test_cmd(None, false, false);
-        let global_args = stellar_cli::commands::global::Args::default();
+        let global_args = global::Args::default();
         let result = cmd.run(&global_args).await;
         assert!(matches!(result, Err(Error::NoActionSpecified)));
     }
