@@ -4,6 +4,7 @@
     clippy::missing_panics_doc
 )]
 pub mod commands;
+mod arg_parsing;
 
 use std::path::Path;
 

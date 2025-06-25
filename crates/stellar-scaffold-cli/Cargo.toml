@@ -28,9 +28,9 @@ doctest = false
 [dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 stellar-build = { path = "../stellar-build", version = "0.0.2" }
-stellar-cli = { workspace = true}
-soroban-rpc = { workspace = true}
-soroban-spec-tools = { git = "https://github.com/AhaLabs/stellar-cli", branch = "feat/expose-build-custom-cmd", package = "soroban-spec-tools" }
+stellar-cli = { workspace = true }
+soroban-rpc = { workspace = true }
+soroban-spec-tools = "22.8.1"
 clap = { version = "4.1.8", features = [
     "derive",
     "env",
