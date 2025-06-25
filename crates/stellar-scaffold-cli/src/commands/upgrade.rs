@@ -48,6 +48,8 @@ pub enum Error {
     BuildError(#[from] build::Error),
     #[error("Failed to get constructor arguments: {0}")]
     ConstructorArgsError(String),
+    #[error("WASM file not found for contract '{0}'. Please build the contract first.")]
+    WasmFileNotFound(String),
     #[error(transparent)]
     Clap(#[from] clap::Error),
     #[error(transparent)]
@@ -222,11 +224,7 @@ impl Cmd {
                 rpc_headers: None,
                 run_locally: true,
             },
-            contracts: if contract_configs.is_empty() {
-                None
-            } else {
-                Some(contract_configs)
-            },
+            contracts: (!contract_configs.is_empty()).then_some(contract_configs)
         };
 
         let mut doc = DocumentMut::new();
@@ -347,7 +345,7 @@ impl Cmd {
         let wasm_path = stellar_build::stellar_wasm_out_file(&target_dir, contract_name);
 
         if !wasm_path.exists() {
-            return Ok(None);
+            return Err(Error::WasmFileNotFound(contract_name.to_string()));
         }
 
         // Read the WASM file and get spec entries

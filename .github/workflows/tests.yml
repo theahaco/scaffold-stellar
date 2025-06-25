@@ -1,4 +1,3 @@
-
 name: RPC Tests
 on:
   push:
@@ -34,6 +33,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        sudo apt-get install -y libdbus-1-dev pkg-config
     - uses: actions/cache@v3
       with:
         path: |
@@ -52,4 +52,3 @@ jobs:
     - run: just setup
     - run: just create
     - run: just test-integration
-
