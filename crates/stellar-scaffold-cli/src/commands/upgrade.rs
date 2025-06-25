@@ -354,71 +354,63 @@ impl Cmd {
         let spec = soroban_spec_tools::Spec::new(entries.clone());
 
         // Check if constructor function exists
-        let constructor_result = spec.find_function("__constructor");
-        match constructor_result {
-            Ok(func) => {
-                if func.inputs.is_empty() {
-                    return Ok(None);
-                }
+        let Ok(func) = spec.find_function("__constructor") else { return Ok(None); };
+        if func.inputs.is_empty() {
+            return Ok(None);
+        }
 
-                // Build the custom command for the constructor
-                let cmd = stellar_cli::commands::contract::arg_parsing::build_custom_cmd(
-                    "__constructor",
-                    &spec,
-                )
-                .map_err(|e| {
-                    Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
-                })?;
+        // Build the custom command for the constructor
+        let cmd = stellar_cli::commands::contract::arg_parsing::build_custom_cmd(
+            "__constructor",
+            &spec,
+        )
+        .map_err(|e| {
+            Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
+        })?;
 
-                println!("\n📋 Contract '{contract_name}' requires constructor arguments:");
+        println!("\n📋 Contract '{contract_name}' requires constructor arguments:");
 
-                let mut args = Vec::new();
+        let mut args = Vec::new();
 
-                // Loop through the command arguments, skipping file args
-                for arg in cmd.get_arguments() {
-                    let arg_name = arg.get_id().as_str();
+        // Loop through the command arguments, skipping file args
+        for arg in cmd.get_arguments() {
+            let arg_name = arg.get_id().as_str();
 
-                    // Skip file arguments (they end with -file-path)
-                    if arg_name.ends_with("-file-path") {
-                        continue;
-                    }
-
-                    // Show the argument help
-                    if let Some(help) = arg.get_long_help().or(arg.get_help()) {
-                        println!("  --{arg_name} {help}");
-                    } else if let Some(value_name) =
-                        arg.get_value_names().and_then(|names| names.first())
-                    {
-                        println!("  --{arg_name} <{value_name}>");
-                    } else {
-                        println!("  --{arg_name}");
-                    }
-
-                    print!("Enter value for --{arg_name}: ");
-                    io::stdout().flush()?;
-
-                    let mut value = String::new();
-                    io::stdin().read_line(&mut value)?;
-                    let value = value.trim();
-
-                    if value.is_empty() {
-                        // Create a TODO placeholder for this argument
-                        args.push(format!("--{arg_name} # TODO: Fill in value"));
-                    } else {
-                        args.push(format!("--{arg_name} {value}"));
-                    }
-                }
-
-                if args.is_empty() {
-                    Ok(None)
-                } else {
-                    Ok(Some(args.join(" ")))
-                }
+            // Skip file arguments (they end with -file-path)
+            if arg_name.ends_with("-file-path") {
+                continue;
             }
-            Err(_) => {
-                // No constructor function found
-                Ok(None)
+
+            // Show the argument help
+            if let Some(help) = arg.get_long_help().or(arg.get_help()) {
+                println!("  --{arg_name} {help}");
+            } else if let Some(value_name) =
+                arg.get_value_names().and_then(|names| names.first())
+            {
+                println!("  --{arg_name} <{value_name}>");
+            } else {
+                println!("  --{arg_name}");
             }
+
+            print!("Enter value for --{arg_name}: ");
+            io::stdout().flush()?;
+
+            let mut value = String::new();
+            io::stdin().read_line(&mut value)?;
+            let value = value.trim();
+
+            if value.is_empty() {
+                // Create a TODO placeholder for this argument
+                args.push(format!("--{arg_name} # TODO: Fill in value"));
+            } else {
+                args.push(format!("--{arg_name} {value}"));
+            }
+        }
+
+        if args.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(args.join(" ")))
         }
     }
 
