@@ -405,8 +405,7 @@ impl Cmd {
 
         // Display help text before the prompt
         println!("\n  --{arg_name}");
-        if value_name != "bool" && !help_text.is_empty()
-        {
+        if value_name != "bool" && !help_text.is_empty() {
             println!("   {help_text}");
         }
 
