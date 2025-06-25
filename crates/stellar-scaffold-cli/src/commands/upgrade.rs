@@ -384,11 +384,7 @@ impl Cmd {
             }
         }
 
-        if args.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(args.join(" ")))
-        }
+        Ok((!args.is_empty()).then(|| args.join(" ")))
     }
 
     fn handle_constructor_argument(arg: &clap::Arg) -> Result<Option<String>, Error> {
@@ -463,18 +459,15 @@ impl Cmd {
         arg_name: &str,
         value_name: &str,
     ) -> Result<Option<String>, Error> {
-        // Parse the values from "a | b | c" format
-        let values: Vec<&str> = value_name.split('|').collect();
-
         let mut select = Select::new()
             .with_prompt(format!("Select value for --{arg_name}"))
             .default(0); // This will show the cursor on the first option initially
-
+        
         // Add "Skip" option
         select = select.item("(Skip - leave blank)");
 
-        // Add numeric options
-        for value in &values {
+        // Parse the values from "a | b | c" format and add numeric options
+        for value in value_name.split('|') {
             select = select.item(format!("Value: {value}"));
         }
 
@@ -482,13 +475,11 @@ impl Cmd {
             .interact()
             .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
 
-        if selection > 0 {
+        Ok((selection > 0).then(|| {
             // User selected an actual value (not skip)
             let selected_value = values[selection - 1];
-            Ok(Some(format!("--{arg_name} {selected_value}")))
-        } else {
-            Ok(None)
-        }
+            format!("--{arg_name} {selected_value}")
+        }))
     }
 
     fn handle_bool_argument(arg_name: &str) -> Result<Option<String>, Error> {
