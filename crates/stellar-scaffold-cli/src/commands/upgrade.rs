@@ -1,10 +1,11 @@
 use crate::commands::build::env_toml::{Account, Contract, Environment, Network};
 use clap::Parser;
 use degit::degit;
+use dialoguer::{Confirm, Input, Select};
 use indexmap::IndexMap;
 use std::fs;
 use std::fs::{create_dir_all, metadata, read_dir, write};
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 use toml_edit::{value, DocumentMut, Item, Table};
 
@@ -224,7 +225,7 @@ impl Cmd {
                 rpc_headers: None,
                 run_locally: true,
             },
-            contracts: (!contract_configs.is_empty()).then_some(contract_configs)
+            contracts: (!contract_configs.is_empty()).then_some(contract_configs),
         };
 
         let mut doc = DocumentMut::new();
@@ -288,7 +289,6 @@ impl Cmd {
                     return Ok(None);
                 }
 
-                // this read_to_string can now fail and will be propagated
                 let content = std::fs::read_to_string(&cargo_toml)?;
                 if !content.contains("cdylib") {
                     return Ok(None);
@@ -354,19 +354,19 @@ impl Cmd {
         let spec = soroban_spec_tools::Spec::new(entries.clone());
 
         // Check if constructor function exists
-        let Ok(func) = spec.find_function("__constructor") else { return Ok(None); };
+        let Ok(func) = spec.find_function("__constructor") else {
+            return Ok(None);
+        };
         if func.inputs.is_empty() {
             return Ok(None);
         }
 
         // Build the custom command for the constructor
-        let cmd = stellar_cli::commands::contract::arg_parsing::build_custom_cmd(
-            "__constructor",
-            &spec,
-        )
-        .map_err(|e| {
-            Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
-        })?;
+        let cmd =
+            stellar_cli::commands::contract::arg_parsing::build_custom_cmd("__constructor", &spec)
+                .map_err(|e| {
+                    Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
+                })?;
 
         println!("\n📋 Contract '{contract_name}' requires constructor arguments:");
 
@@ -381,29 +381,8 @@ impl Cmd {
                 continue;
             }
 
-            // Show the argument help
-            if let Some(help) = arg.get_long_help().or(arg.get_help()) {
-                println!("  --{arg_name} {help}");
-            } else if let Some(value_name) =
-                arg.get_value_names().and_then(|names| names.first())
-            {
-                println!("  --{arg_name} <{value_name}>");
-            } else {
-                println!("  --{arg_name}");
-            }
-
-            print!("Enter value for --{arg_name}: ");
-            io::stdout().flush()?;
-
-            let mut value = String::new();
-            io::stdin().read_line(&mut value)?;
-            let value = value.trim();
-
-            if value.is_empty() {
-                // Create a TODO placeholder for this argument
-                args.push(format!("--{arg_name} # TODO: Fill in value"));
-            } else {
-                args.push(format!("--{arg_name} {value}"));
+            if let Some(arg_value) = Self::handle_constructor_argument(arg)? {
+                args.push(arg_value);
             }
         }
 
@@ -411,6 +390,144 @@ impl Cmd {
             Ok(None)
         } else {
             Ok(Some(args.join(" ")))
+        }
+    }
+
+    fn handle_constructor_argument(arg: &clap::Arg) -> Result<Option<String>, Error> {
+        let arg_name = arg.get_id().as_str();
+
+        let help_text = arg.get_long_help().or(arg.get_help()).map_or_else(
+            || "No description available".to_string(),
+            std::string::ToString::to_string,
+        );
+
+        let value_name = arg
+            .get_value_names()
+            .map_or_else(|| "VALUE".to_string(), |names| names.join(" "));
+
+        // Display help text before the prompt
+        println!("\n  --{arg_name}");
+        if value_name != "bool" {
+            println!("   {help_text}");
+        }
+
+        if value_name == "bool" {
+            Self::handle_bool_argument(arg_name)
+        } else if !arg.get_possible_values().is_empty() {
+            Self::handle_enum_argument(arg_name, arg)
+        } else if value_name.contains(" | ") {
+            Self::handle_numeric_enum_argument(arg_name, &value_name)
+        } else {
+            Self::handle_string_argument(arg_name, arg)
+        }
+    }
+
+    fn handle_numeric_enum_argument(
+        arg_name: &str,
+        value_name: &str,
+    ) -> Result<Option<String>, Error> {
+        // Parse the numeric values from "0 | 1 | 2" format
+        let values: Vec<&str> = value_name.split(" | ").collect();
+
+        let mut select = Select::new()
+            .with_prompt(format!("Select value for --{arg_name}"))
+            .default(0); // This will show the cursor on the first option initially
+
+        // Add "Skip" option
+        select = select.item("(Skip - leave blank)");
+
+        // Add numeric options
+        for value in &values {
+            select = select.item(format!("Value: {value}"));
+        }
+
+        let selection = select
+            .interact()
+            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
+
+        if selection > 0 {
+            // User selected an actual value (not skip)
+            let selected_value = values[selection - 1];
+            Ok(Some(format!("--{arg_name} {selected_value}")))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn handle_bool_argument(arg_name: &str) -> Result<Option<String>, Error> {
+        let bool_value = Confirm::new()
+            .with_prompt(format!("Set --{arg_name} to true?"))
+            .default(false)
+            .interact()
+            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
+
+        Ok(Some(format!("--{arg_name} {bool_value}")))
+    }
+
+    fn handle_enum_argument(arg_name: &str, arg: &clap::Arg) -> Result<Option<String>, Error> {
+        let possible_values = arg.get_possible_values();
+
+        // Get meaningful names from possible values
+        let values: Vec<(String, String)> = possible_values
+            .iter()
+            .map(|v| {
+                let name = v.get_name().to_string();
+                let help = v
+                    .get_help()
+                    .map_or_else(|| name.clone(), std::string::ToString::to_string);
+                (name, help)
+            })
+            .collect();
+
+        let mut select = Select::new().with_prompt(format!("Select value for --{arg_name}"));
+
+        // Add "Skip" option
+        select = select.item("(Skip - leave blank)");
+
+        // Add enum options with descriptions
+        for (value, description) in &values {
+            let display_text = if description == value {
+                value.clone()
+            } else {
+                format!("{description} ({value})")
+            };
+            select = select.item(display_text);
+        }
+
+        let selection = select
+            .interact()
+            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
+
+        if selection > 0 {
+            // User selected an actual value (not skip)
+            let selected_value = &values[selection - 1].0;
+            Ok(Some(format!("--{arg_name} {selected_value}")))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn handle_string_argument(arg_name: &str, arg: &clap::Arg) -> Result<Option<String>, Error> {
+        let value_name = arg
+            .get_value_names()
+            .map_or_else(|| "VALUE".to_string(), |names| names.join(" "));
+
+        let input_result: Result<String, _> = Input::new()
+            .with_prompt(format!("Enter value for --{arg_name} <{value_name}>"))
+            .allow_empty(true)
+            .interact();
+
+        match input_result {
+            Ok(value) => {
+                let value = value.trim();
+                if value.is_empty() {
+                    // Create a TODO placeholder for this argument
+                    Ok(Some(format!("--{arg_name} # TODO: Fill in value")))
+                } else {
+                    Ok(Some(format!("--{arg_name} {value}")))
+                }
+            }
+            Err(e) => Err(Error::ConstructorArgsError(format!("Input error: {e}"))),
         }
     }
 
