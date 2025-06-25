@@ -407,25 +407,67 @@ impl Cmd {
 
         // Display help text before the prompt
         println!("\n  --{arg_name}");
-        if value_name != "bool" {
+        if value_name != "bool" && !help_text.is_empty()
+        {
             println!("   {help_text}");
         }
 
         if value_name == "bool" {
             Self::handle_bool_argument(arg_name)
-        } else if value_name.contains(" | ") {
-            Self::handle_numeric_enum_argument(arg_name, &value_name)
+        } else if value_name.contains('|') && Self::is_simple_enum(&value_name) {
+            Self::handle_simple_enum_argument(arg_name, &value_name)
         } else {
-            Self::handle_string_argument(arg_name, arg)
+            // For all other types (complex enums, structs, strings), use string input
+            Self::handle_formatted_input(arg_name)
         }
     }
 
-    fn handle_numeric_enum_argument(
+    fn is_simple_enum(value_name: &str) -> bool {
+        value_name.split('|').all(|part| {
+            let trimmed = part.trim();
+            trimmed.parse::<i32>().is_ok() || trimmed.chars().all(|c| c.is_alphabetic() || c == '_')
+        })
+    }
+
+    fn handle_formatted_input(arg_name: &str) -> Result<Option<String>, Error> {
+        let input_result: Result<String, _> = Input::new()
+            .with_prompt(format!("Enter value for --{arg_name}"))
+            .allow_empty(true)
+            .interact();
+
+        match input_result {
+            Ok(value) => {
+                let value = value.trim();
+                if value.is_empty() {
+                    Ok(Some(format!("--{arg_name} # TODO: Fill in value")))
+                } else {
+                    // Check if the value is already quoted
+                    let is_already_quoted = (value.starts_with('"') && value.ends_with('"'))
+                        || (value.starts_with('\'') && value.ends_with('\''));
+
+                    // Only wrap in quotes if it's not already quoted and contains special characters or spaces
+                    if !is_already_quoted
+                        && (value.contains(' ')
+                            || value.contains('{')
+                            || value.contains('[')
+                            || value.contains('"'))
+                    {
+                        Ok(Some(format!("--{arg_name} '{value}'")))
+                    } else {
+                        Ok(Some(format!("--{arg_name} {value}")))
+                    }
+                }
+            }
+            Err(e) => Err(Error::ConstructorArgsError(format!("Input error: {e}"))),
+        }
+    }
+
+    fn handle_simple_enum_argument(
         arg_name: &str,
         value_name: &str,
     ) -> Result<Option<String>, Error> {
-        // Parse the numeric values from "0 | 1 | 2" format
-        let values: Vec<&str> = value_name.split(" | ").collect();
+        // Parse the values from "a | b | c" format
+        let values: Vec<&str> = value_name.split('|').collect();
 
         let mut select = Select::new()
             .with_prompt(format!("Select value for --{arg_name}"))
@@ -460,30 +502,6 @@ impl Cmd {
             .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
 
         Ok(Some(format!("--{arg_name} {bool_value}")))
-    }
-
-    fn handle_string_argument(arg_name: &str, arg: &clap::Arg) -> Result<Option<String>, Error> {
-        let value_name = arg
-            .get_value_names()
-            .map_or_else(|| "VALUE".to_string(), |names| names.join(" "));
-
-        let input_result: Result<String, _> = Input::new()
-            .with_prompt(format!("Enter value for --{arg_name} <{value_name}>"))
-            .allow_empty(true)
-            .interact();
-
-        match input_result {
-            Ok(value) => {
-                let value = value.trim();
-                if value.is_empty() {
-                    // Create a TODO placeholder for this argument
-                    Ok(Some(format!("--{arg_name} # TODO: Fill in value")))
-                } else {
-                    Ok(Some(format!("--{arg_name} {value}")))
-                }
-            }
-            Err(e) => Err(Error::ConstructorArgsError(format!("Input error: {e}"))),
-        }
     }
 
     fn setup_env_file(&self) -> Result<(), Error> {
