@@ -9,7 +9,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use toml_edit::{value, DocumentMut, Item, Table};
 
-use crate::commands::build;
+use crate::{arg_parsing, commands::build};
 use stellar_cli::print::Print;
 
 const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
@@ -362,11 +362,9 @@ impl Cmd {
         }
 
         // Build the custom command for the constructor
-        let cmd =
-            stellar_cli::commands::contract::arg_parsing::build_custom_cmd("__constructor", &spec)
-                .map_err(|e| {
-                    Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
-                })?;
+        let cmd = arg_parsing::build_custom_cmd("__constructor", &spec).map_err(|e| {
+            Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
+        })?;
 
         println!("\n📋 Contract '{contract_name}' requires constructor arguments:");
 
