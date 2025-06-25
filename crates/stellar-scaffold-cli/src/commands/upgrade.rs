@@ -413,8 +413,6 @@ impl Cmd {
 
         if value_name == "bool" {
             Self::handle_bool_argument(arg_name)
-        } else if !arg.get_possible_values().is_empty() {
-            Self::handle_enum_argument(arg_name, arg)
         } else if value_name.contains(" | ") {
             Self::handle_numeric_enum_argument(arg_name, &value_name)
         } else {
@@ -462,49 +460,6 @@ impl Cmd {
             .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
 
         Ok(Some(format!("--{arg_name} {bool_value}")))
-    }
-
-    fn handle_enum_argument(arg_name: &str, arg: &clap::Arg) -> Result<Option<String>, Error> {
-        let possible_values = arg.get_possible_values();
-
-        // Get meaningful names from possible values
-        let values: Vec<(String, String)> = possible_values
-            .iter()
-            .map(|v| {
-                let name = v.get_name().to_string();
-                let help = v
-                    .get_help()
-                    .map_or_else(|| name.clone(), std::string::ToString::to_string);
-                (name, help)
-            })
-            .collect();
-
-        let mut select = Select::new().with_prompt(format!("Select value for --{arg_name}"));
-
-        // Add "Skip" option
-        select = select.item("(Skip - leave blank)");
-
-        // Add enum options with descriptions
-        for (value, description) in &values {
-            let display_text = if description == value {
-                value.clone()
-            } else {
-                format!("{description} ({value})")
-            };
-            select = select.item(display_text);
-        }
-
-        let selection = select
-            .interact()
-            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
-
-        if selection > 0 {
-            // User selected an actual value (not skip)
-            let selected_value = &values[selection - 1].0;
-            Ok(Some(format!("--{arg_name} {selected_value}")))
-        } else {
-            Ok(None)
-        }
     }
 
     fn handle_string_argument(arg_name: &str, arg: &clap::Arg) -> Result<Option<String>, Error> {
