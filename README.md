@@ -143,24 +143,6 @@ This template provides a ready-to-use frontend application with example smart co
 
 See the [CLI Documentation](./docs/cli.md) for detailed command information and the [Environments Guide](./docs/environments.md) for configuration details.
 
-## Configuration
-
-### environments.toml
-
-```toml
-[development]
-network = "standalone"
-# Development configuration
-
-[staging]
-network = "testnet"
-# Staging configuration
-
-[production]
-network = "mainnet"
-# Production configuration
-```
-
 ## Documentation
 
 - [CLI Commands](./docs/cli.md)
