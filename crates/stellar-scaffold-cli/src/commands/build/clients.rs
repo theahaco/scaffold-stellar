@@ -8,6 +8,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
 use stellar_cli::commands::NetworkRunnable;
+use stellar_cli::print::Print;
 use stellar_cli::utils::contract_hash;
 use stellar_cli::{commands as cli, CommandParser};
 use stellar_strkey::{self, Contract};
@@ -29,7 +30,7 @@ impl std::fmt::Display for ScaffoldEnv {
     }
 }
 
-#[derive(clap::Args, Debug, Clone)]
+#[derive(clap::Args, Clone)]
 pub struct Args {
     #[arg(env = "STELLAR_SCAFFOLD_ENV", value_enum)]
     pub env: Option<ScaffoldEnv>,
@@ -38,6 +39,22 @@ pub struct Args {
     /// Directory where wasm files are located
     #[arg(skip)]
     pub out_dir: Option<std::path::PathBuf>,
+    #[arg(skip)]
+    pub global_args: Option<stellar_cli::commands::global::Args>,
+    #[arg(skip)]
+    pub printer: Option<Print>,
+}
+
+impl std::fmt::Debug for Args {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Args")
+            .field("env", &self.env)
+            .field("workspace_root", &self.workspace_root)
+            .field("out_dir", &self.out_dir)
+            .field("global_args", &self.global_args)
+            .field("printer", &"<Print>")
+            .finish()
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -113,7 +130,7 @@ impl Args {
             return Ok(());
         };
 
-        Self::add_network_to_env(&current_env.network)?;
+        self.clone().add_network_to_env(&current_env.network)?;
         // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
@@ -141,7 +158,8 @@ impl Args {
     /// We could set `STELLAR_NETWORK` instead, but when importing contracts, we want to hard-code
     /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
     /// & passphrase for that named network, and still set the environment variables.
-    fn add_network_to_env(network: &env_toml::Network) -> Result<(), Error> {
+    fn add_network_to_env(self, network: &env_toml::Network) -> Result<(), Error> {
+        let printer = self.printer.as_ref().expect("printer must be set");
         match &network {
             Network {
                 name: Some(name), ..
@@ -160,7 +178,7 @@ impl Args {
                     global: false,
                     config_dir: None,
                 })?;
-                eprintln!("🌐 using {name} network");
+                printer.infoln(format!("Using {name} network"));
                 std::env::set_var("STELLAR_RPC_URL", rpc_url);
                 std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase);
             }
@@ -171,7 +189,7 @@ impl Args {
             } => {
                 std::env::set_var("STELLAR_RPC_URL", rpc_url);
                 std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase);
-                eprintln!("🌐 using network at {rpc_url}");
+                printer.infoln(format!("Using network at {rpc_url}"));
             }
             _ => return Err(Error::MalformedNetwork),
         }
@@ -221,7 +239,7 @@ impl Args {
             locator: self.get_config_locator(),
             network: Self::get_network_args(network),
         }
-        .run_against_rpc_server(None, None)
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await;
 
         match result {
@@ -284,7 +302,8 @@ export default new Client.Client({{
     }
 
     async fn generate_contract_bindings(self, name: &str, contract_id: &str) -> Result<(), Error> {
-        eprintln!("🎭 binding {name:?} contract");
+        let printer = self.printer.as_ref().expect("printer must be set");
+        printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = self
             .workspace_root
             .as_ref()
@@ -303,14 +322,14 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
-        .run()
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await?;
 
-        eprintln!("🍽️ importing {name:?} contract");
-        self.write_contract_template(name, contract_id)?;
+        printer.infoln(format!("Importing {name:?} contract"));
+        self.clone().write_contract_template(name, contract_id)?;
 
         // Run `npm i` in the output directory
-        eprintln!("🔧 running 'npm install' in {output_dir:?}");
+        printer.infoln(format!("Running 'npm install' in {output_dir:?}"));
         let output = std::process::Command::new("npm")
             .current_dir(&output_dir)
             .arg("install")
@@ -328,9 +347,9 @@ export default new Client.Client({{
                 ),
             ));
         }
-        eprintln!("✅ 'npm install' succeeded in {output_dir:?}");
+        printer.checkln(format!("'npm install' succeeded in {output_dir:?}"));
 
-        eprintln!("🔨 running 'npm run build' in {output_dir:?}");
+        printer.infoln(format!("Running 'npm run build' in {output_dir:?}"));
         let output = std::process::Command::new("npm")
             .current_dir(&output_dir)
             .arg("run")
@@ -348,7 +367,7 @@ export default new Client.Client({{
                 ),
             ));
         }
-        eprintln!("✅ 'npm run build' succeeded in {output_dir:?}");
+        printer.checkln(format!("'npm run build' succeeded in {output_dir:?}"));
         Ok(())
     }
 
@@ -357,6 +376,7 @@ export default new Client.Client({{
         accounts: Option<&[env_toml::Account]>,
         network: &Network,
     ) -> Result<(), Error> {
+        let printer = self.printer.as_ref().expect("printer must be set");
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -375,11 +395,15 @@ export default new Client.Client({{
         };
 
         for account in accounts {
-            eprintln!("🔐 creating keys for {:?}", account.name);
-            let args = stellar_cli::commands::global::Args {
-                locator: self.clone().get_config_locator(),
-                ..Default::default()
-            };
+            printer.infoln(format!("Creating keys for {:?}", account.name));
+            // Use provided global args or create default
+            let args =
+                self.global_args
+                    .clone()
+                    .unwrap_or_else(|| stellar_cli::commands::global::Args {
+                        locator: self.clone().get_config_locator(),
+                        ..Default::default()
+                    });
 
             let generate_cmd = cli::keys::generate::Cmd {
                 name: account.name.clone().parse()?,
@@ -396,7 +420,7 @@ export default new Client.Client({{
 
             match generate_cmd.run(&args).await {
                 Err(e) if e.to_string().contains("already exists") => {
-                    eprintln!("{e}");
+                    printer.blankln(e);
                     // Check if account exists on chain
                     let rpc_client = soroban_rpc::Client::new(
                         network
@@ -413,7 +437,7 @@ export default new Client.Client({{
                     let address = public_key_cmd.public_key().await?;
 
                     if (rpc_client.get_account(&address.to_string()).await).is_err() {
-                        eprintln!("Account not found on chain, funding...");
+                        printer.infoln("Account not found on chain, funding...");
                         let fund_cmd = cli::keys::fund::Cmd {
                             network: Self::get_network_args(network),
                             address: public_key_cmd,
@@ -552,6 +576,7 @@ export default new Client.Client({{
         network: &Network,
         env: &str,
     ) -> Result<(), Error> {
+        let printer = self.printer.as_ref().expect("printer must be set");
         // First check if we have an ID in settings
         let contract_id = if let Some(id) = &settings.id {
             Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
@@ -569,17 +594,17 @@ export default new Client.Client({{
                     .contract_hash_matches(&existing_contract_id, &hash, network)
                     .await?
                 {
-                    eprintln!("✅ Contract {name:?} is up to date");
+                    printer.checkln(format!("Contract {name:?} is up to date"));
                     return Ok(());
                 }
-                eprintln!("🔄 Updating contract {name:?}");
+                printer.infoln(format!("Updating contract {name:?}"));
             }
 
             // Deploy new contract if we got here
             let contract_id = self.deploy_contract(name, &hash, &settings).await?;
             // Run after_deploy script if in development or test environment
             if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-                eprintln!("🚀 Running after_deploy script for {name:?}");
+                printer.infoln(format!("Running after_deploy script for {name:?}"));
                 self.run_after_deploy_script(
                     name,
                     &contract_id,
@@ -603,7 +628,8 @@ export default new Client.Client({{
         name: &str,
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
-        eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
+        let printer = self.printer.as_ref().expect("printer must be set");
+        printer.infoln(format!("Installing {name:?} wasm bytecode on-chain..."));
         let workspace_root = self
             .workspace_root
             .as_ref()
@@ -618,12 +644,12 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
-        .run_against_rpc_server(None, None)
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await?
         .into_result()
         .expect("no hash returned by 'contract upload'")
         .to_string();
-        eprintln!("    ↳ hash: {hash}");
+        printer.infoln(format!("    ↳ hash: {hash}"));
         Ok(hash)
     }
 
@@ -662,6 +688,7 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
+        let printer = self.printer.as_ref().expect("printer must be set");
         let workspace_root = self
             .workspace_root
             .as_ref()
@@ -689,17 +716,17 @@ export default new Client.Client({{
             deploy_args.append(&mut args);
         }
 
-        eprintln!("🪞 instantiating {name:?} smart contract");
+        printer.infoln(format!("Instantiating {name:?} smart contract"));
         let deploy_arg_refs: Vec<&str> = deploy_args
             .iter()
             .map(std::string::String::as_str)
             .collect();
         let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?
-            .run_against_rpc_server(None, None)
+            .run_against_rpc_server(self.global_args.as_ref(), None)
             .await?
             .into_result()
             .expect("no contract id returned by 'contract deploy'");
-        eprintln!("    ↳ contract_id: {contract_id}");
+        printer.infoln(format!("    ↳ contract_id: {contract_id}"));
 
         Ok(contract_id)
     }
@@ -744,6 +771,7 @@ export default new Client.Client({{
         contract_id: &Contract,
         after_deploy_script: &str,
     ) -> Result<(), Error> {
+        let printer = self.printer.as_ref().expect("printer must be set");
         for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {
@@ -771,13 +799,18 @@ export default new Client.Client({{
             args.extend_from_slice(&["--"]);
             args.extend(command_parts.iter().map(std::string::String::as_str));
 
-            eprintln!("  ↳ Executing: stellar contract invoke {}", args.join(" "));
+            printer.infoln(format!(
+                "  ↳ Executing: stellar contract invoke {}",
+                args.join(" ")
+            ));
             let result = cli::contract::invoke::Cmd::parse_arg_vec(&args)?
-                .run_against_rpc_server(None, None)
+                .run_against_rpc_server(self.global_args.as_ref(), None)
                 .await?;
-            eprintln!("  ↳ Result: {result:?}");
+            printer.infoln(format!("  ↳ Result: {result:?}"));
         }
-        eprintln!("✅ After deploy script for {name:?} completed successfully");
+        printer.checkln(format!(
+            "After deploy script for {name:?} completed successfully"
+        ));
         Ok(())
     }
 }

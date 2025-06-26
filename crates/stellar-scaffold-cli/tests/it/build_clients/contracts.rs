@@ -34,14 +34,14 @@ soroban_token_contract.client = false
         );
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("creating keys for \"alice\"\n"));
-        assert!(stderr.contains("using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains("Creating keys for \"alice\"\n"));
+        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
 
         for c in contracts {
-            assert!(stderr.contains(&format!("installing \"{c}\" wasm bytecode on-chain")));
-            assert!(stderr.contains(&format!("instantiating \"{c}\" smart contract")));
-            assert!(stderr.contains(&format!("binding \"{c}\" contract")));
-            assert!(stderr.contains(&format!("importing \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Installing \"{c}\" wasm bytecode on-chain")));
+            assert!(stderr.contains(&format!("Instantiating \"{c}\" smart contract")));
+            assert!(stderr.contains(&format!("Binding \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Importing \"{c}\" contract")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -86,14 +86,14 @@ soroban_token_contract.client = false
 "#,
         );
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("creating keys for \"alice\"\n"));
-        assert!(stderr.contains("using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains("Creating keys for \"alice\"\n"));
+        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
 
         for c in contracts {
-            assert!(stderr.contains(&format!("installing \"{c}\" wasm bytecode on-chain")));
-            assert!(stderr.contains(&format!("instantiating \"{c}\" smart contract")));
-            assert!(stderr.contains(&format!("binding \"{c}\" contract")));
-            assert!(stderr.contains(&format!("importing \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Installing \"{c}\" wasm bytecode on-chain")));
+            assert!(stderr.contains(&format!("Instantiating \"{c}\" smart contract")));
+            assert!(stderr.contains(&format!("Binding \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Importing \"{c}\" contract")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -161,7 +161,7 @@ soroban_token_contract.client = false
         // ensure it imports
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("🍽️ importing \"soroban_hello_world_contract\" contract"));
+            .contains("Importing \"soroban_hello_world_contract\" contract"));
 
         let output2 = env
             .stellar_scaffold_env("development", false)
@@ -171,7 +171,7 @@ soroban_token_contract.client = false
         // ensure alias retrieval works
         assert!(output2.status.success());
         assert!(String::from_utf8_lossy(&output2.stderr)
-            .contains("✅ Contract \"soroban_hello_world_contract\" is up to date"));
+            .contains("Contract \"soroban_hello_world_contract\" is up to date"));
 
         let output3 = env
             .stellar_scaffold_env("development", true)
@@ -181,7 +181,7 @@ soroban_token_contract.client = false
         // ensure contract hash change check works, should update in dev mode
         assert!(output3.status.success());
         let message = String::from_utf8_lossy(&output3.stderr);
-        assert!(message.contains("🔄 Updating contract \"soroban_hello_world_contract\""));
+        assert!(message.contains("Updating contract \"soroban_hello_world_contract\""));
         let Some(contract_id) = extract_contract_id(&message) else {
             panic!("Could not find contract ID in stderr");
         };
@@ -273,10 +273,10 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
-    assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
+    assert!(stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
+    assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
     assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
+    assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
 
     // Switch to a new directory
 
@@ -308,10 +308,10 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
-    assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
+    assert!(stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain"));
+    assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
     assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
+    assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
     // Check that the contract files are created in the new directory
     assert!(env
         .cwd
@@ -355,14 +355,14 @@ soroban_token_contract.client = false
             .success()
             .stderr_as_str();
 
-        assert!(stderr.contains("creating keys for \"alice\"\n"));
-        assert!(stderr.contains("using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains("Creating keys for \"alice\"\n"));
+        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
         assert!(
-            stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
+            stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
         );
-        assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
-        assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
-        assert!(stderr.contains("importing \"soroban_hello_world_contract\" contract"));
+        assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
+        assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
+        assert!(stderr.contains("Importing \"soroban_hello_world_contract\" contract"));
 
         // Check that WASM file was copied to custom out_dir
         assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
