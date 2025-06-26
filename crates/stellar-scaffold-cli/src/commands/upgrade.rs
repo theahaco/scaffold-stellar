@@ -462,12 +462,13 @@ impl Cmd {
         let mut select = Select::new()
             .with_prompt(format!("Select value for --{arg_name}"))
             .default(0); // This will show the cursor on the first option initially
-        
+
         // Add "Skip" option
         select = select.item("(Skip - leave blank)");
 
         // Parse the values from "a | b | c" format and add numeric options
-        for value in value_name.split('|') {
+        let values: Vec<&str> = value_name.split('|').collect();
+        for value in &values {
             select = select.item(format!("Value: {value}"));
         }
 
