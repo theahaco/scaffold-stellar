@@ -392,7 +392,7 @@ impl Cmd {
 
         let help_text = arg.get_long_help().or(arg.get_help()).map_or_else(
             || "No description available".to_string(),
-            std::string::ToString::to_string,
+            ToString::to_string,
         );
 
         let value_name = arg
@@ -428,31 +428,31 @@ impl Cmd {
             .allow_empty(true)
             .interact();
 
-        match input_result {
-            Ok(value) => {
-                let value = value.trim();
-                if value.is_empty() {
-                    Ok(Some(format!("--{arg_name} # TODO: Fill in value")))
-                } else {
-                    // Check if the value is already quoted
-                    let is_already_quoted = (value.starts_with('"') && value.ends_with('"'))
-                        || (value.starts_with('\'') && value.ends_with('\''));
+        let value = input_result
+            .as_deref()
+            .map(str::trim)
+            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
 
-                    // Only wrap in quotes if it's not already quoted and contains special characters or spaces
-                    if !is_already_quoted
-                        && (value.contains(' ')
-                            || value.contains('{')
-                            || value.contains('[')
-                            || value.contains('"'))
-                    {
-                        Ok(Some(format!("--{arg_name} '{value}'")))
-                    } else {
-                        Ok(Some(format!("--{arg_name} {value}")))
-                    }
-                }
+        let value = if value.is_empty() {
+            "# TODO: Fill in value"
+        } else {
+            // Check if the value is already quoted
+            let is_already_quoted = (value.starts_with('"') && value.ends_with('"'))
+                || (value.starts_with('\'') && value.ends_with('\''));
+
+            // Only wrap in quotes if it's not already quoted and contains special characters or spaces
+            if !is_already_quoted
+                && (value.contains(' ')
+                    || value.contains('{')
+                    || value.contains('[')
+                    || value.contains('"'))
+            {
+                &format!("'{value}'")
+            } else {
+                value
             }
-            Err(e) => Err(Error::ConstructorArgsError(format!("Input error: {e}"))),
-        }
+        };
+        Ok(Some(format!("--{arg_name} {value}")))
     }
 
     fn handle_simple_enum_argument(
@@ -467,7 +467,7 @@ impl Cmd {
         select = select.item("(Skip - leave blank)");
 
         // Parse the values from "a | b | c" format and add numeric options
-        let values: Vec<&str> = value_name.split('|').collect();
+        let values: Vec<_> = value_name.split('|').collect();
         for value in &values {
             select = select.item(format!("Value: {value}"));
         }
@@ -489,8 +489,7 @@ impl Cmd {
             .default(false)
             .interact()
             .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
-
-        Ok(Some(format!("--{arg_name} {bool_value}")))
+        Ok(bool_value.then(|| format!("--{arg_name}")))
     }
 
     fn setup_env_file(&self) -> Result<(), Error> {
