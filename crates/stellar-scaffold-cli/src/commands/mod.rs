@@ -7,6 +7,7 @@ pub mod build;
 pub mod generate;
 pub mod init;
 pub mod update_env;
+pub mod upgrade;
 pub mod watch;
 
 const ABOUT: &str = "Build smart contracts with frontend support";
@@ -41,10 +42,11 @@ impl Root {
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
             Cmd::Init(init_info) => init_info.run(&self.global_args).await?,
-            Cmd::Build(build_info) => build_info.run().await?, // todo pass global args to build and watch
+            Cmd::Build(build_info) => build_info.run().await?,
             Cmd::Generate(generate) => match &mut generate.cmd {
                 generate::Command::Contract(contract) => contract.run(&self.global_args).await?,
             },
+            Cmd::Upgrade(upgrade_info) => upgrade_info.run(&self.global_args).await?,
             Cmd::UpdateEnv(e) => e.run()?,
             Cmd::Watch(watch_info) => watch_info.run().await?,
         }
@@ -71,6 +73,9 @@ pub enum Cmd {
     /// generate contracts
     Generate(generate::Cmd),
 
+    /// Upgrade an existing Soroban workspace to a scaffold project
+    Upgrade(upgrade::Cmd),
+
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
 
@@ -87,6 +92,8 @@ pub enum Error {
     BuildContracts(#[from] build::Error),
     #[error(transparent)]
     Contract(#[from] generate::contract::Error),
+    #[error(transparent)]
+    Upgrade(#[from] upgrade::Error),
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]
