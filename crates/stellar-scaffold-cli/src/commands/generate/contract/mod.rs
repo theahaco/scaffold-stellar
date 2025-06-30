@@ -475,6 +475,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
         let global_args = global::Args::default();

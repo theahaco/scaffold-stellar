@@ -7,10 +7,9 @@ use shlex::split;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
-use stellar_cli::commands::NetworkRunnable;
-use stellar_cli::print::Print;
-use stellar_cli::utils::contract_hash;
-use stellar_cli::{commands as cli, CommandParser};
+use stellar_cli::{
+    commands as cli, commands::NetworkRunnable, print::Print, utils::contract_hash, CommandParser,
+};
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::Error as xdrError;
 
@@ -148,7 +147,7 @@ impl Args {
         Ok(())
     }
 
-    fn stellar_scaffold_env(self, default: ScaffoldEnv) -> String {
+    fn stellar_scaffold_env(&self, default: ScaffoldEnv) -> String {
         self.env.unwrap_or(default).to_string().to_lowercase()
     }
 
@@ -158,7 +157,7 @@ impl Args {
     /// We could set `STELLAR_NETWORK` instead, but when importing contracts, we want to hard-code
     /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
     /// & passphrase for that named network, and still set the environment variables.
-    fn add_network_to_env(self, network: &env_toml::Network) -> Result<(), Error> {
+    fn add_network_to_env(&self, network: &env_toml::Network) -> Result<(), Error> {
         let printer = self.printer.as_ref().expect("printer must be set");
         match &network {
             Network {
@@ -502,7 +501,7 @@ export default new Client.Client({{
     }
 
     async fn handle_contracts(
-        self,
+        &self,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
         package_names: Vec<String>,
         network: &Network,
