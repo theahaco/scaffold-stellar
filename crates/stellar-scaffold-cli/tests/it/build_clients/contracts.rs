@@ -417,53 +417,7 @@ soroban_token_contract.client = false
         // First build to generate accounts and wasm
         env.scaffold("build").assert().success();
 
-        // Debug: Check bob's identity file before corruption
-        let bob_identity_path = env.cwd.join(".stellar/identity/bob.toml");
-        assert!(
-            bob_identity_path.exists(),
-            "Bob's identity file should exist"
-        );
-
-        let original_content = std::fs::read_to_string(&bob_identity_path)
-            .expect("Failed to read bob's identity file");
-        eprintln!(
-            "DEBUG: Original bob identity content:\n{}",
-            original_content
-        );
-
-        // Corrupt bob's identity file to cause deployment failure
-        let corrupt_content =
-            "seed_phrase = \"invalid toml content that should cause parsing errors\"";
-        std::fs::write(&bob_identity_path, corrupt_content)
-            .expect("Failed to corrupt bob's identity");
-
-        // Debug: Verify corruption was applied
-        let corrupted_content = std::fs::read_to_string(&bob_identity_path)
-            .expect("Failed to read corrupted bob's identity file");
-        eprintln!(
-            "DEBUG: Corrupted bob identity content:\n{}",
-            corrupted_content
-        );
-        assert_eq!(
-            corrupted_content, corrupt_content,
-            "Corruption should be applied"
-        );
-
-        // Debug: Check file permissions and metadata
-        let metadata = std::fs::metadata(&bob_identity_path)
-            .expect("Failed to get bob identity file metadata");
-        eprintln!(
-            "DEBUG: Bob identity file metadata - size: {}, readonly: {}",
-            metadata.len(),
-            metadata.permissions().readonly()
-        );
-
-        // Corrupt bob's identity file to cause deployment failure
-        /*let bob_identity_path = env.cwd.join(".stellar/identity/bob.toml");
-        assert!(bob_identity_path.exists(), "Bob's identity file should exist");
-        std::fs::write(&bob_identity_path, "invalid toml content").expect("Failed to corrupt bob's identity");*/
-
-        // Second pass - try to build clients with token contract that uses bob account
+        // Second pass - try to build clients with incorrect constructor args
         env.set_environments_toml(
             r#"
 development.accounts = [
@@ -484,7 +438,7 @@ soroban_auth_contract.client = false
 [development.contracts.soroban_token_contract]
 client = true
 constructor_args = """
-STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bob 
+STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb 
 """
 "#,
         );
