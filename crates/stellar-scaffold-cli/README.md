@@ -2,9 +2,11 @@
 
 CLI toolkit for Stellar smart contract development, providing project scaffolding, build automation, and development workflow tools.
 
-Stellar Scaffold CLI comes with three main commands:
+Stellar Scaffold CLI comes with four main commands:
 
 * `stellar scaffold init` - Creates a new Stellar smart contract project with best practices and configurations in place, including an `environments.toml` file for managing network settings, accounts, and contracts across different environments.
+
+* `stellar scaffold upgrade` - Transforms an existing Soroban workspace into a full scaffold project by adding frontend components, environment configurations, and project structure. Preserves existing contracts while adding the complete development toolkit.
 
 * `stellar scaffold build` - Manages two key build processes:
   * Build smart contracts with metadata and handle dependencies
@@ -16,9 +18,17 @@ Stellar Scaffold CLI comes with three main commands:
 
 ## Getting Started
 
+### New Project
+
 1. Install the CLI:
 ```bash
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-scaffold-cli
+cargo install stellar-scaffold-cli
+```
+
+Or [`cargo-binstall`](github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall stellar-scaffold-cli
 ```
 
 2. Create a new project:
@@ -31,6 +41,20 @@ This creates:
 - A smart contract project with recommended configurations
 - A frontend application based on [scaffold-stellar-frontend](https://github.com/AhaLabs/scaffold-stellar-frontend)
 - Environment configurations for both contract and frontend development
+
+### Upgrading Existing Workspace
+
+If you have an existing Soroban workspace, you can upgrade it to a full scaffold project:
+```bash
+cd my-existing-workspace
+stellar scaffold upgrade
+```
+
+This will:
+- Add the frontend application and development tools
+- Generate `environments.toml` with your existing contracts
+- Set up environment files and configurations
+- Preserve all your existing contract code and structure
 
 3. Set up your environment:
 ```bash
@@ -45,7 +69,6 @@ stellar scaffold watch --build-clients
 ## Environment Configuration
 
 Projects use `environments.toml` to define network settings, accounts, and contract configurations for different environments. Example:
-
 ```toml
 [development]
 network = { 

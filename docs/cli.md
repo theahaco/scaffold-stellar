@@ -18,10 +18,32 @@ The init command creates:
 - A frontend application using the [scaffold-stellar-frontend](https://github.com/AhaLabs/scaffold-stellar-frontend) template
 - Configuration files for both contract and frontend development
 
+## Upgrade Command
+
+Transform an existing Soroban workspace into a full scaffold project:
+```bash
+stellar scaffold upgrade [workspace-path]
+```
+
+Options:
+- `workspace-path`: Path to existing workspace (defaults to current directory)
+
+The upgrade command:
+- Validates the existing workspace (requires `Cargo.toml` and `contracts/` directory)
+- Downloads and integrates the frontend template
+- Generates `environments.toml` with discovered contracts
+- Analyzes contracts for constructor arguments and prompts for configuration
+- Preserves all existing contract code and project structure
+- Adds development tools and configurations
+
+Requirements for upgrade:
+- Must have a `Cargo.toml` file in the workspace root
+- Must have a `contracts/` directory with Soroban contracts
+- Contracts should be properly configured as `cdylib` crates
+
 ## Build Command
 
 Build contracts and generate frontend client packages:
-
 ```bash
 stellar scaffold build [options]
 ```
@@ -34,7 +56,6 @@ Options:
 ## Dev Command
 
 Start development mode with hot reloading:
-
 ```bash
 stellar scaffold watch [options]
 ```

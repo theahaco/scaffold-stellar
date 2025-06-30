@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.3...stellar-scaffold-cli-v0.0.4) - 2025-06-26
+
+### Added
+
+- init retrieves fresh FT interface ([#95](https://github.com/AhaLabs/scaffold-stellar/pull/95))
+
+### Fixed
+
+- *(registry-cli)* update mainnet instructions to inform about security practices and docs ([#112](https://github.com/AhaLabs/scaffold-stellar/pull/112))
+
+### Other
+
+- upgrade a project to a scaffold project ([#114](https://github.com/AhaLabs/scaffold-stellar/pull/114))
+
+## [0.0.3](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.2...stellar-scaffold-cli-v0.0.3) - 2025-06-18
+
+### Added
+
+- add Cargo metadata ([#108](https://github.com/AhaLabs/scaffold-stellar/pull/108))
+
+### Fixed
+
+- update readmes to point to current directory instead of project ([#109](https://github.com/AhaLabs/scaffold-stellar/pull/109))
+- only copy contents to output location ([#107](https://github.com/AhaLabs/scaffold-stellar/pull/107))
+- ensure account gets funded even if identity already exists ([#106](https://github.com/AhaLabs/scaffold-stellar/pull/106))
+
 ## [0.0.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.1...stellar-scaffold-cli-v0.0.2) - 2025-06-11
 
 ### Added
