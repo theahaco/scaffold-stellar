@@ -67,6 +67,7 @@ jobs:
         run: echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
       - name: Set Perl environment variables
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           echo "PERL=$(where.exe perl)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           echo "OPENSSL_SRC_PERL=$(where.exe perl)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8

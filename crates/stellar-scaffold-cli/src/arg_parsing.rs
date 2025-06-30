@@ -22,8 +22,10 @@ pub enum Error {
     ScAddress(#[from] sc_address::Error),
     #[error(transparent)]
     Config(#[from] config::Error),
-    // #[error("")]
-    // HelpMessage(String),
+    #[error(transparent)]
+    Dialoguer(#[from] dialoguer::Error),
+    #[error(transparent)]
+    Spec(#[from] soroban_spec_tools::contract::Error),
 }
 
 pub fn build_custom_cmd(name: &str, spec: &Spec) -> Result<clap::Command, Error> {
@@ -106,3 +108,6 @@ Each arg has a corresponding --<arg_name>-file-path which is a path to a file co
 Note: The only types which aren't JSON are Bytes and BytesN, which are raw bytes"
     )
 }
+
+mod parser;
+pub use parser::*;
