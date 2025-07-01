@@ -57,6 +57,9 @@ fn init_copies_frontend_template() {
         std::time::SystemTime::now().elapsed().unwrap().as_nanos()
     );
     let project_path = env.cwd.join(&project_name);
+    if project_path.exists() {
+        std::fs::remove_dir_all(&project_path).unwrap();
+    }
     env.scaffold("init")
         .args([project_path.to_str().unwrap()])
         .assert()
