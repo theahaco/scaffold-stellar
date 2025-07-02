@@ -129,7 +129,7 @@ impl Args {
             return Ok(());
         };
 
-        self.clone().add_network_to_env(&current_env.network)?;
+        self.add_network_to_env(&current_env.network)?;
         // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
