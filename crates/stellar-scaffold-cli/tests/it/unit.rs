@@ -51,8 +51,15 @@ soroban_token_contract.client = false
 fn init_copies_frontend_template() {
     let env = TestEnv::new_empty();
 
-    // Run loam init with project path
-    let project_path = env.cwd.join("my-project");
+    // Use a unique project name to avoid pre-existing directory issue
+    let project_name = format!(
+        "my-project-{}",
+        std::time::SystemTime::now().elapsed().unwrap().as_nanos()
+    );
+    let project_path = env.cwd.join(&project_name);
+    if project_path.exists() {
+        std::fs::remove_dir_all(&project_path).unwrap();
+    }
     env.scaffold("init")
         .args([project_path.to_str().unwrap()])
         .assert()
