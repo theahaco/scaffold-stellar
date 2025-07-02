@@ -29,7 +29,7 @@ impl std::fmt::Display for ScaffoldEnv {
     }
 }
 
-#[derive(clap::Args, Clone)]
+#[derive(clap::Args, Clone, Debug)]
 pub struct Args {
     #[arg(env = "STELLAR_SCAFFOLD_ENV", value_enum)]
     pub env: Option<ScaffoldEnv>,
@@ -40,20 +40,6 @@ pub struct Args {
     pub out_dir: Option<std::path::PathBuf>,
     #[arg(skip)]
     pub global_args: Option<stellar_cli::commands::global::Args>,
-    #[arg(skip)]
-    pub printer: Option<Print>,
-}
-
-impl std::fmt::Debug for Args {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Args")
-            .field("env", &self.env)
-            .field("workspace_root", &self.workspace_root)
-            .field("out_dir", &self.out_dir)
-            .field("global_args", &self.global_args)
-            .field("printer", &"<Print>")
-            .finish()
-    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -115,6 +101,10 @@ pub enum Error {
 }
 
 impl Args {
+    fn printer(&self) -> Print {
+        Print::new(self.global_args.as_ref().is_some_and(|args| args.quiet))
+    }
+
     pub async fn run(&self, package_names: Vec<String>) -> Result<(), Error> {
         let workspace_root = self
             .workspace_root
@@ -158,7 +148,7 @@ impl Args {
     /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
     /// & passphrase for that named network, and still set the environment variables.
     fn add_network_to_env(&self, network: &env_toml::Network) -> Result<(), Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         match &network {
             Network {
                 name: Some(name), ..
@@ -301,7 +291,7 @@ export default new Client.Client({{
     }
 
     async fn generate_contract_bindings(self, name: &str, contract_id: &str) -> Result<(), Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = self
             .workspace_root
@@ -375,7 +365,7 @@ export default new Client.Client({{
         accounts: Option<&[env_toml::Account]>,
         network: &Network,
     ) -> Result<(), Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -575,7 +565,7 @@ export default new Client.Client({{
         network: &Network,
         env: &str,
     ) -> Result<(), Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         // First check if we have an ID in settings
         let contract_id = if let Some(id) = &settings.id {
             Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
@@ -627,7 +617,7 @@ export default new Client.Client({{
         name: &str,
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         printer.infoln(format!("Installing {name:?} wasm bytecode on-chain..."));
         let workspace_root = self
             .workspace_root
@@ -687,7 +677,7 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         let workspace_root = self
             .workspace_root
             .as_ref()
@@ -770,7 +760,7 @@ export default new Client.Client({{
         contract_id: &Contract,
         after_deploy_script: &str,
     ) -> Result<(), Error> {
-        let printer = self.printer.as_ref().expect("printer must be set");
+        let printer = self.printer();
         for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {

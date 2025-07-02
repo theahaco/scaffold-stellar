@@ -329,7 +329,6 @@ impl Cmd {
                 workspace_root: Some(self.workspace_path.clone()),
                 out_dir: None,
                 global_args: Some(global_args.clone()),
-                printer: Some(Print::new(global_args.quiet)),
             },
             build: stellar_cli::commands::contract::build::Cmd {
                 manifest_path: None,

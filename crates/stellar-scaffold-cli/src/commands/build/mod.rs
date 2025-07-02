@@ -124,7 +124,6 @@ impl Command {
             build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
             build_clients_args.out_dir.clone_from(&self.build.out_dir);
             build_clients_args.global_args = Some(global_args.clone());
-            build_clients_args.printer = Some(printer);
             build_clients_args
                 .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;
