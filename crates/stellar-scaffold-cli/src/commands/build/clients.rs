@@ -498,6 +498,8 @@ export default new Client.Client({{
         self.validate_contract_names(contracts)?;
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
+        let mut results: Vec<(String, Result<(), String>)> = Vec::new();
+
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -509,8 +511,37 @@ export default new Client.Client({{
                 continue;
             }
 
-            self.process_single_contract(&name, settings, network, &env)
-                .await?;
+            match self
+                .process_single_contract(&name, settings, network, &env)
+                .await
+            {
+                Ok(()) => {
+                    eprintln!("✅ Successfully generated client for: {name}");
+                    results.push((name, Ok(())));
+                }
+                Err(e) => {
+                    eprintln!("⛔ Failed to generate client for: {name}");
+                    results.push((name, Err(e.to_string())));
+                }
+            }
+        }
+
+        // Partition results into successes and failures
+        let (successes, failures): (Vec<_>, Vec<_>) =
+            results.into_iter().partition(|(_, result)| result.is_ok());
+
+        // Print summary
+        eprintln!("\nClient Generation Summary:");
+        eprintln!("Successfully processed: {}", successes.len());
+        eprintln!("Failed: {}", failures.len());
+
+        if !failures.is_empty() {
+            eprintln!("\nFailures:");
+            for (name, result) in &failures {
+                if let Err(e) = result {
+                    eprintln!("  {name} - Error: {e}");
+                }
+            }
         }
 
         Ok(())
