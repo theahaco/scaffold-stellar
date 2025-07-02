@@ -457,11 +457,11 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb
 
         // Should still process successful contracts
         assert!(
-            stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
+            stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
         );
-        assert!(stderr.contains("installing \"soroban_increment_contract\" wasm bytecode on-chain"));
+        assert!(stderr.contains("Installing \"soroban_increment_contract\" wasm bytecode on-chain"));
         assert!(
-            stderr.contains("installing \"soroban_custom_types_contract\" wasm bytecode on-chain")
+            stderr.contains("Installing \"soroban_custom_types_contract\" wasm bytecode on-chain")
         );
 
         // Check that successful contracts are still deployed
