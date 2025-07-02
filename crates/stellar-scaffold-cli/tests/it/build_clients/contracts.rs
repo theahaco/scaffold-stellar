@@ -389,3 +389,109 @@ soroban_token_contract.client = false
         );
     });
 }
+
+#[test]
+fn contracts_with_failures_show_summary() {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        // First pass - build wasm and create accounts
+        env.set_environments_toml(
+            r#"
+development.accounts = [
+    { name = "alice" },
+    { name = "bob" },
+]
+
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+soroban_hello_world_contract.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+        );
+
+        // First build to generate accounts and wasm
+        env.scaffold("build").assert().success();
+
+        // Second pass - try to build clients with incorrect constructor args
+        env.set_environments_toml(
+            r#"
+development.accounts = [
+    { name = "alice" },
+    { name = "bob" },
+]
+
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+soroban_hello_world_contract.client = true
+soroban_increment_contract.client = true
+soroban_custom_types_contract.client = true
+soroban_auth_contract.client = false
+
+[development.contracts.soroban_token_contract]
+client = true
+constructor_args = """
+STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb 
+"""
+"#,
+        );
+
+        let stderr = env.scaffold("build").assert().success().stderr_as_str();
+        eprintln!("{stderr}");
+
+        // Should show summary of results
+        assert!(stderr.contains("Client Generation Summary:"));
+        assert!(stderr.contains("Successfully processed: 3"));
+        assert!(stderr.contains("Failed: 1"));
+        assert!(stderr.contains("Failures:"));
+
+        // Should show specific failure details for token contract
+        assert!(stderr.contains("soroban_token_contract - Error:"));
+
+        // Should still process successful contracts
+        assert!(
+            stderr.contains("installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
+        );
+        assert!(stderr.contains("installing \"soroban_increment_contract\" wasm bytecode on-chain"));
+        assert!(
+            stderr.contains("installing \"soroban_custom_types_contract\" wasm bytecode on-chain")
+        );
+
+        // Check that successful contracts are still deployed
+        assert!(env
+            .cwd
+            .join("packages/soroban_hello_world_contract")
+            .exists());
+        assert!(env.cwd.join("packages/soroban_increment_contract").exists());
+        assert!(env
+            .cwd
+            .join("packages/soroban_custom_types_contract")
+            .exists());
+        assert!(env
+            .cwd
+            .join("src/contracts/soroban_hello_world_contract.ts")
+            .exists());
+        assert!(env
+            .cwd
+            .join("src/contracts/soroban_increment_contract.ts")
+            .exists());
+        assert!(env
+            .cwd
+            .join("src/contracts/soroban_custom_types_contract.ts")
+            .exists());
+
+        // Failed contract should not have generated client files
+        assert!(!env.cwd.join("packages/soroban_token_contract").exists());
+        assert!(!env
+            .cwd
+            .join("src/contracts/soroban_token_contract.ts")
+            .exists());
+    });
+}
