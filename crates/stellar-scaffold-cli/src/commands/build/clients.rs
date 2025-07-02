@@ -379,7 +379,7 @@ export default new Client.Client({{
             std::fs::rename(&final_output_dir, &backup_dir)?;
 
             match std::fs::rename(&temp_dir, &final_output_dir) {
-                Ok(_) => {
+                Ok(()) => {
                     // Success! Clean up backup
                     let _ = std::fs::remove_dir_all(&backup_dir);
                     eprintln!("✅ Client {name:?} updated successfully");
