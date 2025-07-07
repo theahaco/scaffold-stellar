@@ -42,6 +42,7 @@ impl AssertExt for Assert {
 impl TestEnv {
     pub fn new(template: &str) -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
+        unsafe { std::env::set_var("XDG_CACHE_DIR", temp_dir.join(".cache").to_str().unwrap()) };
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
