@@ -72,6 +72,7 @@ impl Cmd {
         let fungible_token_path = contracts_path.join("fungible-token-interface");
 
         if fungible_token_path.exists() {
+            eprintln!("Removing existing directory at {fungible_token_path:?}");
             remove_dir_all(&fungible_token_path)?;
         }
 

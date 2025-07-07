@@ -413,6 +413,7 @@ members = []
 
         if should_update_cache {
             if repo_cache_path.exists() {
+                eprintln!("Removing existing cache directory at {repo_cache_path:?}");
                 fs::remove_dir_all(&repo_cache_path)?;
             }
             Self::cache_repository(&repo_cache_path, &cache_ref_file, &tag_name).await?;
