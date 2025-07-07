@@ -85,6 +85,7 @@ impl TestEnv {
 
     pub fn new_empty() -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
+        eprintln!("new test dir created at {}", temp_dir.to_str().unwrap());
         Self {
             cwd: temp_dir.path().to_path_buf(),
             temp_dir,
