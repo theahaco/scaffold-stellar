@@ -284,10 +284,7 @@ members = []
         Ok(release)
     }
 
-    async fn cache_repository(
-        repo_cache_path: &Path,
-        tag_name: &str,
-    ) -> Result<(), Error> {
+    async fn cache_repository(repo_cache_path: &Path, tag_name: &str) -> Result<(), Error> {
         fs::create_dir_all(repo_cache_path)?;
 
         // Download and extract the specific tag directly
@@ -367,9 +364,7 @@ members = []
         Ok(())
     }
 
-    async fn ensure_cache_updated(
-        &self,
-    ) -> Result<std::path::PathBuf, Error> {
+    async fn ensure_cache_updated(&self) -> Result<std::path::PathBuf, Error> {
         let cache_dir = dirs::cache_dir().ok_or_else(|| {
             Error::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
