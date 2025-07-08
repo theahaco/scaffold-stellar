@@ -370,12 +370,12 @@ export default new Client.Client({{
             {
                 std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
             }
-            printer.checkln("Client {name:?} updated successfully");
+            printer.checkln(format!("Client {name:?} updated successfully"));
         } else {
             std::fs::create_dir_all(&final_output_dir)?;
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
-            printer.checkln("Client {name:?} created successfully");
+            printer.checkln(format!("Client {name:?} created successfully"));
         }
 
         self.create_contract_template(name, contract_id)?;
@@ -553,11 +553,11 @@ export default new Client.Client({{
                 .await
             {
                 Ok(()) => {
-                    printer.checkln("Successfully generated client for: {name}");
+                    printer.checkln(format!("Successfully generated client for: {name}"));
                     results.push((name, Ok(())));
                 }
                 Err(e) => {
-                    printer.errorln("Failed to generate client for: {name}");
+                    printer.errorln(format!("Failed to generate client for: {name}"));
                     results.push((name, Err(e.to_string())));
                 }
             }
@@ -568,15 +568,15 @@ export default new Client.Client({{
             results.into_iter().partition(|(_, result)| result.is_ok());
 
         // Print summary
-        printer.infoln("\nClient Generation Summary:");
+        printer.infoln("Client Generation Summary:");
         printer.blankln(format!("Successfully processed: {}", successes.len()));
         printer.blankln(format!("Failed: {}", failures.len()));
 
         if !failures.is_empty() {
-            printer.blankln("Failures:");
+            printer.infoln("Failures:");
             for (name, result) in &failures {
                 if let Err(e) = result {
-                    printer.blankln(format!("  {name} - Error: {e}"));
+                    printer.blankln(format!("{name}: {e}"));
                 }
             }
         }
