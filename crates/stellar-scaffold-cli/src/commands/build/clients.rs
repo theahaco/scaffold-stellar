@@ -359,6 +359,7 @@ export default new Client.Client({{
             }
             eprintln!("✅ Client {name:?} updated successfully");
         } else {
+            std::fs::create_dir_all(&final_output_dir)?;
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
             eprintln!("✅ Client {name:?} created successfully");
