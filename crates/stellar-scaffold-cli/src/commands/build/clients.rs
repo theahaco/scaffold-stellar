@@ -6,6 +6,7 @@ use serde_json;
 use shlex::split;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::path::Path;
 use std::process::Command;
 use stellar_cli::commands::NetworkRunnable;
 use stellar_cli::utils::contract_hash;
@@ -352,10 +353,11 @@ export default new Client.Client({{
 
         // Now atomically replace the old directory with the new one
         if final_output_dir.exists() {
-            if let Err(e) = std::fs::rename(&temp_dir, &final_output_dir) {
-                // Failed to move new directory, clean up temp directory
-                std::fs::remove_dir_all(&temp_dir)?;
-                return Err(Error::Io(e));
+            for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
+                .iter()
+                .map(Path::new)
+            {
+                std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
             }
             eprintln!("✅ Client {name:?} updated successfully");
         } else {
