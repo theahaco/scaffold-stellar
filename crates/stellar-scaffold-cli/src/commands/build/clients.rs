@@ -254,7 +254,7 @@ impl Args {
         config_dir.save_contract_id(&passphrase, contract_id, name)
     }
 
-    fn create_contract_template(&self, name: &str, contract_id: &str) -> String {
+    fn create_contract_template(&self, name: &str, contract_id: &str) -> Result<(), Error> {
         let allow_http = if self.stellar_scaffold_env(ScaffoldEnv::Production) == "production" {
             "\n  allowHttp: true,"
         } else {
@@ -262,7 +262,7 @@ impl Args {
         };
         let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
             .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
-        format!(
+        let template = format!(
             r"import * as Client from '{name}';
 import {{ rpcUrl }} from './util';
 
@@ -273,14 +273,17 @@ export default new Client.Client({{
   publicKey: undefined,
 }});
 "
-        )
+        );
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root not set");
+        let path = workspace_root.join(format!("src/contracts/{name}.ts"));
+        std::fs::write(path, template)?;
+        Ok(())
     }
 
-    async fn generate_contract_bindings(
-        &self,
-        name: &str,
-        contract_id: &str,
-    ) -> Result<String, Error> {
+    async fn generate_contract_bindings(&self, name: &str, contract_id: &str) -> Result<(), Error> {
         eprintln!("🎭 binding {name:?} contract");
         let workspace_root = self
             .workspace_root
@@ -367,8 +370,8 @@ export default new Client.Client({{
             eprintln!("✅ Client {name:?} created successfully");
         }
 
-        // Return the contract template content instead of writing it immediately
-        Ok(self.create_contract_template(name, contract_id))
+        self.create_contract_template(name, contract_id)?;
+        Ok(())
     }
 
     async fn handle_accounts(
@@ -535,7 +538,7 @@ export default new Client.Client({{
                 .process_single_contract(&name, settings, network, &env)
                 .await
             {
-                Ok(_) => {
+                Ok(()) => {
                     eprintln!("✅ Successfully generated client for: {name}");
                     results.push((name, Ok(())));
                 }
@@ -602,7 +605,7 @@ export default new Client.Client({{
         settings: env_toml::Contract,
         network: &Network,
         env: &str,
-    ) -> Result<String, Error> {
+    ) -> Result<(), Error> {
         // First check if we have an ID in settings
         let contract_id = if let Some(id) = &settings.id {
             Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
@@ -621,10 +624,9 @@ export default new Client.Client({{
                     .await?
                 {
                     eprintln!("✅ Contract {name:?} is up to date");
-                    let template = self
-                        .generate_contract_bindings(name, &existing_contract_id.to_string())
+                    self.generate_contract_bindings(name, &existing_contract_id.to_string())
                         .await?;
-                    return Ok(template);
+                    return Ok(());
                 }
                 eprintln!("🔄 Updating contract {name:?}");
             }
@@ -645,11 +647,10 @@ export default new Client.Client({{
             contract_id
         };
 
-        let template = self
-            .generate_contract_bindings(name, &contract_id.to_string())
+        self.generate_contract_bindings(name, &contract_id.to_string())
             .await?;
 
-        Ok(template)
+        Ok(())
     }
 
     async fn upload_contract_wasm(
