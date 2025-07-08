@@ -157,6 +157,11 @@ See the [CLI Documentation](./docs/cli.md) for detailed command information and 
 
 Contributions are welcome! Please check out our [Contributing Guide](CONTRIBUTING.md) for guidelines.
 
+## Additional Developer Resources
+- Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
+- Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
+- Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
+
 ## License
 
 This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
