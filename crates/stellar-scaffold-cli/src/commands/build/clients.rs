@@ -360,7 +360,7 @@ export default new Client.Client({{
                 ),
             ));
         }
-        printer.checkln(format!("✅ 'npm run build' succeeded in {temp_dir_display}"));
+        printer.checkln(format!("'npm run build' succeeded in {temp_dir_display}"));
 
         // Now atomically replace the old directory with the new one
         if final_output_dir.exists() {
@@ -370,12 +370,12 @@ export default new Client.Client({{
             {
                 std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
             }
-            eprintln!("✅ Client {name:?} updated successfully");
+            printer.checkln("Client {name:?} updated successfully");
         } else {
             std::fs::create_dir_all(&final_output_dir)?;
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
-            eprintln!("✅ Client {name:?} created successfully");
+            printer.checkln("Client {name:?} created successfully");
         }
 
         self.create_contract_template(name, contract_id)?;
@@ -518,6 +518,7 @@ export default new Client.Client({{
         package_names: Vec<String>,
         network: &Network,
     ) -> Result<(), Error> {
+        let printer = self.printer();
         if package_names.is_empty() {
             return Ok(());
         }
@@ -552,11 +553,11 @@ export default new Client.Client({{
                 .await
             {
                 Ok(()) => {
-                    eprintln!("✅ Successfully generated client for: {name}");
+                    printer.checkln("Successfully generated client for: {name}");
                     results.push((name, Ok(())));
                 }
                 Err(e) => {
-                    eprintln!("⛔ Failed to generate client for: {name}");
+                    printer.errorln("Failed to generate client for: {name}");
                     results.push((name, Err(e.to_string())));
                 }
             }
@@ -567,15 +568,15 @@ export default new Client.Client({{
             results.into_iter().partition(|(_, result)| result.is_ok());
 
         // Print summary
-        eprintln!("\nClient Generation Summary:");
-        eprintln!("Successfully processed: {}", successes.len());
-        eprintln!("Failed: {}", failures.len());
+        printer.infoln("\nClient Generation Summary:");
+        printer.blankln(format!("Successfully processed: {}", successes.len()));
+        printer.blankln(format!("Failed: {}", failures.len()));
 
         if !failures.is_empty() {
-            eprintln!("\nFailures:");
+            printer.blankln("Failures:");
             for (name, result) in &failures {
                 if let Err(e) = result {
-                    eprintln!("  {name} - Error: {e}");
+                    printer.blankln(format!("  {name} - Error: {e}"));
                 }
             }
         }
@@ -637,7 +638,7 @@ export default new Client.Client({{
                     .contract_hash_matches(&existing_contract_id, &hash, network)
                     .await?
                 {
-                    printer.checkln("Contract {name:?} is up to date");
+                    printer.checkln(format!("Contract {name:?} is up to date"));
                     self.generate_contract_bindings(name, &existing_contract_id.to_string())
                         .await?;
                     return Ok(());

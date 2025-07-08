@@ -167,6 +167,7 @@ soroban_token_contract.client = false
             .expect("Failed to execute command");
 
         // ensure alias retrieval works
+        eprintln!("{:?}", String::from_utf8_lossy(&output2.stderr));
         assert!(output2.status.success());
         assert!(String::from_utf8_lossy(&output2.stderr)
             .contains("Contract \"soroban_hello_world_contract\" is up to date"));
