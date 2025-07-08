@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use std::{fmt::Debug, io, path::Path, process::ExitStatus};
 use stellar_cli::commands::contract::build::Cmd;
 use stellar_cli::commands::{contract::build, global};
+use stellar_cli::print::Print;
 
 pub mod clients;
 pub mod docker;
@@ -80,26 +81,27 @@ impl Command {
     ) -> Result<(), Error> {
         if let Some(current_env) = env_toml::Environment::get(workspace_root, &env.to_string())? {
             if current_env.network.run_locally {
-                eprintln!("Starting local Stellar Docker container...");
                 docker::start_local_stellar().await.map_err(|e| {
                     eprintln!("Failed to start Stellar Docker container: {e:?}");
                     Error::DockerStart
                 })?;
-                eprintln!("Local Stellar network is healthy and running.");
             }
         }
         Ok(())
     }
 
-    pub async fn run(&self) -> Result<(), Error> {
+    pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
         let metadata = self.metadata()?;
         let packages = self.list_packages(&metadata)?;
         let workspace_root = metadata.workspace_root.as_std_path();
 
         if let Some(env) = &self.build_clients_args.env {
             if env == &ScaffoldEnv::Development {
+                printer.infoln("Starting local Stellar Docker container...");
                 self.start_local_docker_if_needed(workspace_root, env)
                     .await?;
+                printer.checkln("Local Stellar network is healthy and running.");
             }
         }
 
@@ -112,17 +114,16 @@ impl Command {
 
         let target_dir = &metadata.target_directory;
 
-        let global_args = global::Args::default();
-
         for p in &packages {
-            self.create_cmd(p, target_dir)?.run(&global_args)?;
+            self.create_cmd(p, target_dir)?.run(global_args)?;
         }
 
         if self.build_clients {
             let mut build_clients_args = self.build_clients_args.clone();
-            // Pass through the workspace_root and out_dir from the build command
+            // Pass through the workspace_root, out_dir, global_args, and printer
             build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
             build_clients_args.out_dir.clone_from(&self.build.out_dir);
+            build_clients_args.global_args = Some(global_args.clone());
             build_clients_args
                 .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;

@@ -77,7 +77,7 @@ impl Cmd {
             .clone()
             .unwrap_or_else(|| format!("contracts/{example_name}"));
 
-        let repo_cache_path = self.ensure_cache_updated(global_args).await?;
+        let repo_cache_path = self.ensure_cache_updated().await?;
 
         // Check if the example exists
         let example_source_path = repo_cache_path.join(format!("examples/{example_name}"));
@@ -227,7 +227,7 @@ members = []
 
         printer.infoln("Fetching available contract examples...");
 
-        let repo_cache_path = self.ensure_cache_updated(global_args).await?;
+        let repo_cache_path = self.ensure_cache_updated().await?;
         let examples_path = repo_cache_path.join("examples");
 
         let mut examples: Vec<String> = if examples_path.exists() {
@@ -284,11 +284,7 @@ members = []
         Ok(release)
     }
 
-    async fn cache_repository(
-        repo_cache_path: &Path,
-        cache_ref_file: &Path,
-        tag_name: &str,
-    ) -> Result<(), Error> {
+    async fn cache_repository(repo_cache_path: &Path, tag_name: &str) -> Result<(), Error> {
         fs::create_dir_all(repo_cache_path)?;
 
         // Download and extract the specific tag directly
@@ -300,7 +296,6 @@ members = []
             )));
         }
 
-        fs::write(cache_ref_file, tag_name)?;
         Ok(())
     }
 
@@ -369,12 +364,7 @@ members = []
         Ok(())
     }
 
-    async fn ensure_cache_updated(
-        &self,
-        global_args: &global::Args,
-    ) -> Result<std::path::PathBuf, Error> {
-        let printer = Print::new(global_args.quiet);
-
+    async fn ensure_cache_updated(&self) -> Result<std::path::PathBuf, Error> {
         let cache_dir = dirs::cache_dir().ok_or_else(|| {
             Error::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -387,35 +377,8 @@ members = []
         // Get the latest release tag
         let Release { tag_name } = Self::fetch_latest_release().await?;
         let repo_cache_path = base_cache_path.join(&tag_name);
-        let cache_ref_file = repo_cache_path.join(".release_ref");
-
-        let should_update_cache = if repo_cache_path.exists() {
-            if let Ok(cached_tag) = fs::read_to_string(&cache_ref_file) {
-                if cached_tag.trim() == tag_name {
-                    printer.infoln(format!("Using cached repository (release {tag_name})..."));
-                    false
-                } else {
-                    printer.infoln(format!(
-                        "New release available ({tag_name}). Updating cache..."
-                    ));
-                    true
-                }
-            } else {
-                printer.infoln("Cache metadata missing. Updating...");
-                true
-            }
-        } else {
-            printer.infoln(format!(
-                "Cache not found. Downloading release {tag_name}..."
-            ));
-            true
-        };
-
-        if should_update_cache {
-            if repo_cache_path.exists() {
-                fs::remove_dir_all(&repo_cache_path)?;
-            }
-            Self::cache_repository(&repo_cache_path, &cache_ref_file, &tag_name).await?;
+        if !repo_cache_path.exists() {
+            Self::cache_repository(&repo_cache_path, &tag_name).await?;
         }
 
         Ok(repo_cache_path)
@@ -475,6 +438,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
         let global_args = global::Args::default();

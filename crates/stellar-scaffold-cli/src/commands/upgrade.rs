@@ -1,7 +1,7 @@
+use crate::arg_parsing::ArgParser;
 use crate::commands::build::env_toml::{Account, Contract, Environment, Network};
 use clap::Parser;
 use degit::degit;
-use dialoguer::{Confirm, Input, Select};
 use indexmap::IndexMap;
 use std::fs;
 use std::fs::{create_dir_all, metadata, read_dir, write};
@@ -20,6 +20,9 @@ pub struct Cmd {
     /// The path to the existing workspace (defaults to current directory)
     #[arg(default_value = ".")]
     pub workspace_path: PathBuf,
+    /// Skip the prompt to fill in constructor arguments
+    #[arg(long)]
+    pub skip_prompt: bool,
 }
 
 /// Errors that can occur during upgrade
@@ -47,8 +50,8 @@ pub enum Error {
     TomlDeserializeError(#[from] toml::de::Error),
     #[error(transparent)]
     BuildError(#[from] build::Error),
-    #[error("Failed to get constructor arguments: {0}")]
-    ConstructorArgsError(String),
+    #[error("Failed to get constructor arguments: {0:?}")]
+    ConstructorArgsError(arg_parsing::Error),
     #[error("WASM file not found for contract '{0}'. Please build the contract first.")]
     WasmFileNotFound(String),
     #[error(transparent)]
@@ -96,7 +99,7 @@ impl Cmd {
         self.setup_env_file()?;
 
         printer.infoln("Creating environments.toml...");
-        self.create_environments_toml().await?;
+        self.create_environments_toml(global_args).await?;
 
         printer.checkln(format!(
             "Workspace successfully upgraded to scaffold project at {:?}",
@@ -184,7 +187,10 @@ impl Cmd {
         Ok(())
     }
 
-    async fn create_environments_toml(&self) -> Result<(), Error> {
+    async fn create_environments_toml(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
         let env_path = self.workspace_path.join("environments.toml");
 
         // Don't overwrite existing environments.toml
@@ -196,7 +202,7 @@ impl Cmd {
         let contracts = self.discover_contracts()?;
 
         // Build contracts to get WASM files for constructor arg analysis
-        self.build_contracts().await?;
+        self.build_contracts(global_args).await?;
 
         // Get constructor args for each contract
         let contract_configs = contracts
@@ -312,13 +318,17 @@ impl Cmd {
         Ok(contracts)
     }
 
-    async fn build_contracts(&self) -> Result<(), Error> {
+    async fn build_contracts(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
         // Run scaffold build to generate WASM files
         let build_cmd = build::Command {
             build_clients_args: build::clients::Args {
                 env: Some(build::clients::ScaffoldEnv::Development),
                 workspace_root: Some(self.workspace_path.clone()),
                 out_dir: None,
+                global_args: Some(global_args.clone()),
             },
             build: stellar_cli::commands::contract::build::Cmd {
                 manifest_path: None,
@@ -335,7 +345,7 @@ impl Cmd {
             build_clients: false, // Don't build clients, just contracts
         };
 
-        build_cmd.run().await?;
+        build_cmd.run(global_args).await?;
         Ok(())
     }
 
@@ -350,146 +360,8 @@ impl Cmd {
 
         // Read the WASM file and get spec entries
         let raw_wasm = fs::read(&wasm_path)?;
-        let entries = soroban_spec_tools::contract::Spec::new(&raw_wasm)?.spec;
-        let spec = soroban_spec_tools::Spec::new(entries.clone());
-
-        // Check if constructor function exists
-        let Ok(func) = spec.find_function("__constructor") else {
-            return Ok(None);
-        };
-        if func.inputs.is_empty() {
-            return Ok(None);
-        }
-
-        // Build the custom command for the constructor
-        let cmd = arg_parsing::build_custom_cmd("__constructor", &spec).map_err(|e| {
-            Error::ConstructorArgsError(format!("Failed to build constructor command: {e}"))
-        })?;
-
-        println!("\n📋 Contract '{contract_name}' requires constructor arguments:");
-
-        let mut args = Vec::new();
-
-        // Loop through the command arguments, skipping file args
-        for arg in cmd.get_arguments() {
-            let arg_name = arg.get_id().as_str();
-
-            // Skip file arguments (they end with -file-path)
-            if arg_name.ends_with("-file-path") {
-                continue;
-            }
-
-            if let Some(arg_value) = Self::handle_constructor_argument(arg)? {
-                args.push(arg_value);
-            }
-        }
-
-        Ok((!args.is_empty()).then(|| args.join(" ")))
-    }
-
-    fn handle_constructor_argument(arg: &clap::Arg) -> Result<Option<String>, Error> {
-        let arg_name = arg.get_id().as_str();
-
-        let help_text = arg.get_long_help().or(arg.get_help()).map_or_else(
-            || "No description available".to_string(),
-            ToString::to_string,
-        );
-
-        let value_name = arg
-            .get_value_names()
-            .map_or_else(|| "VALUE".to_string(), |names| names.join(" "));
-
-        // Display help text before the prompt
-        println!("\n  --{arg_name}");
-        if value_name != "bool" && !help_text.is_empty() {
-            println!("   {help_text}");
-        }
-
-        if value_name == "bool" {
-            Self::handle_bool_argument(arg_name)
-        } else if value_name.contains('|') && Self::is_simple_enum(&value_name) {
-            Self::handle_simple_enum_argument(arg_name, &value_name)
-        } else {
-            // For all other types (complex enums, structs, strings), use string input
-            Self::handle_formatted_input(arg_name)
-        }
-    }
-
-    fn is_simple_enum(value_name: &str) -> bool {
-        value_name.split('|').all(|part| {
-            let trimmed = part.trim();
-            trimmed.parse::<i32>().is_ok() || trimmed.chars().all(|c| c.is_alphabetic() || c == '_')
-        })
-    }
-
-    fn handle_formatted_input(arg_name: &str) -> Result<Option<String>, Error> {
-        let input_result: Result<String, _> = Input::new()
-            .with_prompt(format!("Enter value for --{arg_name}"))
-            .allow_empty(true)
-            .interact();
-
-        let value = input_result
-            .as_deref()
-            .map(str::trim)
-            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
-
-        let value = if value.is_empty() {
-            "# TODO: Fill in value"
-        } else {
-            // Check if the value is already quoted
-            let is_already_quoted = (value.starts_with('"') && value.ends_with('"'))
-                || (value.starts_with('\'') && value.ends_with('\''));
-
-            // Only wrap in quotes if it's not already quoted and contains special characters or spaces
-            if !is_already_quoted
-                && (value.contains(' ')
-                    || value.contains('{')
-                    || value.contains('[')
-                    || value.contains('"'))
-            {
-                &format!("'{value}'")
-            } else {
-                value
-            }
-        };
-        Ok(Some(format!("--{arg_name} {value}")))
-    }
-
-    fn handle_simple_enum_argument(
-        arg_name: &str,
-        value_name: &str,
-    ) -> Result<Option<String>, Error> {
-        let mut select = Select::new()
-            .with_prompt(format!("Select value for --{arg_name}"))
-            .default(0); // This will show the cursor on the first option initially
-
-        // Add "Skip" option
-        select = select.item("(Skip - leave blank)");
-
-        // Parse the values from "a | b | c" format and add numeric options
-        let values: Vec<_> = value_name.split('|').collect();
-        for value in &values {
-            select = select.item(format!("Value: {value}"));
-        }
-
-        let selection = select
-            .interact()
-            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
-
-        Ok((selection > 0).then(|| {
-            // User selected an actual value (not skip)
-            let selected_value = values[selection - 1];
-            format!("--{arg_name} {selected_value}")
-        }))
-    }
-
-    fn handle_bool_argument(arg_name: &str) -> Result<Option<String>, Error> {
-        let bool_value = Confirm::new()
-            .with_prompt(format!("Set --{arg_name} to true?"))
-            .default(false)
-            .interact()
-            .map_err(|e| Error::ConstructorArgsError(format!("Input error: {e}")))?;
-        Ok(bool_value.then(|| format!("--{arg_name}")))
+        ArgParser::get_constructor_args(self.skip_prompt, contract_name, &raw_wasm)
+            .map_err(Error::ConstructorArgsError)
     }
 
     fn setup_env_file(&self) -> Result<(), Error> {

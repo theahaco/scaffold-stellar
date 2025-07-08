@@ -24,8 +24,8 @@ soroban_token_contract.client = false
             .assert()
             .success()
             .stderr_as_str();
-        assert!(stderr.contains("creating keys for \"alice\""));
-        assert!(stderr.contains("creating keys for \"bob\""));
+        assert!(stderr.contains("Creating keys for \"alice\""));
+        assert!(stderr.contains("Creating keys for \"bob\""));
         assert!(env.cwd.join(".stellar/identity/alice.toml").exists());
         assert!(env.cwd.join(".stellar/identity/bob.toml").exists());
 
