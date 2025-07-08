@@ -1,5 +1,7 @@
 # Scaffold Stellar
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AhaLabs/scaffold-stellar)
+
 Scaffold Stellar is a convention-over-configuration toolkit for blockchain and distributed application development on the Stellar network. It provides a seamless development experience through CLI tools, smart contract management, and deployment utilities.
 
 The project consists of several main components:
