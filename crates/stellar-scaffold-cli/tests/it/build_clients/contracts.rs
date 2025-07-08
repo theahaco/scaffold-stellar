@@ -41,7 +41,6 @@ soroban_token_contract.client = false
             assert!(stderr.contains(&format!("installing \"{c}\" wasm bytecode on-chain")));
             assert!(stderr.contains(&format!("instantiating \"{c}\" smart contract")));
             assert!(stderr.contains(&format!("binding \"{c}\" contract")));
-            assert!(stderr.contains(&format!("importing \"{c}\" contract")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -93,7 +92,6 @@ soroban_token_contract.client = false
             assert!(stderr.contains(&format!("installing \"{c}\" wasm bytecode on-chain")));
             assert!(stderr.contains(&format!("instantiating \"{c}\" smart contract")));
             assert!(stderr.contains(&format!("binding \"{c}\" contract")));
-            assert!(stderr.contains(&format!("importing \"{c}\" contract")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -161,7 +159,7 @@ soroban_token_contract.client = false
         // ensure it imports
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("🍽️ importing \"soroban_hello_world_contract\" contract"));
+            .contains("binding \"soroban_hello_world_contract\" contract"));
 
         let output2 = env
             .stellar_scaffold_env("development", false)
@@ -362,7 +360,6 @@ soroban_token_contract.client = false
         );
         assert!(stderr.contains("instantiating \"soroban_hello_world_contract\" smart contract"));
         assert!(stderr.contains("binding \"soroban_hello_world_contract\" contract"));
-        assert!(stderr.contains("importing \"soroban_hello_world_contract\" contract"));
 
         // Check that WASM file was copied to custom out_dir
         assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
