@@ -23,7 +23,7 @@ soroban_token_contract.client = false
         );
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("🌐 using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
     });
 }
 
@@ -61,6 +61,6 @@ soroban_token_contract.client = false
         );
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("🌐 using lol network\n"));
+        assert!(stderr.contains("Using lol network\n"));
     });
 }

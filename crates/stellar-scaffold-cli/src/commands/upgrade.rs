@@ -99,7 +99,7 @@ impl Cmd {
         self.setup_env_file()?;
 
         printer.infoln("Creating environments.toml...");
-        self.create_environments_toml().await?;
+        self.create_environments_toml(global_args).await?;
 
         printer.checkln(format!(
             "Workspace successfully upgraded to scaffold project at {:?}",
@@ -187,7 +187,10 @@ impl Cmd {
         Ok(())
     }
 
-    async fn create_environments_toml(&self) -> Result<(), Error> {
+    async fn create_environments_toml(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
         let env_path = self.workspace_path.join("environments.toml");
 
         // Don't overwrite existing environments.toml
@@ -199,7 +202,7 @@ impl Cmd {
         let contracts = self.discover_contracts()?;
 
         // Build contracts to get WASM files for constructor arg analysis
-        self.build_contracts().await?;
+        self.build_contracts(global_args).await?;
 
         // Get constructor args for each contract
         let contract_configs = contracts
@@ -315,13 +318,17 @@ impl Cmd {
         Ok(contracts)
     }
 
-    async fn build_contracts(&self) -> Result<(), Error> {
+    async fn build_contracts(
+        &self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
         // Run scaffold build to generate WASM files
         let build_cmd = build::Command {
             build_clients_args: build::clients::Args {
                 env: Some(build::clients::ScaffoldEnv::Development),
                 workspace_root: Some(self.workspace_path.clone()),
                 out_dir: None,
+                global_args: Some(global_args.clone()),
             },
             build: stellar_cli::commands::contract::build::Cmd {
                 manifest_path: None,
@@ -338,7 +345,7 @@ impl Cmd {
             build_clients: false, // Don't build clients, just contracts
         };
 
-        build_cmd.run().await?;
+        build_cmd.run(global_args).await?;
         Ok(())
     }
 
