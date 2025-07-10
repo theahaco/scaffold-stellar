@@ -36,6 +36,7 @@ Before you begin, make sure you have the following installed:
 | [Node.js & npm](https://nodejs.org/) | For frontend development | Download from official site |
 | [Just](https://github.com/casey/just) | Task runner used in the setup process | `cargo install just` |
 | [Git](https://git-scm.com/downloads) | To clone the repository | [Download Git](https://git-scm.com/downloads) |
+| [Stellar CLI](https://github.com/stellar/stellar-cli) | for building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli)
 
 ---
 
@@ -48,22 +49,15 @@ This section walks you through setting up Scaffold Stellar from scratch.
 ```
 git clone https://github.com/AhaLabs/scaffold-stellar.git
 cd scaffold-stellar
-```
-### 2. Install the CLI Tools
-```
-# Install stellar-scaffold-cli
-cargo install stellar-scaffold-cli
 
-# Install stellar-scaffold-cli
-cargo install stellar-registry-cli
 ```
-### 3. Create a New Project
+### 2. Create a New Project
 ```
 stellar scaffold init my-project
 cd my-project
 ```
 
-### 4. Configure Your Environment
+### 3. Configure Your Environment
 ```
 # Copy and configure environment variables
 cp .env.example .env
@@ -71,18 +65,18 @@ cp .env.example .env
 
 Edit `.env` with your preferred network, secret keys, and other settings.
 
-### 5. Install Frontend Dependencies
+### 4. Install Frontend Dependencies
 ```
 # Install Frontend dependencies
 npm install
 ```
-### 6. Start Development
+### 5. Start Development
 ```
 npm run dev
 ```
-You should see your React frontend at http://localhost:3000.
+You should see your React frontend at http://localhost:5173.
 
-### 7. For testnet/mainnnet deployment:
+### 6. For testnet/mainnet deployment:
 ```
 # First publish your contract to the registry
 stellar registry publish
@@ -194,7 +188,6 @@ Documentation
 * [CLI Commands](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md)
 * [Environment Setup](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md)
 * [Registry Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/registry.md)
-* [Deployment Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/deployment.md)
 
 ---
 ## Learning Resources
@@ -228,5 +221,3 @@ Or just open an issue — we're happy to help!
 
 Happy hacking! 
 ---
-##### Readme Created by
-##### **[SHISHIR TAMBE](https://github.com/SHISKEBAB)**
