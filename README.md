@@ -40,7 +40,7 @@ Before you begin, make sure you have the following installed:
 
 ---
 
-## Quickstart (New Developers Welcome!)
+## **Quickstart** (New Developers Welcome!)
 
 This section walks you through setting up Scaffold Stellar from scratch.
 
@@ -117,7 +117,7 @@ my-project/
 ├── target/               # Build outputs
 ```
 
-This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with Vite, React, and includes basic components for interacting with the contracts.
+This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with `Vite`, `React`, and includes basic components for interacting with the contracts.
 
 See the [CLI Documentation](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md) for detailed command information and the [Environments Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md) for configuration details.
 
