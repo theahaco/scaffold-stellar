@@ -6,10 +6,11 @@ use serde_json;
 use shlex::split;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::path::Path;
 use std::process::Command;
-use stellar_cli::commands::NetworkRunnable;
-use stellar_cli::utils::contract_hash;
-use stellar_cli::{commands as cli, CommandParser};
+use stellar_cli::{
+    commands as cli, commands::NetworkRunnable, print::Print, utils::contract_hash, CommandParser,
+};
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::Error as xdrError;
 
@@ -29,7 +30,7 @@ impl std::fmt::Display for ScaffoldEnv {
     }
 }
 
-#[derive(clap::Args, Debug, Clone)]
+#[derive(clap::Args, Clone, Debug)]
 pub struct Args {
     #[arg(env = "STELLAR_SCAFFOLD_ENV", value_enum)]
     pub env: Option<ScaffoldEnv>,
@@ -38,6 +39,8 @@ pub struct Args {
     /// Directory where wasm files are located
     #[arg(skip)]
     pub out_dir: Option<std::path::PathBuf>,
+    #[arg(skip)]
+    pub global_args: Option<stellar_cli::commands::global::Args>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -52,6 +55,10 @@ pub enum Error {
     GeneratingKey(#[from] cli::keys::generate::Error),
     #[error("⛔ ️can only have one default account; marked as default: {0:?}")]
     OnlyOneDefaultAccount(Vec<String>),
+    #[error(transparent)]
+    InvalidPublicKey(#[from] cli::keys::public_key::Error),
+    #[error(transparent)]
+    AddressParsing(#[from] stellar_cli::config::address::Error),
     #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
@@ -62,6 +69,8 @@ pub enum Error {
     MissingContractID(String),
     #[error("⛔ ️Unable to parse script: {0:?}")]
     ScriptParseFailure(String),
+    #[error(transparent)]
+    RpcClient(#[from] soroban_rpc::Error),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
     SubCommandExecutionFailure(String, String),
     #[error(transparent)]
@@ -88,9 +97,15 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
     NpmCommandFailure(std::path::PathBuf, String),
+    #[error(transparent)]
+    AccountFund(#[from] cli::keys::fund::Error),
 }
 
 impl Args {
+    fn printer(&self) -> Print {
+        Print::new(self.global_args.as_ref().is_some_and(|args| args.quiet))
+    }
+
     pub async fn run(&self, package_names: Vec<String>) -> Result<(), Error> {
         let workspace_root = self
             .workspace_root
@@ -99,17 +114,19 @@ impl Args {
 
         let Some(current_env) = env_toml::Environment::get(
             workspace_root,
-            &self.clone().stellar_scaffold_env(ScaffoldEnv::Production),
+            &self.stellar_scaffold_env(ScaffoldEnv::Production),
         )?
         else {
             return Ok(());
         };
 
-        Self::add_network_to_env(&current_env.network)?;
+        self.add_network_to_env(&current_env.network)?;
         // Create the '.stellar' directory if it doesn't exist
         std::fs::create_dir_all(workspace_root.join(".stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
-        Self::handle_accounts(current_env.accounts.as_deref()).await?;
+        self.clone()
+            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
+            .await?;
         self.clone()
             .handle_contracts(
                 current_env.contracts.as_ref(),
@@ -121,7 +138,7 @@ impl Args {
         Ok(())
     }
 
-    fn stellar_scaffold_env(self, default: ScaffoldEnv) -> String {
+    fn stellar_scaffold_env(&self, default: ScaffoldEnv) -> String {
         self.env.unwrap_or(default).to_string().to_lowercase()
     }
 
@@ -131,7 +148,8 @@ impl Args {
     /// We could set `STELLAR_NETWORK` instead, but when importing contracts, we want to hard-code
     /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
     /// & passphrase for that named network, and still set the environment variables.
-    fn add_network_to_env(network: &env_toml::Network) -> Result<(), Error> {
+    fn add_network_to_env(&self, network: &env_toml::Network) -> Result<(), Error> {
+        let printer = self.printer();
         match &network {
             Network {
                 name: Some(name), ..
@@ -150,7 +168,7 @@ impl Args {
                     global: false,
                     config_dir: None,
                 })?;
-                eprintln!("🌐 using {name} network");
+                printer.infoln(format!("Using {name} network"));
                 std::env::set_var("STELLAR_RPC_URL", rpc_url);
                 std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase);
             }
@@ -161,7 +179,7 @@ impl Args {
             } => {
                 std::env::set_var("STELLAR_RPC_URL", rpc_url);
                 std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase);
-                eprintln!("🌐 using network at {rpc_url}");
+                printer.infoln(format!("Using network at {rpc_url}"));
             }
             _ => return Err(Error::MalformedNetwork),
         }
@@ -211,7 +229,7 @@ impl Args {
             locator: self.get_config_locator(),
             network: Self::get_network_args(network),
         }
-        .run_against_rpc_server(None, None)
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await;
 
         match result {
@@ -243,19 +261,18 @@ impl Args {
         config_dir.save_contract_id(&passphrase, contract_id, name)
     }
 
-    fn write_contract_template(self, name: &str, contract_id: &str) -> Result<(), Error> {
-        let allow_http =
-            if self.clone().stellar_scaffold_env(ScaffoldEnv::Production) == "development" {
-                "\n  allowHttp: true,"
-            } else {
-                ""
-            };
+    fn create_contract_template(&self, name: &str, contract_id: &str) -> Result<(), Error> {
+        let allow_http = if self.stellar_scaffold_env(ScaffoldEnv::Production) == "production" {
+            "\n  allowHttp: true,"
+        } else {
+            ""
+        };
         let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
             .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
         let template = format!(
             r"import * as Client from '{name}';
 import {{ rpcUrl }} from './util';
-    
+
 export default new Client.Client({{
   networkPassphrase: '{network}',
   contractId: '{contract_id}',
@@ -273,40 +290,47 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn generate_contract_bindings(self, name: &str, contract_id: &str) -> Result<(), Error> {
-        eprintln!("🎭 binding {name:?} contract");
+    async fn generate_contract_bindings(&self, name: &str, contract_id: &str) -> Result<(), Error> {
+        let printer = self.printer();
+        printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = self
             .workspace_root
             .as_ref()
             .expect("workspace_root not set");
-        let output_dir = workspace_root.join(format!("packages/{name}"));
+        let final_output_dir = workspace_root.join(format!("packages/{name}"));
+
+        // Create a temporary directory for building the new client
+        let temp_dir = workspace_root.join(format!("target/packages/{name}"));
+        let temp_dir_display = temp_dir.display();
+
         cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
             "--output-dir",
-            output_dir
+            temp_dir.to_str().expect("we do not support non-utf8 paths"),
+            "--config-dir",
+            workspace_root
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
         ])?
-        .run()
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await?;
 
-        eprintln!("🍽️ importing {name:?} contract");
-        self.write_contract_template(name, contract_id)?;
-
-        // Run `npm i` in the output directory
-        eprintln!("🔧 running 'npm install' in {output_dir:?}");
+        // Run `npm i` in the temp directory
+        printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
         let output = std::process::Command::new("npm")
-            .current_dir(&output_dir)
+            .current_dir(&temp_dir)
             .arg("install")
             .arg("--loglevel=error") // Reduce noise from warnings
             .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
             .output()?;
 
         if !output.status.success() {
+            // Clean up temp directory on failure
+            let _ = std::fs::remove_dir_all(&temp_dir);
             return Err(Error::NpmCommandFailure(
-                output_dir.clone(),
+                temp_dir.clone(),
                 format!(
                     "npm install failed with status: {:?}\nError: {}",
                     output.status.code(),
@@ -314,19 +338,21 @@ export default new Client.Client({{
                 ),
             ));
         }
-        eprintln!("✅ 'npm install' succeeded in {output_dir:?}");
+        printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
 
-        eprintln!("🔨 running 'npm run build' in {output_dir:?}");
+        printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
         let output = std::process::Command::new("npm")
-            .current_dir(&output_dir)
+            .current_dir(&temp_dir)
             .arg("run")
             .arg("build")
             .arg("--loglevel=error") // Reduce noise from warnings
             .output()?;
 
         if !output.status.success() {
+            // Clean up temp directory on failure
+            let _ = std::fs::remove_dir_all(&temp_dir);
             return Err(Error::NpmCommandFailure(
-                output_dir.clone(),
+                temp_dir.clone(),
                 format!(
                     "npm run build failed with status: {:?}\nError: {}",
                     output.status.code(),
@@ -334,11 +360,34 @@ export default new Client.Client({{
                 ),
             ));
         }
-        eprintln!("✅ 'npm run build' succeeded in {output_dir:?}");
+        printer.checkln(format!("'npm run build' succeeded in {temp_dir_display}"));
+
+        // Now atomically replace the old directory with the new one
+        if final_output_dir.exists() {
+            for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
+                .iter()
+                .map(Path::new)
+            {
+                std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
+            }
+            printer.checkln(format!("Client {name:?} updated successfully"));
+        } else {
+            std::fs::create_dir_all(&final_output_dir)?;
+            // No existing directory, just move temp to final location
+            std::fs::rename(&temp_dir, &final_output_dir)?;
+            printer.checkln(format!("Client {name:?} created successfully"));
+        }
+
+        self.create_contract_template(name, contract_id)?;
         Ok(())
     }
 
-    async fn handle_accounts(accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
+    async fn handle_accounts(
+        &self,
+        accounts: Option<&[env_toml::Account]>,
+        network: &Network,
+    ) -> Result<(), Error> {
+        let printer = self.printer();
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
         };
@@ -357,23 +406,61 @@ export default new Client.Client({{
         };
 
         for account in accounts {
-            eprintln!("🔐 creating keys for {:?}", account.name);
-            cli::keys::generate::Cmd::parse_arg_vec(&[&account.name, "--fund"])?
-                .run(&stellar_cli::commands::global::Args::default())
-                .await
-                .or_else(|e| {
-                    if e.to_string().contains("already exists") {
-                        // ignore "already exists" errors
-                        eprintln!("{e}");
-                        Ok(())
-                    } else {
-                        Err(e)
+            printer.infoln(format!("Creating keys for {:?}", account.name));
+            // Use provided global args or create default
+            let args =
+                self.global_args
+                    .clone()
+                    .unwrap_or_else(|| stellar_cli::commands::global::Args {
+                        locator: self.clone().get_config_locator(),
+                        ..Default::default()
+                    });
+
+            let generate_cmd = cli::keys::generate::Cmd {
+                name: account.name.clone().parse()?,
+                fund: true,
+                config_locator: self.get_config_locator(),
+                network: Self::get_network_args(network),
+                seed: None,
+                hd_path: None,
+                no_fund: false,
+                as_secret: false,
+                secure_store: false,
+                overwrite: false,
+            };
+
+            match generate_cmd.run(&args).await {
+                Err(e) if e.to_string().contains("already exists") => {
+                    printer.blankln(e);
+                    // Check if account exists on chain
+                    let rpc_client = soroban_rpc::Client::new(
+                        network
+                            .rpc_url
+                            .as_ref()
+                            .expect("network contains the RPC url"),
+                    )?;
+
+                    let public_key_cmd = cli::keys::public_key::Cmd {
+                        name: account.name.clone().parse()?,
+                        locator: self.get_config_locator(),
+                        hd_path: None,
+                    };
+                    let address = public_key_cmd.public_key().await?;
+
+                    if (rpc_client.get_account(&address.to_string()).await).is_err() {
+                        printer.infoln("Account not found on chain, funding...");
+                        let fund_cmd = cli::keys::fund::Cmd {
+                            network: Self::get_network_args(network),
+                            address: public_key_cmd,
+                        };
+                        fund_cmd.run(&args).await?;
                     }
-                })?;
+                }
+                other_result => other_result?,
+            }
         }
 
         std::env::set_var("STELLAR_ACCOUNT", &default_account);
-
         Ok(())
     }
 
@@ -426,16 +513,17 @@ export default new Client.Client({{
     }
 
     async fn handle_contracts(
-        self,
+        &self,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
         package_names: Vec<String>,
         network: &Network,
     ) -> Result<(), Error> {
+        let printer = self.printer();
         if package_names.is_empty() {
             return Ok(());
         }
 
-        let env = self.clone().stellar_scaffold_env(ScaffoldEnv::Production);
+        let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
             if let Some(contracts) = contracts {
                 self.handle_production_contracts(contracts).await?;
@@ -446,6 +534,9 @@ export default new Client.Client({{
         self.validate_contract_names(contracts)?;
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
+
+        let mut results: Vec<(String, Result<(), String>)> = Vec::new();
+
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -457,8 +548,37 @@ export default new Client.Client({{
                 continue;
             }
 
-            self.process_single_contract(&name, settings, network, &env)
-                .await?;
+            match self
+                .process_single_contract(&name, settings, network, &env)
+                .await
+            {
+                Ok(()) => {
+                    printer.checkln(format!("Successfully generated client for: {name}"));
+                    results.push((name, Ok(())));
+                }
+                Err(e) => {
+                    printer.errorln(format!("Failed to generate client for: {name}"));
+                    results.push((name, Err(e.to_string())));
+                }
+            }
+        }
+
+        // Partition results into successes and failures
+        let (successes, failures): (Vec<_>, Vec<_>) =
+            results.into_iter().partition(|(_, result)| result.is_ok());
+
+        // Print summary
+        printer.infoln("Client Generation Summary:");
+        printer.blankln(format!("Successfully processed: {}", successes.len()));
+        printer.blankln(format!("Failed: {}", failures.len()));
+
+        if !failures.is_empty() {
+            printer.infoln("Failures:");
+            for (name, result) in &failures {
+                if let Err(e) = result {
+                    printer.blankln(format!("{name}: {e}"));
+                }
+            }
         }
 
         Ok(())
@@ -500,6 +620,7 @@ export default new Client.Client({{
         network: &Network,
         env: &str,
     ) -> Result<(), Error> {
+        let printer = self.printer();
         // First check if we have an ID in settings
         let contract_id = if let Some(id) = &settings.id {
             Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
@@ -517,31 +638,31 @@ export default new Client.Client({{
                     .contract_hash_matches(&existing_contract_id, &hash, network)
                     .await?
                 {
-                    eprintln!("✅ Contract {name:?} is up to date");
+                    printer.checkln(format!("Contract {name:?} is up to date"));
+                    self.generate_contract_bindings(name, &existing_contract_id.to_string())
+                        .await?;
                     return Ok(());
                 }
-                eprintln!("🔄 Updating contract {name:?}");
+                printer.infoln(format!("Updating contract {name:?}"));
             }
 
             // Deploy new contract if we got here
             let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            // Run after_deploy script if in development or test environment
+            if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
+                printer.infoln(format!("Running after_deploy script for {name:?}"));
+                self.run_after_deploy_script(
+                    name,
+                    &contract_id,
+                    settings.after_deploy.as_ref().unwrap(),
+                )
+                .await?;
+            }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
         };
 
-        // Run after_deploy script if in development or test environment
-        if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-            eprintln!("🚀 Running after_deploy script for {name:?}");
-            self.run_after_deploy_script(
-                name,
-                &contract_id,
-                settings.after_deploy.as_ref().unwrap(),
-            )
-            .await?;
-        }
-
-        self.clone()
-            .generate_contract_bindings(name, &contract_id.to_string())
+        self.generate_contract_bindings(name, &contract_id.to_string())
             .await?;
 
         Ok(())
@@ -552,19 +673,28 @@ export default new Client.Client({{
         name: &str,
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
-        eprintln!("📲 installing {name:?} wasm bytecode on-chain...");
+        let printer = self.printer();
+        printer.infoln(format!("Installing {name:?} wasm bytecode on-chain..."));
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
+            "--config-dir",
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
         ])?
-        .run_against_rpc_server(None, None)
+        .run_against_rpc_server(self.global_args.as_ref(), None)
         .await?
         .into_result()
         .expect("no hash returned by 'contract upload'")
         .to_string();
-        eprintln!("    ↳ hash: {hash}");
+        printer.infoln(format!("    ↳ hash: {hash}"));
         Ok(hash)
     }
 
@@ -603,11 +733,21 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
+        let printer = self.printer();
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
         let mut deploy_args = vec![
             "--alias".to_string(),
             name.to_string(),
             "--wasm-hash".to_string(),
             hash.to_string(),
+            "--config-dir".to_string(),
+            workspace_root
+                .to_str()
+                .expect("we do not support non-utf8 paths")
+                .to_string(),
         ];
 
         if let Some(constructor_script) = &settings.constructor_args {
@@ -621,17 +761,17 @@ export default new Client.Client({{
             deploy_args.append(&mut args);
         }
 
-        eprintln!("🪞 instantiating {name:?} smart contract");
+        printer.infoln(format!("Instantiating {name:?} smart contract"));
         let deploy_arg_refs: Vec<&str> = deploy_args
             .iter()
             .map(std::string::String::as_str)
             .collect();
         let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?
-            .run_against_rpc_server(None, None)
+            .run_against_rpc_server(self.global_args.as_ref(), None)
             .await?
             .into_result()
             .expect("no contract id returned by 'contract deploy'");
-        eprintln!("    ↳ contract_id: {contract_id}");
+        printer.infoln(format!("    ↳ contract_id: {contract_id}"));
 
         Ok(contract_id)
     }
@@ -676,6 +816,7 @@ export default new Client.Client({{
         contract_id: &Contract,
         after_deploy_script: &str,
     ) -> Result<(), Error> {
+        let printer = self.printer();
         for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {
@@ -684,21 +825,37 @@ export default new Client.Client({{
 
             let (source_account, command_parts) = Self::parse_script_line(line)?;
 
+            let workspace_root = self
+                .workspace_root
+                .as_ref()
+                .expect("workspace_root must be set before running");
             let contract_id_arg = contract_id.to_string();
-            let mut args = vec!["--id", &contract_id_arg];
+            let mut args = vec![
+                "--id",
+                &contract_id_arg,
+                "--config-dir",
+                workspace_root
+                    .to_str()
+                    .expect("we do not support non-utf8 paths"),
+            ];
             if let Some(account) = source_account.as_ref() {
                 args.extend_from_slice(&["--source-account", account]);
             }
             args.extend_from_slice(&["--"]);
             args.extend(command_parts.iter().map(std::string::String::as_str));
 
-            eprintln!("  ↳ Executing: stellar contract invoke {}", args.join(" "));
+            printer.infoln(format!(
+                "  ↳ Executing: stellar contract invoke {}",
+                args.join(" ")
+            ));
             let result = cli::contract::invoke::Cmd::parse_arg_vec(&args)?
-                .run_against_rpc_server(None, None)
+                .run_against_rpc_server(self.global_args.as_ref(), None)
                 .await?;
-            eprintln!("  ↳ Result: {result:?}");
+            printer.infoln(format!("  ↳ Result: {result:?}"));
         }
-        eprintln!("✅ After deploy script for {name:?} completed successfully");
+        printer.checkln(format!(
+            "After deploy script for {name:?} completed successfully"
+        ));
         Ok(())
     }
 }

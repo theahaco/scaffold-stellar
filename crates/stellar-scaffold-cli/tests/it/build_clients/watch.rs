@@ -69,7 +69,7 @@ soroban_token_contract.client = false
             // Wait for the watch process to detect changes and rebuild
             TestEnv::wait_for_output(
                 &mut stderr_lines,
-                "🌐 using network at http://localhost:8000/rpc",
+                "Using network at http://localhost:8000/rpc",
             )
             .await;
 
@@ -102,7 +102,7 @@ soroban_token_contract.client = false
             // Wait for the watch process to detect changes and rebuild
             TestEnv::wait_for_output(
                 &mut stderr_lines,
-                "🌐 using network at http://localhost:9000/rpc",
+                "Using network at http://localhost:9000/rpc",
             )
             .await;
 

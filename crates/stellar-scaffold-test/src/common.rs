@@ -42,6 +42,7 @@ impl AssertExt for Assert {
 impl TestEnv {
     pub fn new(template: &str) -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
+        unsafe { std::env::set_var("XDG_CACHE_DIR", temp_dir.join(".cache").to_str().unwrap()) };
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
@@ -85,6 +86,7 @@ impl TestEnv {
 
     pub fn new_empty() -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
+        eprintln!("new test dir created at {}", temp_dir.to_str().unwrap());
         Self {
             cwd: temp_dir.path().to_path_buf(),
             temp_dir,
@@ -202,6 +204,7 @@ impl TestEnv {
         } else {
             let mut stellar_scaffold = Command::cargo_bin("stellar-scaffold").unwrap();
             stellar_scaffold.current_dir(&self.cwd);
+            stellar_scaffold.env("XDG_CACHE_DIR", self.cwd.join(".cache").to_str().unwrap());
             stellar_scaffold.arg(cmd);
             stellar_scaffold
         }

@@ -6,6 +6,7 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+use stellar_cli::print::Print;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio::time;
@@ -134,7 +135,11 @@ impl Watcher {
 }
 
 impl Cmd {
-    pub async fn run(&mut self) -> Result<(), Error> {
+    pub async fn run(
+        &mut self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
         let (tx, mut rx) = mpsc::channel::<Message>(100);
         let rebuild_state = Arc::new(Mutex::new(false));
         let metadata = &self.build_cmd.metadata()?;
@@ -161,7 +166,7 @@ impl Cmd {
         let watcher = Watcher::new(env_toml_dir, &packages);
 
         for package_path in watcher.packages.iter() {
-            eprintln!("Watching {}", package_path.display());
+            printer.infoln(format!("Watching {}", package_path.display()));
         }
 
         let mut notify_watcher =
@@ -180,13 +185,14 @@ impl Cmd {
             notify_watcher.watch(&canonicalize_path(&package_path), RecursiveMode::Recursive)?;
         }
 
-        let build_command = self.cloned_build_command();
-        if let Err(e) = build_command.run().await {
-            eprintln!("Build error: {e}");
+        let build_command = self.cloned_build_command(global_args);
+        if let Err(e) = build_command.0.run(&build_command.1).await {
+            printer.errorln(format!("Build error: {e}"));
         }
-        eprintln!("Watching for changes. Press Ctrl+C to stop.");
+        printer.infoln("Watching for changes. Press Ctrl+C to stop.");
 
         let rebuild_state_clone = rebuild_state.clone();
+        let printer_clone = printer.clone();
         loop {
             tokio::select! {
                 _ = rx.recv() => {
@@ -194,11 +200,11 @@ impl Cmd {
                     let build_command_inner = build_command.clone();
                     if !*state {
                         *state = true;
-                        tokio::spawn(Self::debounced_rebuild(build_command_inner, Arc::clone(&rebuild_state_clone)));
+                        tokio::spawn(Self::debounced_rebuild(build_command_inner, Arc::clone(&rebuild_state_clone), printer_clone.clone()));
                     }
                 }
                 _ = tokio::signal::ctrl_c() => {
-                    eprintln!("Stopping dev mode.");
+                    printer.infoln("Stopping dev mode.");
                     break;
                 }
             }
@@ -207,27 +213,31 @@ impl Cmd {
     }
 
     async fn debounced_rebuild(
-        build_command: Arc<build::Command>,
+        build_command: Arc<(build::Command, stellar_cli::commands::global::Args)>,
         rebuild_state: Arc<Mutex<bool>>,
+        printer: Print,
     ) {
         // Debounce to avoid multiple rapid rebuilds
         time::sleep(std::time::Duration::from_secs(1)).await;
 
-        eprintln!("Changes detected. Rebuilding...");
-        if let Err(e) = build_command.run().await {
-            eprintln!("Build error: {e}");
+        printer.infoln("Changes detected. Rebuilding...");
+        if let Err(e) = build_command.0.run(&build_command.1).await {
+            printer.errorln(format!("Build error: {e}"));
         }
-        eprintln!("Watching for changes. Press Ctrl+C to stop.");
+        printer.infoln("Watching for changes. Press Ctrl+C to stop.");
 
         let mut state = rebuild_state.lock().await;
         *state = false;
     }
 
-    fn cloned_build_command(&mut self) -> Arc<build::Command> {
+    fn cloned_build_command(
+        &mut self,
+        global_args: &stellar_cli::commands::global::Args,
+    ) -> Arc<(build::Command, stellar_cli::commands::global::Args)> {
         self.build_cmd
             .build_clients_args
             .env
             .get_or_insert(ScaffoldEnv::Development);
-        Arc::new(self.build_cmd.clone())
+        Arc::new((self.build_cmd.clone(), global_args.clone()))
     }
 }

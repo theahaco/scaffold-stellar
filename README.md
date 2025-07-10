@@ -1,5 +1,8 @@
 # Scaffold Stellar
 
+[![Apache 2.0 licensed](https://img.shields.io/badge/license-apache%202.0-blue.svg)](LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AhaLabs/scaffold-stellar)
+
 Scaffold Stellar is a convention-over-configuration toolkit for blockchain and distributed application development on the Stellar network. It provides a seamless development experience through CLI tools, smart contract management, and deployment utilities.
 
 The project consists of several main components:
@@ -143,24 +146,6 @@ This template provides a ready-to-use frontend application with example smart co
 
 See the [CLI Documentation](./docs/cli.md) for detailed command information and the [Environments Guide](./docs/environments.md) for configuration details.
 
-## Configuration
-
-### environments.toml
-
-```toml
-[development]
-network = "standalone"
-# Development configuration
-
-[staging]
-network = "testnet"
-# Staging configuration
-
-[production]
-network = "mainnet"
-# Production configuration
-```
-
 ## Documentation
 
 - [CLI Commands](./docs/cli.md)
@@ -171,6 +156,11 @@ network = "mainnet"
 ## Contributing
 
 Contributions are welcome! Please check out our [Contributing Guide](CONTRIBUTING.md) for guidelines.
+
+## Additional Developer Resources
+- Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
+- Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
+- Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
 
 ## License
 

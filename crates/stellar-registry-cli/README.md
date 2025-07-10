@@ -1,21 +1,45 @@
 # stellar-registry-cli
 
-Command line interface for managing smart contract deployments through the Stellar Registry system. This tool enables deploying and installing contracts that have been published to the Stellar Registry.
+Command line interface for managing smart contract deployments through the Stellar Registry system. This tool enables publishing, deploying, and installing contracts that have been published to the Stellar Registry.
 
 ## Installation
 
-Install directly from the repository:
+Install from cargo:
 
 ```bash
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
+cargo install stellar-registry-cli
+```
+
+Or [`cargo-binstall`](github.com/cargo-bins/cargo-binstall):
+
+```bash
+cargo binstall stellar-registry-cli
 ```
 
 ## Commands
 
+### Publish
+
+Publish a compiled contract to the Stellar Registry:
+```bash
+stellar registry publish \
+  --wasm <PATH_TO_WASM> \
+  [--author <AUTHOR_ADDRESS>] \
+  [--wasm-name <NAME>] \
+  [--binver <VERSION>] \
+  [--dry-run]
+```
+
+Options:
+- `--wasm`: Path to the compiled WASM file (required)
+- `--author`: Author address (optional, defaults to the configured source account)
+- `--wasm-name`: Name for the published contract (optional, extracted from contract metadata if not provided)
+- `--binver`: Binary version (optional, extracted from contract metadata if not provided)
+- `--dry-run`: Simulate the publish operation without actually executing it
+
 ### Deploy
 
 Deploy a published contract with optional initialization parameters:
-
 ```bash
 stellar registry deploy \
   --network <NETWORK_NAME> \
@@ -32,8 +56,7 @@ Options:
 
 ### Install
 
-Install a deployed as an alias to be used by `stellar-cli`:
-
+Install a deployed contract as an alias to be used by `stellar-cli`:
 ```bash
 stellar registry install <CONTRACT_NAME>
 ```
@@ -64,7 +87,14 @@ These variables can also be in a `.env` file in the current working directory.
 
 ## Example Usage
 
-1. Deploy a token contract:
+1. Publish a contract:
+```bash
+stellar registry publish \
+  --wasm path/to/my_token.wasm \
+  --wasm-name token
+```
+
+2. Deploy the published contract:
 ```bash
 stellar registry deploy \
   --contract-name my-token \
@@ -75,21 +105,37 @@ stellar registry deploy \
   --decimals 7
 ```
 
-2. Install the deployed contract:
+3. Install the deployed contract:
 ```bash
 stellar registry install my-token
 ```
 
-Then can interact with it the contract with `stellar-cli`:
+Then can interact with the contract with `stellar-cli`:
 ```bash
 stellar contract invoke --id my-token -- --help
 ```
 
 ### Transitioning to Mainnet
 
+Before you are ready to publish and deploy your contract on mainnet you need to be confident that it is safe.
+
+## Contract Security
+
+Make sure you are following [security best practices recommended by the stellar docs.](https://developers.stellar.org/docs/build/security-docs)
+
+### Security tooling
+
+You can use [scout soroban](https://github.com/CoinFabrik/scout-soroban) to statically analyze your code for potential security issues.
+
+### Contract Auditing
+
+For an additional level of security you can get your contract audited. Stellar has an [Audit Bank](https://stellar.org/blog/developers/soroban-security-audit-bank-raising-the-standard-for-smart-contract-security) that will help connect you with experienced audit providers and help cover the costs of the audit. See [here if you qualify.](https://stellarcommunityfund.gitbook.io/scf-handbook/supporting-programs/audit-bank/official-rules)
+
+### Publishing to Mainnet
+
 Once you are satisfied with your contract you can publish and deploy on Mainnet.
 
-The first step is adding Mainnet to your `stellar-cli`. [See the reccommend list of RPC provides here]( https://developers.stellar.org/docs/data/rpc/rpc-providers)
+The first step is adding Mainnet to your `stellar-cli`. [See the recommended list of RPC providers here](https://developers.stellar.org/docs/data/rpc/rpc-providers)
 
 Then you must add it with the following command:
 ```bash
@@ -110,8 +156,7 @@ echo STELLAR_NETWORK=mainnet >> .env
 
 ## Publishing and then deploying
 
-Publishing and deploying are exactly the same!
-
+Publishing and deploying are exactly the same as other networks, except now you use real lumens!
 
 ## See Also
 

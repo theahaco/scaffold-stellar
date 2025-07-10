@@ -1,12 +1,14 @@
 use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
+use stellar_cli;
 
 pub mod build;
 pub mod generate;
 pub mod init;
 pub mod update_env;
 pub mod version;
+pub mod upgrade;
 pub mod watch;
 
 const ABOUT: &str = "Build smart contracts with frontend support";
@@ -18,6 +20,9 @@ const ABOUT: &str = "Build smart contracts with frontend support";
     disable_help_subcommand = true,
 )]
 pub struct Root {
+    #[clap(flatten)]
+    pub global_args: stellar_cli::commands::global::Args,
+
     #[command(subcommand)]
     pub cmd: Cmd,
 }
@@ -37,14 +42,15 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Init(init_info) => init_info.run()?,
+            Cmd::Init(init_info) => init_info.run(&self.global_args).await?,
             Cmd::Version(version_info) => version_info.run(),
-            Cmd::Build(build_info) => build_info.run().await?,
+            Cmd::Build(build_info) => build_info.run(&self.global_args).await?,
             Cmd::Generate(generate) => match &mut generate.cmd {
-                generate::Command::Contract(contract) => contract.run().await?,
+                generate::Command::Contract(contract) => contract.run(&self.global_args).await?,
             },
+            Cmd::Upgrade(upgrade_info) => upgrade_info.run(&self.global_args).await?,
             Cmd::UpdateEnv(e) => e.run()?,
-            Cmd::Watch(watch_info) => watch_info.run().await?,
+            Cmd::Watch(watch_info) => watch_info.run(&self.global_args).await?,
         }
         Ok(())
     }
@@ -71,6 +77,9 @@ pub enum Cmd {
     /// generate contracts
     Generate(generate::Cmd),
 
+    /// Upgrade an existing Soroban workspace to a scaffold project
+    Upgrade(upgrade::Cmd),
+
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
 
@@ -87,6 +96,8 @@ pub enum Error {
     BuildContracts(#[from] build::Error),
     #[error(transparent)]
     Contract(#[from] generate::contract::Error),
+    #[error(transparent)]
+    Upgrade(#[from] upgrade::Error),
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]

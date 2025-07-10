@@ -26,5 +26,10 @@ assert_matches = "1.5.0"
 [package.metadata.loam]
 contract = true
 
+[package.metadata.stellar]
+cargo_inherit = true
+homepage = "ahalabs.dev"
+repository = "https://github.com/AhaLabs/scaffold-stellar"
+
 # should add this here
 #[package.metadata.loam.dependencies]

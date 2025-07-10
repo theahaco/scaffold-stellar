@@ -1,11 +1,15 @@
 #![allow(clippy::struct_excessive_bools)]
-use std::{fmt::Debug, io, path::Path, process::ExitStatus};
-
+use crate::commands::build::Error::EmptyPackageName;
+use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::Parser;
-use stellar_cli::commands::{contract::build, global};
-
 use clients::ScaffoldEnv;
+use serde_json::Value;
+use std::collections::BTreeMap;
+use std::{fmt::Debug, io, path::Path, process::ExitStatus};
+use stellar_cli::commands::contract::build::Cmd;
+use stellar_cli::commands::{contract::build, global};
+use stellar_cli::print::Print;
 
 pub mod clients;
 pub mod docker;
@@ -60,6 +64,8 @@ pub enum Error {
     Build(#[from] build::Error),
     #[error("Failed to start docker container")]
     DockerStart,
+    #[error("package name is empty: {0}")]
+    EmptyPackageName(Utf8PathBuf),
 }
 
 impl Command {
@@ -75,26 +81,27 @@ impl Command {
     ) -> Result<(), Error> {
         if let Some(current_env) = env_toml::Environment::get(workspace_root, &env.to_string())? {
             if current_env.network.run_locally {
-                eprintln!("Starting local Stellar Docker container...");
                 docker::start_local_stellar().await.map_err(|e| {
                     eprintln!("Failed to start Stellar Docker container: {e:?}");
                     Error::DockerStart
                 })?;
-                eprintln!("Local Stellar network is healthy and running.");
             }
         }
         Ok(())
     }
 
-    pub async fn run(&self) -> Result<(), Error> {
+    pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
         let metadata = self.metadata()?;
         let packages = self.list_packages(&metadata)?;
         let workspace_root = metadata.workspace_root.as_std_path();
 
         if let Some(env) = &self.build_clients_args.env {
             if env == &ScaffoldEnv::Development {
+                printer.infoln("Starting local Stellar Docker container...");
                 self.start_local_docker_if_needed(workspace_root, env)
                     .await?;
+                printer.checkln("Local Stellar network is healthy and running.");
             }
         }
 
@@ -107,41 +114,16 @@ impl Command {
 
         let target_dir = &metadata.target_directory;
 
-        let global_args = global::Args::default();
-
         for p in &packages {
-            let mut cmd = self.build.clone();
-            cmd.out_dir = cmd.out_dir.or_else(|| {
-                Some(stellar_build::deps::stellar_wasm_out_dir(
-                    target_dir.as_std_path(),
-                ))
-            });
-            cmd.package = Some(p.name.clone());
-            if !p.name.is_empty() {
-                cmd.meta.push(("name".to_string(), p.name.clone()));
-            }
-            if !p.version.to_string().is_empty() {
-                cmd.meta.push(("binver".to_string(), p.version.to_string()));
-            }
-            if p.homepage.is_some() {
-                cmd.meta
-                    .push(("home_domain".to_string(), p.homepage.clone().unwrap()));
-            }
-            if !p.authors.is_empty() {
-                cmd.meta.push(("authors".to_string(), p.authors.join(", ")));
-            }
-            if p.repository.is_some() {
-                cmd.meta
-                    .push(("source_repo".to_string(), p.repository.clone().unwrap()));
-            }
-            cmd.run(&global_args)?;
+            self.create_cmd(p, target_dir)?.run(global_args)?;
         }
 
         if self.build_clients {
             let mut build_clients_args = self.build_clients_args.clone();
-            // Pass through the workspace_root and out_dir from the build command
+            // Pass through the workspace_root, out_dir, global_args, and printer
             build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
             build_clients_args.out_dir.clone_from(&self.build.out_dir);
+            build_clients_args.global_args = Some(global_args.clone());
             build_clients_args
                 .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;
@@ -191,5 +173,116 @@ impl Command {
         // only collecting non-dependency metadata, features have no impact on
         // the output.
         cmd.exec()
+    }
+
+    fn create_cmd(&self, p: &Package, target_dir: &Utf8PathBuf) -> Result<Cmd, Error> {
+        let mut cmd = self.build.clone();
+        cmd.out_dir = cmd.out_dir.or_else(|| {
+            Some(stellar_build::deps::stellar_wasm_out_dir(
+                target_dir.as_std_path(),
+            ))
+        });
+
+        // Name is required in Cargo toml, so it should fail regardless
+        if p.name.is_empty() {
+            return Err(EmptyPackageName(p.manifest_path.clone()));
+        }
+
+        cmd.package = Some(p.name.clone());
+
+        if let Value::Object(map) = &p.metadata {
+            if let Some(val) = &map.get("stellar") {
+                if let Value::Object(stellar_meta) = val {
+                    let mut meta_map = BTreeMap::new();
+
+                    // When cargo_inherit is set, copy meta from Cargo toml
+                    if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
+                        meta_map.insert("name".to_string(), p.name.clone());
+
+                        if !p.version.to_string().is_empty() {
+                            meta_map.insert("binver".to_string(), p.version.to_string());
+                        }
+                        if !p.authors.is_empty() {
+                            meta_map.insert("authors".to_string(), p.authors.join(", "));
+                        }
+                        if p.homepage.is_some() {
+                            meta_map.insert("homepage".to_string(), p.homepage.clone().unwrap());
+                        }
+                        if p.repository.is_some() {
+                            meta_map
+                                .insert("repository".to_string(), p.repository.clone().unwrap());
+                        }
+                    }
+
+                    Self::rec_add_meta(String::new(), &mut meta_map, val);
+
+                    // Reserved keys
+                    meta_map.remove("rsver");
+                    meta_map.remove("rssdkver");
+                    meta_map.remove("cargo_inherit");
+                    // Rename some fields
+                    if let Some(version) = meta_map.remove("version") {
+                        meta_map.insert("binver".to_string(), version);
+                    }
+                    if let Some(repository) = meta_map.remove("repository") {
+                        meta_map.insert("source_repo".to_string(), repository);
+                    }
+                    if let Some(homepage) = meta_map.remove("homepage") {
+                        meta_map.insert("home_domain".to_string(), homepage);
+                    }
+
+                    meta_map
+                        .iter()
+                        .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
+                }
+            }
+        }
+
+        Ok(cmd)
+    }
+
+    fn rec_add_meta(prefix: String, meta_map: &mut BTreeMap<String, String>, value: &Value) {
+        match value {
+            Value::Null => {}
+            Value::Bool(bool) => {
+                meta_map.insert(prefix, bool.to_string());
+            }
+            Value::Number(n) => {
+                meta_map.insert(prefix, n.to_string());
+            }
+            Value::String(s) => {
+                meta_map.insert(prefix, s.clone());
+            }
+            Value::Array(array) => {
+                if array.iter().all(Self::is_simple) {
+                    let s = array
+                        .iter()
+                        .map(|x| match x {
+                            Value::String(str) => str.clone(),
+                            _ => x.to_string(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    meta_map.insert(prefix, s);
+                } else {
+                    for (pos, e) in array.iter().enumerate() {
+                        Self::rec_add_meta(format!("{prefix}[{pos}]"), meta_map, e);
+                    }
+                }
+            }
+            Value::Object(map) => {
+                let mut separator = "";
+                if !prefix.is_empty() {
+                    separator = ".";
+                }
+                map.iter().for_each(|(k, v)| {
+                    Self::rec_add_meta(format!("{prefix}{separator}{}", k.clone()), meta_map, v);
+                });
+            }
+        }
+    }
+
+    fn is_simple(val: &Value) -> bool {
+        !matches!(val, Value::Array(_) | Value::Object(_))
     }
 }
