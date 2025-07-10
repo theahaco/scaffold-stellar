@@ -4990,6 +4990,7 @@ dependencies = [
  "assert_fs",
  "cargo_metadata",
  "clap 4.5.35",
+ "crate-git-revision",
  "degit",
  "dirs",
  "fs_extra",

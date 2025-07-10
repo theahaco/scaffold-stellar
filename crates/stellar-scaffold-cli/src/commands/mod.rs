@@ -6,6 +6,7 @@ pub mod build;
 pub mod generate;
 pub mod init;
 pub mod update_env;
+pub mod version;
 pub mod watch;
 
 const ABOUT: &str = "Build smart contracts with frontend support";
@@ -37,6 +38,7 @@ impl Root {
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
             Cmd::Init(init_info) => init_info.run()?,
+            Cmd::Version(version_info) => version_info.run(),
             Cmd::Build(build_info) => build_info.run().await?,
             Cmd::Generate(generate) => match &mut generate.cmd {
                 generate::Command::Contract(contract) => contract.run().await?,
@@ -60,6 +62,8 @@ impl FromStr for Root {
 pub enum Cmd {
     /// Initialize the project
     Init(init::Cmd),
+    /// Version of the cli
+    Version(version::Cmd),
 
     /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
     Build(build::Command),
