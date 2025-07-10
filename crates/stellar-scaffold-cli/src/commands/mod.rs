@@ -7,8 +7,8 @@ pub mod build;
 pub mod generate;
 pub mod init;
 pub mod update_env;
-pub mod version;
 pub mod upgrade;
+pub mod version;
 pub mod watch;
 
 const ABOUT: &str = "Build smart contracts with frontend support";
