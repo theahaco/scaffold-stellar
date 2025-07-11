@@ -376,6 +376,23 @@ export default new Client.Client({{
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
             printer.checkln(format!("Client {name:?} created successfully"));
+            // Run npm install in the final output directory to ensure proper linking
+            let output = std::process::Command::new("npm")
+                .current_dir(&final_output_dir)
+                .arg("install")
+                .arg("--loglevel=error")
+                .output()?;
+
+            if !output.status.success() {
+                return Err(Error::NpmCommandFailure(
+                    final_output_dir.clone(),
+                    format!(
+                        "npm install in final directory failed with status: {:?}\nError: {}",
+                        output.status.code(),
+                        String::from_utf8_lossy(&output.stderr)
+                    ),
+                ));
+            }
         }
 
         self.create_contract_template(name, contract_id)?;

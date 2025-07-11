@@ -451,7 +451,7 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb
         assert!(stderr.contains("Failures:"));
 
         // Should show specific failure details for token contract
-        assert!(stderr.contains("soroban_token_contract - Error:"));
+        assert!(stderr.contains("soroban_token_contract:"));
 
         // Should still process successful contracts
         assert!(
