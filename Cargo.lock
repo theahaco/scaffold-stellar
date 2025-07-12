@@ -4970,6 +4970,7 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "clap 4.5.35",
+ "crate-git-revision",
  "dotenvy",
  "ed25519-dalek",
  "heck 0.4.1",
