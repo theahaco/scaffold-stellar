@@ -161,6 +161,7 @@ Contributions are welcome! Please check out our [Contributing Guide](CONTRIBUTIN
 - Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
 - Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
 - Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
+- Video: [Live Demo of Scaffold Stellar](https://www.youtube.com/watch?v=0syGaIn3ULk)
 
 ## License
 
