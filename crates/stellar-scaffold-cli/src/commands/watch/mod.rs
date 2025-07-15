@@ -118,16 +118,31 @@ impl Watcher {
     pub fn handle_event(&self, event: &notify::Event, tx: &mpsc::Sender<Message>) {
         if matches!(
             event.kind,
-            notify::EventKind::Create(_)
-                | notify::EventKind::Modify(_)
-                | notify::EventKind::Remove(_)
+            notify::EventKind::Create(notify::event::CreateKind::File)
+                | notify::EventKind::Modify(notify::event::ModifyKind::Data(_))
+                | notify::EventKind::Remove(notify::event::RemoveKind::File)
         ) {
-            if let Some(path) = event.paths.first() {
-                if self.is_watched(path) {
-                    eprintln!("File changed: {path:?}");
-                    if let Err(e) = tx.blocking_send(Message::FileChanged) {
-                        eprintln!("Error sending through channel: {e:?}");
+            let watched_file = event.paths.iter().find(|path| {
+                if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+                    if file_name == "Cargo.toml" {
+                        return self.is_watched(path);
                     }
+                    if file_name.ends_with(".rs") {
+                        return self.is_watched(path);
+                    }
+                    if file_name.ends_with(".toml")
+                        && path.to_string_lossy().contains("environments")
+                    {
+                        return self.is_watched(path);
+                    }
+                }
+                false
+            });
+
+            if let Some(path) = watched_file {
+                eprintln!("File changed: {path:?}");
+                if let Err(e) = tx.blocking_send(Message::FileChanged) {
+                    eprintln!("Error sending through channel: {e:?}");
                 }
             }
         }
