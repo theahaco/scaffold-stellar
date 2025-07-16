@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.5...stellar-scaffold-cli-v0.0.6) - 2025-07-11
+
+### Fixed
+
+- npm i to output bindings to ensure linkage ([#141](https://github.com/AhaLabs/scaffold-stellar/pull/141))
+
 ## [0.0.5](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.4...stellar-scaffold-cli-v0.0.5) - 2025-07-08
 
 ### Added
