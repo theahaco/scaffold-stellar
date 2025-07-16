@@ -74,29 +74,6 @@ impl Watcher {
             builder.add(package);
         }
 
-        let common_ignores = vec![
-            "*.swp",
-            "*.swo",
-            "*.swx",     // Vim swap files
-            "4913",      // Vim temp files
-            ".DS_Store", // macOS
-            "Thumbs.db", // Windows
-            "*~",        // Backup files
-            "*.bak",     // Backup files
-            ".vscode/",  // VS Code
-            ".idea/",    // IntelliJ
-            "*.tmp",     // Temporary files
-            "*.log",     // Log files
-            ".#*",       // Emacs lock files
-            "#*#",       // Emacs auto-save files
-        ];
-
-        for pattern in common_ignores {
-            builder
-                .add_line(None, pattern)
-                .expect("Failed to add ignore pattern");
-        }
-
         let ignores = Arc::new(builder.build().expect("Failed to build GitIgnore"));
 
         Self {
@@ -123,18 +100,20 @@ impl Watcher {
                 | notify::EventKind::Remove(notify::event::RemoveKind::File)
         ) {
             let watched_file = event.paths.iter().find(|path| {
-                if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                    if file_name == "Cargo.toml" {
-                        return self.is_watched(path);
-                    }
-                    if file_name.ends_with(".rs") {
-                        return self.is_watched(path);
-                    }
-                    if file_name.ends_with(".toml")
-                        && path.to_string_lossy().contains("environments")
+                let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+                    return false;
+                };
+                if ext.eq_ignore_ascii_case("toml") {
+                    let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                        return false;
+                    };
+                    if stem.eq_ignore_ascii_case("environments")
+                        || stem.eq_ignore_ascii_case("cargo")
                     {
                         return self.is_watched(path);
                     }
+                } else if ext.eq_ignore_ascii_case("rs") {
+                    return self.is_watched(path);
                 }
                 false
             });
