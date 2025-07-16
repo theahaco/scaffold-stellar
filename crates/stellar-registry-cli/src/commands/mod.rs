@@ -5,6 +5,7 @@ use clap::{command, CommandFactory, FromArgMatches, Parser};
 pub mod deploy;
 pub mod install;
 pub mod publish;
+pub mod version;
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
@@ -41,6 +42,7 @@ impl Root {
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
             Cmd::Publish(p) => p.run().await?,
+            Cmd::Version(p) => p.run(),
             Cmd::Install(i) => i.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
         }
@@ -60,6 +62,8 @@ impl FromStr for Root {
 pub enum Cmd {
     /// publish contract to registry
     Publish(Box<publish::Cmd>),
+    /// Version of the scaffold-registry-cli
+    Version(version::Cmd),
     /// deploy contract from deployed Wasm
     Deploy(Box<deploy::Cmd>),
     /// install contracts

@@ -55,6 +55,9 @@ assert_fs = "1.0.7"
 predicates = "2.1.5"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
+[build-dependencies]
+crate-git-revision = "0.0.6"
+
 [features]
 default = []
 integration-tests = []

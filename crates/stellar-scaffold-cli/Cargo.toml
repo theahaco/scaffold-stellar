@@ -87,5 +87,8 @@ stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 tempfile = "3.8"
 mockito = "0.31"
 
+[build-dependencies]
+crate-git-revision = "0.0.6"
+
 [features]
 integration-tests = []
