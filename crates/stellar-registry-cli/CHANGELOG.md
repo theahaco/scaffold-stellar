@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.6...stellar-registry-cli-v0.0.7) - 2025-07-17
+
+### Fixed
+
+- update to newest CLI ([#144](https://github.com/AhaLabs/scaffold-stellar/pull/144))
+
+### Other
+
+- Add version command ([#140](https://github.com/AhaLabs/scaffold-stellar/pull/140))
+
 ## [0.0.6](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.5...stellar-registry-cli-v0.0.6) - 2025-07-08
 
 ### Other
