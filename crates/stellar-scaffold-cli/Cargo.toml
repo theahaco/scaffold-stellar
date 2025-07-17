@@ -30,7 +30,7 @@ openssl = { version = "0.10", features = ["vendored"] }
 stellar-build = { path = "../stellar-build", version = "0.0.2" }
 stellar-cli = { workspace = true }
 soroban-rpc = { workspace = true }
-soroban-spec-tools = "22.8.1"
+soroban-spec-tools = { workspace = true }
 clap = { version = "4.1.8", features = [
     "derive",
     "env",
@@ -82,7 +82,7 @@ assert_cmd = "2.0.4"
 assert_fs = "1.0.7"
 predicates = "3.1.0"
 walkdir = "2.3"
-uuid = { features = ["v4",], version = "1.16.0" }
+uuid = { features = ["v4"], version = "1.16.0" }
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 tempfile = "3.8"
 mockito = "0.31"

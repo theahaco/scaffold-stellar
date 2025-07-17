@@ -440,7 +440,6 @@ export default new Client.Client({{
                 network: Self::get_network_args(network),
                 seed: None,
                 hd_path: None,
-                no_fund: false,
                 as_secret: false,
                 secure_store: false,
                 overwrite: false,
