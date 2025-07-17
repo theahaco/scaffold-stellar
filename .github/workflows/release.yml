@@ -10,7 +10,6 @@ on:
       - main
 
 jobs:
-
   release-plz:
     name: Release-plz
     runs-on: ubuntu-22.04
@@ -31,7 +30,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install needed Ubuntu Deps
-        run: sudo apt install libdbus-1-dev pkg-config
+        run: sudo apt install libdbus-1-dev pkg-config libudev-dev
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@main
         env:

@@ -35,7 +35,7 @@ clap = { version = "4.1.8", features = [
 ] }
 stellar-cli = { workspace = true }
 
-soroban-spec-tools = "22.6.0"
+soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
 stellar-strkey = { workspace = true }
 

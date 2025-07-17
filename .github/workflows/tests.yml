@@ -9,11 +9,11 @@ jobs:
     name: test RPC
     runs-on: ubuntu-latest
     env:
-        STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
-        STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
-        STELLAR_ACCOUNT: default
-        STELLAR_CONTRACT_ID: core
-        PKG_CONFIG_PATH: /usr/lib/pkgconfig
+      STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
+      STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
+      STELLAR_ACCOUNT: default
+      STELLAR_CONTRACT_ID: core
+      PKG_CONFIG_PATH: /usr/lib/pkgconfig
     services:
       rpc:
         image: stellar/quickstart:testing
@@ -29,26 +29,26 @@ jobs:
           --health-timeout 5s
           --health-retries 50
     steps:
-    - uses: actions/checkout@v3
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libdbus-1-dev pkg-config
-    - uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - run: rustup update
-    - run: rustup target add wasm32v1-none
-    - uses: taiki-e/install-action@just
-    - uses: taiki-e/install-action@nextest
-    - uses: cargo-bins/cargo-binstall@main
-    - run: just setup
-    - run: just create
-    - run: just test-integration
+      - uses: actions/checkout@v3
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: rustup update
+      - run: rustup target add wasm32v1-none
+      - uses: taiki-e/install-action@just
+      - uses: taiki-e/install-action@nextest
+      - uses: cargo-bins/cargo-binstall@main
+      - run: just setup
+      - run: just create
+      - run: just test-integration
