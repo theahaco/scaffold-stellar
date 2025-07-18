@@ -1,4 +1,5 @@
 #![allow(clippy::struct_excessive_bools)]
+use super::env_toml::Network;
 use crate::commands::build::env_toml;
 use indexmap::IndexMap;
 use regex::Regex;
@@ -12,9 +13,8 @@ use stellar_cli::{
     commands as cli, commands::NetworkRunnable, print::Print, utils::contract_hash, CommandParser,
 };
 use stellar_strkey::{self, Contract};
-use stellar_xdr::curr::Error as xdrError;
-
-use super::env_toml::Network;
+use stellar_xdr::curr::ScSpecEntry::FunctionV0;
+use stellar_xdr::curr::{Error as xdrError, ScSpecEntry, ScSpecTypeBytesN, ScSpecTypeDef};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, clap::ValueEnum)]
 pub enum ScaffoldEnv {
@@ -47,7 +47,8 @@ pub struct Args {
 pub enum Error {
     #[error(transparent)]
     EnvironmentsToml(#[from] env_toml::Error),
-    #[error("⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url")]
+    #[error("⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url"
+    )]
     MalformedNetwork,
     #[error(transparent)]
     ParsingNetwork(#[from] cli::network::Error),
@@ -59,7 +60,8 @@ pub enum Error {
     InvalidPublicKey(#[from] cli::keys::public_key::Error),
     #[error(transparent)]
     AddressParsing(#[from] stellar_cli::config::address::Error),
-    #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
+    #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations"
+    )]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
     BadContractName(String),
@@ -87,6 +89,8 @@ pub enum Error {
     ConfigNetwork(#[from] stellar_cli::config::network::Error),
     #[error(transparent)]
     ContractInvoke(#[from] cli::contract::invoke::Error),
+    #[error(transparent)]
+    ContractInfo(#[from] cli::contract::info::interface::Error),
     #[error(transparent)]
     Clap(#[from] clap::Error),
     #[error(transparent)]
@@ -217,12 +221,11 @@ impl Args {
         config_dir.get_contract_id(name, &network_passphrase)
     }
 
-    async fn contract_hash_matches(
+    async fn get_contract_hash(
         &self,
         contract_id: &Contract,
-        hash: &str,
         network: &Network,
-    ) -> Result<bool, Error> {
+    ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
             contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
             out_file: None,
@@ -235,11 +238,11 @@ impl Args {
         match result {
             Ok(result) => {
                 let ctrct_hash = contract_hash(&result)?;
-                Ok(hex::encode(ctrct_hash) == hash)
+                Ok(Some(hex::encode(ctrct_hash)))
             }
             Err(e) => {
                 if e.to_string().contains("Contract not found") {
-                    Ok(false)
+                    Ok(None)
                 } else {
                     Err(Error::ContractFetch(e))
                 }
@@ -647,23 +650,33 @@ export default new Client.Client({{
             }
 
             let hash = self.upload_contract_wasm(name, &wasm_path).await?;
+            let mut upgraded_contract = None;
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                if self
-                    .contract_hash_matches(&existing_contract_id, &hash, network)
-                    .await?
-                {
-                    printer.checkln(format!("Contract {name:?} is up to date"));
-                    self.generate_contract_bindings(name, &existing_contract_id.to_string())
+                let existing_hash = self
+                    .get_contract_hash(&existing_contract_id, network)
+                    .await?;
+                if let Some(h) = &existing_hash {
+                    if *h == hash {
+                        printer.checkln(format!("Contract {name:?} is up to date"));
+                        self.generate_contract_bindings(name, &existing_contract_id.to_string())
+                            .await?;
+                        return Ok(());
+                    }
+                    upgraded_contract = self
+                        .try_upgrade_contract(name, existing_contract_id, h, &hash, &settings)
                         .await?;
-                    return Ok(());
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
             }
 
-            // Deploy new contract if we got here
-            let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            // Deploy new contract if we got here (don't deploy if we already run an upgrade)
+            let contract_id = if let Some(upgraded) = upgraded_contract {
+                upgraded
+            } else {
+                self.deploy_contract(name, &hash, &settings).await?
+            };
             // Run after_deploy script if in development or test environment
             if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
                 printer.infoln(format!("Running after_deploy script for {name:?}"));
@@ -790,6 +803,87 @@ export default new Client.Client({{
         printer.infoln(format!("    ↳ contract_id: {contract_id}"));
 
         Ok(contract_id)
+    }
+
+    #[allow(unused_variables)]
+    async fn try_upgrade_contract(
+        &self,
+        name: &str,
+        existing_contract_id: Contract,
+        existing_hash: &str,
+        hash: &str,
+        settings: &env_toml::Contract,
+    ) -> Result<Option<Contract>, Error> {
+        let printer = self.printer();
+        #[allow(unused_variables)]
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
+
+        let info_args = vec!["--wasm-hash", existing_hash, "--output", "json"];
+
+        let (_, existing_spec) = cli::contract::info::interface::Cmd::parse_arg_vec(&info_args)?
+            .get_spec(self.global_args.as_ref())
+            .await?;
+
+        let info_args = vec!["--wasm-hash", hash, "--output", "json"];
+
+        let (_, spec_to_upgrade) = cli::contract::info::interface::Cmd::parse_arg_vec(&info_args)?
+            .get_spec(self.global_args.as_ref())
+            .await?;
+
+        if !Self::is_upgradable(existing_spec) {
+            return Ok(None);
+        }
+
+        if !Self::is_upgradable(spec_to_upgrade) {
+            printer.warnln("New WASM is not upgradable. Contract will be redeployed instead of being upgraded.");
+            return Ok(None);
+        }
+
+        printer
+            .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
+
+        let redeploy_args = [
+            "--id".to_string(),
+            existing_contract_id.to_string(),
+            "--".to_string(),
+            "upgrade".to_string(),
+            "--new_wasm_hash".to_string(),
+            hash.to_string(),
+            "--operator".to_string(),
+            "default".to_string(), // TODO
+        ];
+
+        printer.infoln(format!("Upgrading {name:?} smart contract"));
+        let redeploy_args: Vec<&str> = redeploy_args
+            .iter()
+            .map(std::string::String::as_str)
+            .collect();
+        let contract_id = cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)?
+            .run_against_rpc_server(self.global_args.as_ref(), None)
+            .await?
+            .into_result()
+            .expect("no result returned by 'contract invoke'");
+        printer.infoln(format!(
+            "Contract upgraded: {}",
+            existing_contract_id.to_string()
+        ));
+
+        Ok(Some(existing_contract_id))
+    }
+
+    fn is_upgradable(spec: Vec<ScSpecEntry>) -> bool {
+        spec.iter()
+            .filter_map(|x| if let FunctionV0(e) = x { Some(e) } else { None })
+            .filter(|x| x.name.to_string() == "upgrade")
+            .filter(|x| x.inputs.iter().any(|y| y.type_ == ScSpecTypeDef::Address))
+            .any(|x| {
+                x.inputs
+                    .iter()
+                    .any(|y| matches!(y.type_, ScSpecTypeDef::BytesN(ScSpecTypeBytesN { n: 32 })))
+            })
     }
 
     fn resolve_line(re: &Regex, line: &str, shell: &str, flag: &str) -> Result<String, Error> {

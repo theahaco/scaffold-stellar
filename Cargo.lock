@@ -4980,8 +4980,7 @@ dependencies = [
 [[package]]
 name = "soroban-cli"
 version = "23.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60aabd55466ed376cd9f80fbeabe0bf81466d26292d2e074d89e61d1e39aaa10"
+source = "git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799#9ec53f1210a563cf0bddf340f77075d2971d1799"
 dependencies = [
  "async-compression",
  "async-trait",
@@ -5037,7 +5036,7 @@ dependencies = [
  "soroban-spec 23.0.0-rc.2.2",
  "soroban-spec-json",
  "soroban-spec-rust 23.0.0-rc.2.2",
- "soroban-spec-tools",
+ "soroban-spec-tools 23.0.0 (git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799)",
  "soroban-spec-typescript",
  "stellar-ledger",
  "stellar-rpc-client",
@@ -5361,8 +5360,7 @@ dependencies = [
 [[package]]
 name = "soroban-spec-json"
 version = "23.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7deeab655fce48bdb15013e995cfa651f745feae5659af650a9f86b80920390"
+source = "git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799#9ec53f1210a563cf0bddf340f77075d2971d1799"
 dependencies = [
  "serde",
  "serde_derive",
@@ -5424,10 +5422,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "soroban-spec-tools"
+version = "23.0.0"
+source = "git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799#9ec53f1210a563cf0bddf340f77075d2971d1799"
+dependencies = [
+ "base64 0.21.7",
+ "ethnum",
+ "hex",
+ "itertools 0.10.5",
+ "serde_json",
+ "soroban-spec 23.0.0-rc.2.2",
+ "stellar-strkey 0.0.11",
+ "stellar-xdr 23.0.0-rc.2",
+ "thiserror 1.0.69",
+ "wasmparser",
+]
+
+[[package]]
 name = "soroban-spec-typescript"
 version = "23.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b19cd0a7ebb7252b9b4bb76d3f1cf156d06d31f86aeb7fadb9a07b9dc8fb6db3"
+source = "git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799#9ec53f1210a563cf0bddf340f77075d2971d1799"
 dependencies = [
  "base64 0.21.7",
  "heck 0.4.1",
@@ -5496,8 +5510,7 @@ dependencies = [
 [[package]]
 name = "stellar-ledger"
 version = "23.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9ddb5f5a9fa80cf44e4750afa88c233e02bd951c4be1d90e6b1c266db5bc14f"
+source = "git+https://github.com/ifropc/stellar-cli?rev=9ec53f1210a563cf0bddf340f77075d2971d1799#9ec53f1210a563cf0bddf340f77075d2971d1799"
 dependencies = [
  "async-trait",
  "bollard",
@@ -5543,7 +5556,7 @@ dependencies = [
  "sha2 0.10.9",
  "shlex",
  "soroban-cli",
- "soroban-spec-tools",
+ "soroban-spec-tools 23.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "stellar-rpc-client",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.11",
@@ -5611,7 +5624,7 @@ dependencies = [
  "sha2 0.10.9",
  "shlex",
  "soroban-cli",
- "soroban-spec-tools",
+ "soroban-spec-tools 23.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "stellar-build",
  "stellar-rpc-client",
  "stellar-scaffold-test",
