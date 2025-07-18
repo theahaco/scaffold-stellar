@@ -400,7 +400,7 @@ mod test;
 
             let client = reqwest::Client::new();
             let hello_world_client_path = "/src/contracts/stellar_hello_world_contract.ts";
-            
+
             // Monitor for 60 seconds for the rebuild process
             let rebuild_timeout = tokio::time::Duration::from_secs(60);
             let rebuild_start_time = tokio::time::Instant::now();
@@ -417,7 +417,10 @@ mod test;
                         println!("📝 [{}] {}", source, line);
 
                         // Check for file change detection
-                        if !file_change_detected && line.contains("File changed:") && line.contains(&format!("{file_changed_path:?}")) {
+                        if !file_change_detected
+                            && line.contains("File changed:")
+                            && line.contains(&format!("{file_changed_path:?}"))
+                        {
                             file_change_detected = true;
                         }
 
@@ -427,7 +430,11 @@ mod test;
                         }
 
                         // Check for rebuild completion
-                        if !rebuild_completed && file_change_detected && rebuild_started && line.contains("Watching for changes. Press Ctrl+C to stop.") {
+                        if !rebuild_completed
+                            && file_change_detected
+                            && rebuild_started
+                            && line.contains("Watching for changes. Press Ctrl+C to stop.")
+                        {
                             rebuild_completed = true;
                         }
 
@@ -446,16 +453,24 @@ mod test;
                         // Timeout occurred, periodically query the hello world client file
                         if file_change_detected {
                             match client
-                                .get(&format!("http://localhost:{}{}", port, hello_world_client_path))
+                                .get(&format!(
+                                    "http://localhost:{}{}",
+                                    port, hello_world_client_path
+                                ))
                                 .timeout(tokio::time::Duration::from_secs(5))
                                 .send()
                                 .await
                             {
                                 Ok(response) => {
                                     if response.status().is_success() {
-                                        println!("✅ Hello world client file accessible during rebuild");
+                                        println!(
+                                            "✅ Hello world client file accessible during rebuild"
+                                        );
                                     } else {
-                                        println!("⚠️  Hello world client file returned status: {}", response.status());
+                                        println!(
+                                            "⚠️  Hello world client file returned status: {}",
+                                            response.status()
+                                        );
                                     }
                                 }
                                 Err(e) => {
@@ -507,7 +522,10 @@ mod test;
 
             // Final verification that hello world client is accessible after rebuild
             let final_response = client
-                .get(&format!("http://localhost:{}{}", port, hello_world_client_path))
+                .get(&format!(
+                    "http://localhost:{}{}",
+                    port, hello_world_client_path
+                ))
                 .timeout(tokio::time::Duration::from_secs(10))
                 .send()
                 .await
