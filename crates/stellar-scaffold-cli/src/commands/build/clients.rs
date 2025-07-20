@@ -1,5 +1,8 @@
 #![allow(clippy::struct_excessive_bools)]
 use super::env_toml::Network;
+use crate::arg_parsing;
+use crate::arg_parsing::ArgParser;
+use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml;
 use indexmap::IndexMap;
 use regex::Regex;
@@ -103,6 +106,8 @@ pub enum Error {
     NpmCommandFailure(std::path::PathBuf, String),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
+    #[error("Failed to get upgrade operator: {0:?}")]
+    UpgradeArgsError(arg_parsing::Error),
 }
 
 impl Args {
@@ -665,7 +670,7 @@ export default new Client.Client({{
                         return Ok(());
                     }
                     upgraded_contract = self
-                        .try_upgrade_contract(name, existing_contract_id, h, &hash, &settings)
+                        .try_upgrade_contract(name, existing_contract_id, h, &hash)
                         .await?;
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
@@ -805,21 +810,14 @@ export default new Client.Client({{
         Ok(contract_id)
     }
 
-    #[allow(unused_variables)]
     async fn try_upgrade_contract(
         &self,
         name: &str,
         existing_contract_id: Contract,
         existing_hash: &str,
         hash: &str,
-        settings: &env_toml::Contract,
     ) -> Result<Option<Contract>, Error> {
         let printer = self.printer();
-        #[allow(unused_variables)]
-        let workspace_root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace_root must be set before running");
 
         let info_args = vec!["--wasm-hash", existing_hash, "--output", "json"];
 
@@ -845,6 +843,8 @@ export default new Client.Client({{
         printer
             .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
 
+        let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
+
         let redeploy_args = [
             "--id".to_string(),
             existing_contract_id.to_string(),
@@ -853,7 +853,7 @@ export default new Client.Client({{
             "--new_wasm_hash".to_string(),
             hash.to_string(),
             "--operator".to_string(),
-            "default".to_string(), // TODO
+            upgrade_operator.to_string(),
         ];
 
         printer.infoln(format!("Upgrading {name:?} smart contract"));
@@ -861,7 +861,7 @@ export default new Client.Client({{
             .iter()
             .map(std::string::String::as_str)
             .collect();
-        let contract_id = cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)?
+        cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)?
             .run_against_rpc_server(self.global_args.as_ref(), None)
             .await?
             .into_result()
