@@ -831,11 +831,13 @@ export default new Client.Client({{
             .get_spec(self.global_args.as_ref())
             .await?;
 
-        if !Self::is_upgradable(existing_spec) {
+        let legacy_upgradeable = Self::is_legacy_upgradeable(existing_spec);
+
+        if legacy_upgradeable.is_none() {
             return Ok(None);
         }
 
-        if !Self::is_upgradable(spec_to_upgrade) {
+        if Self::is_legacy_upgradeable(spec_to_upgrade).is_none() {
             printer.warnln("New WASM is not upgradable. Contract will be redeployed instead of being upgraded.");
             return Ok(None);
         }
@@ -843,18 +845,20 @@ export default new Client.Client({{
         printer
             .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
 
-        let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
-
-        let redeploy_args = [
+        let mut redeploy_args = vec![
             "--id".to_string(),
             existing_contract_id.to_string(),
             "--".to_string(),
             "upgrade".to_string(),
             "--new_wasm_hash".to_string(),
             hash.to_string(),
-            "--operator".to_string(),
-            upgrade_operator.to_string(),
         ];
+
+        if legacy_upgradeable.is_some_and(|x| x) {
+            let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
+            redeploy_args.push("--operator".to_string());
+            redeploy_args.push(upgrade_operator);
+        }
 
         printer.infoln(format!("Upgrading {name:?} smart contract"));
         let redeploy_args: Vec<&str> = redeploy_args
@@ -874,16 +878,17 @@ export default new Client.Client({{
         Ok(Some(existing_contract_id))
     }
 
-    fn is_upgradable(spec: Vec<ScSpecEntry>) -> bool {
+    /// Returns: none if not upgradable, Some(true) if legacy upgradeable, Some(false) if new upgradeable
+    fn is_legacy_upgradeable(spec: Vec<ScSpecEntry>) -> Option<bool> {
         spec.iter()
             .filter_map(|x| if let FunctionV0(e) = x { Some(e) } else { None })
             .filter(|x| x.name.to_string() == "upgrade")
-            .filter(|x| x.inputs.iter().any(|y| y.type_ == ScSpecTypeDef::Address))
-            .any(|x| {
+            .find(|x| {
                 x.inputs
                     .iter()
                     .any(|y| matches!(y.type_, ScSpecTypeDef::BytesN(ScSpecTypeBytesN { n: 32 })))
             })
+            .map(|x| x.inputs.iter().any(|y| y.type_ == ScSpecTypeDef::Address))
     }
 
     fn resolve_line(re: &Regex, line: &str, shell: &str, flag: &str) -> Result<String, Error> {
