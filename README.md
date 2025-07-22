@@ -44,13 +44,14 @@ Before you begin, make sure you have the following installed:
 
 This section walks you through setting up Scaffold Stellar from scratch.
 
-### 1. Clone the Repository
+### 1. Install the Scaffold Stellar CLI
 
 ```
-git clone https://github.com/AhaLabs/scaffold-stellar.git
-cd scaffold-stellar
-
+cargo install stellar-scaffold-cli
 ```
+
+The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.
+
 ### 2. Create a New Project
 ```
 stellar scaffold init my-project
