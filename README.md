@@ -34,8 +34,6 @@ Before you begin, make sure you have the following installed:
 |------|-------------|--------------|
 | [Rust & Cargo](https://www.rust-lang.org/tools/install) | For writing and compiling smart contracts | `curl https://sh.rustup.rs -sSf \| sh` |
 | [Node.js & npm](https://nodejs.org/) | For frontend development | Download from official site |
-| [Just](https://github.com/casey/just) | Task runner used in the setup process | `cargo install just` |
-| [Git](https://git-scm.com/downloads) | To clone the repository | [Download Git](https://git-scm.com/downloads) |
 | [Stellar CLI](https://github.com/stellar/stellar-cli) | for building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli)
 
 ---
