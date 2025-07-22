@@ -11,7 +11,9 @@ pub trait NetworkContract {
     fn contract_id(&self) -> Result<stellar_strkey::Contract, config::Error>;
 
     fn contract_sc_address(&self) -> Result<xdr::ScAddress, config::Error> {
-        Ok(xdr::ScAddress::Contract(xdr::Hash(self.contract_id()?.0)))
+        Ok(xdr::ScAddress::Contract(xdr::ContractId(xdr::Hash(
+            self.contract_id()?.0,
+        ))))
     }
 
     fn invoke_registry(

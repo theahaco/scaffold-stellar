@@ -189,20 +189,17 @@ Documentation
 * [Registry Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/registry.md)
 
 ---
-## Learning Resources
-Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
-
-Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
-
-Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
+## Additional Developer Resources
+- Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
+- Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
+- Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
+- Video: [Live Demo of Scaffold Stellar](https://www.youtube.com/watch?v=0syGaIn3ULk) 👈 Start Here
 
 ---
 ## Contributing
 We love contributions! If you’re new, check these out:
 
 [Contributing Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/CONTRIBUTING.md)
-
----
 
 ## License
 

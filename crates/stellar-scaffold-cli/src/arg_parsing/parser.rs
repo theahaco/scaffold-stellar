@@ -13,7 +13,7 @@ impl ArgParser {
         wasm: &[u8],
     ) -> Result<Option<String>, Error> {
         let entries = soroban_spec_tools::contract::Spec::new(wasm)?.spec;
-        let spec = soroban_spec_tools::Spec::new(entries.clone());
+        let spec = soroban_spec_tools::Spec::new(&entries);
 
         // Check if constructor function exists
         let Ok(func) = spec.find_function("__constructor") else {

@@ -1,5 +1,6 @@
 #![allow(clippy::struct_excessive_bools)]
 use crate::commands::build::Error::EmptyPackageName;
+use crate::commands::version;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::Parser;
@@ -190,11 +191,13 @@ impl Command {
 
         cmd.package = Some(p.name.clone());
 
+        let mut meta_map = BTreeMap::new();
+
+        meta_map.insert("scaffold_version".to_string(), version::pkg().to_string());
+
         if let Value::Object(map) = &p.metadata {
             if let Some(val) = &map.get("stellar") {
                 if let Value::Object(stellar_meta) = val {
-                    let mut meta_map = BTreeMap::new();
-
                     // When cargo_inherit is set, copy meta from Cargo toml
                     if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
                         meta_map.insert("name".to_string(), p.name.clone());
@@ -230,13 +233,13 @@ impl Command {
                     if let Some(homepage) = meta_map.remove("homepage") {
                         meta_map.insert("home_domain".to_string(), homepage);
                     }
-
-                    meta_map
-                        .iter()
-                        .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
                 }
             }
         }
+
+        meta_map
+            .iter()
+            .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
 
         Ok(cmd)
     }

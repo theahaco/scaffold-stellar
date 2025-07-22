@@ -74,29 +74,6 @@ impl Watcher {
             builder.add(package);
         }
 
-        let common_ignores = vec![
-            "*.swp",
-            "*.swo",
-            "*.swx",     // Vim swap files
-            "4913",      // Vim temp files
-            ".DS_Store", // macOS
-            "Thumbs.db", // Windows
-            "*~",        // Backup files
-            "*.bak",     // Backup files
-            ".vscode/",  // VS Code
-            ".idea/",    // IntelliJ
-            "*.tmp",     // Temporary files
-            "*.log",     // Log files
-            ".#*",       // Emacs lock files
-            "#*#",       // Emacs auto-save files
-        ];
-
-        for pattern in common_ignores {
-            builder
-                .add_line(None, pattern)
-                .expect("Failed to add ignore pattern");
-        }
-
         let ignores = Arc::new(builder.build().expect("Failed to build GitIgnore"));
 
         Self {
@@ -118,16 +95,33 @@ impl Watcher {
     pub fn handle_event(&self, event: &notify::Event, tx: &mpsc::Sender<Message>) {
         if matches!(
             event.kind,
-            notify::EventKind::Create(_)
-                | notify::EventKind::Modify(_)
-                | notify::EventKind::Remove(_)
+            notify::EventKind::Create(notify::event::CreateKind::File)
+                | notify::EventKind::Modify(notify::event::ModifyKind::Data(_))
+                | notify::EventKind::Remove(notify::event::RemoveKind::File)
         ) {
-            if let Some(path) = event.paths.first() {
-                if self.is_watched(path) {
-                    eprintln!("File changed: {path:?}");
-                    if let Err(e) = tx.blocking_send(Message::FileChanged) {
-                        eprintln!("Error sending through channel: {e:?}");
+            let watched_file = event.paths.iter().find(|path| {
+                let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+                    return false;
+                };
+                if ext.eq_ignore_ascii_case("toml") {
+                    let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                        return false;
+                    };
+                    if stem.eq_ignore_ascii_case("environments")
+                        || stem.eq_ignore_ascii_case("cargo")
+                    {
+                        return self.is_watched(path);
                     }
+                } else if ext.eq_ignore_ascii_case("rs") {
+                    return self.is_watched(path);
+                }
+                false
+            });
+
+            if let Some(path) = watched_file {
+                eprintln!("File changed: {path:?}");
+                if let Err(e) = tx.blocking_send(Message::FileChanged) {
+                    eprintln!("Error sending through channel: {e:?}");
                 }
             }
         }

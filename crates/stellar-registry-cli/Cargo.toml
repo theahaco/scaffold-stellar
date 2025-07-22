@@ -5,7 +5,7 @@ homepage = "https://github.com/ahalabs/scaffold-stellar"
 authors = ["Aha Labs <hello@ahalabs.dev>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 rust-version = "1.70"
 autobins = false
@@ -35,7 +35,7 @@ clap = { version = "4.1.8", features = [
 ] }
 stellar-cli = { workspace = true }
 
-soroban-spec-tools = "22.6.0"
+soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
 stellar-strkey = { workspace = true }
 
@@ -54,6 +54,9 @@ assert_cmd = "2.0.4"
 assert_fs = "1.0.7"
 predicates = "2.1.5"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
+
+[build-dependencies]
+crate-git-revision = "0.0.6"
 
 [features]
 default = []

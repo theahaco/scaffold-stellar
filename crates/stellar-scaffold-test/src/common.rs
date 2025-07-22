@@ -107,6 +107,40 @@ impl TestEnv {
         f(test_env).await;
     }
 
+    pub async fn init_project(&mut self, project_name: &str) -> std::io::Result<()> {
+        let init_output = ProcessCommand::new(Self::cargo_bin_stellar_scaffold())
+            .arg("init")
+            .arg(project_name)
+            .current_dir(self.temp_dir.path())
+            .output()
+            .await
+            .expect("Failed to run scaffold init");
+
+        assert!(
+            init_output.status.success(),
+            "scaffold init failed: {}",
+            String::from_utf8_lossy(&init_output.stderr)
+        );
+
+        // Update the cwd to point to the newly created project
+        self.cwd = self.temp_dir.path().join(project_name);
+        Ok(())
+    }
+
+    pub async fn from_init<F, Fut>(project_name: &str, f: F)
+    where
+        F: FnOnce(TestEnv) -> Fut,
+        Fut: Future<Output = ()>,
+    {
+        let mut test_env = TestEnv::new_empty();
+        test_env
+            .init_project(project_name)
+            .await
+            .expect("Failed to init project");
+        test_env.cwd = test_env.temp_dir.path().join(project_name);
+        f(test_env).await;
+    }
+
     pub async fn wait_for_output<
         T: tokio_stream::Stream<Item = Result<String, tokio::io::Error>> + Unpin,
     >(
@@ -229,6 +263,10 @@ impl TestEnv {
         std::fs::write(self.cwd.join("environments.toml"), contents).unwrap();
     }
 
+    pub fn copy_env(&self) {
+        std::fs::copy(self.cwd.join(".env.example"), self.cwd.join(".env")).unwrap();
+    }
+
     pub fn switch_to_new_directory(
         &mut self,
         template: &str,
@@ -247,6 +285,25 @@ impl TestEnv {
         registry.current_dir(&self.cwd);
         registry.arg(cmd);
         registry
+    }
+
+    pub fn update_package_json_to_use_built_binary(
+        &self,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let package_json_path = self.cwd.join("package.json");
+        let stellar_bin = Self::cargo_bin_stellar_scaffold();
+        eprintln!("using stellar scaffold binary {}", stellar_bin.display());
+
+        let package_json_content = std::fs::read_to_string(&package_json_path)?;
+
+        let updated_content = package_json_content.replace(
+            "stellar scaffold watch --build-clients",
+            &format!("{} watch --build-clients", stellar_bin.display()),
+        );
+
+        std::fs::write(&package_json_path, updated_content)?;
+
+        Ok(())
     }
 }
 
