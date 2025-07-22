@@ -129,7 +129,7 @@ stellar-scaffold
 Initialize and manage dApp projects:
 ```
 stellar scaffold init my-project
-stellar-registry
+stellar scaffold build
 ```
 Manage contract deployment and versions:
 ```
