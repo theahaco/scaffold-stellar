@@ -831,9 +831,7 @@ export default new Client.Client({{
             .get_spec(self.global_args.as_ref())
             .await?;
 
-        let legacy_upgradeable = Self::is_legacy_upgradeable(existing_spec);
-
-        if legacy_upgradeable.is_none() {
+        let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(existing_spec) else {
             return Ok(None);
         }
 
@@ -845,35 +843,31 @@ export default new Client.Client({{
         printer
             .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
 
+        let existing_contract_id = existing_contract_id.to_string();
         let mut redeploy_args = vec![
-            "--id".to_string(),
-            existing_contract_id.to_string(),
-            "--".to_string(),
-            "upgrade".to_string(),
-            "--new_wasm_hash".to_string(),
-            hash.to_string(),
+            "--id",
+            existing_contract_id.as_str(),
+            "--",
+            "upgrade",
+            "--new_wasm_hash",
+            hash,
         ];
 
-        if legacy_upgradeable.is_some_and(|x| x) {
+        let invoke_cmd = if legacy_upgradeable {
             let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
             redeploy_args.push("--operator".to_string());
             redeploy_args.push(upgrade_operator);
-        }
-
+            cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
+        } else {
+            cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
+        }?;
         printer.infoln(format!("Upgrading {name:?} smart contract"));
-        let redeploy_args: Vec<&str> = redeploy_args
-            .iter()
-            .map(std::string::String::as_str)
-            .collect();
-        cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)?
+       invoke_cmd
             .run_against_rpc_server(self.global_args.as_ref(), None)
             .await?
             .into_result()
             .expect("no result returned by 'contract invoke'");
-        printer.infoln(format!(
-            "Contract upgraded: {}",
-            existing_contract_id.to_string()
-        ));
+        printer.infoln(format!("Contract upgraded: {existing_contract_id}"));
 
         Ok(Some(existing_contract_id))
     }
