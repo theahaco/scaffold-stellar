@@ -833,7 +833,7 @@ export default new Client.Client({{
 
         let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(existing_spec) else {
             return Ok(None);
-        }
+        };
 
         if Self::is_legacy_upgradeable(spec_to_upgrade).is_none() {
             printer.warnln("New WASM is not upgradable. Contract will be redeployed instead of being upgraded.");
@@ -862,7 +862,7 @@ export default new Client.Client({{
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
         }?;
         printer.infoln(format!("Upgrading {name:?} smart contract"));
-       invoke_cmd
+        invoke_cmd
             .run_against_rpc_server(self.global_args.as_ref(), None)
             .await?
             .into_result()
