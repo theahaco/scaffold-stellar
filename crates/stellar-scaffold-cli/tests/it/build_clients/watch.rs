@@ -371,6 +371,174 @@ async fn watch_and_vite_integration_test() {
                 vite_errors
             );
 
+            // Modify hello world source file and monitor for rebuild
+            let hello_world_file = "contracts/hello_world/src/lib.rs";
+            let modified_content = r#"#![no_std]
+use soroban_sdk::{contract, contractimpl, vec, Env, String, Vec};
+
+#[contract]
+pub struct HelloContract;
+
+#[contractimpl]
+impl HelloContract {
+    pub fn hello(env: Env, to: String) -> Vec<String> {
+        vec![&env, String::from_str(&env, "Hello modified world"), to]
+    }
+}
+
+mod test;
+"#;
+
+            env.modify_file(hello_world_file, modified_content);
+            let file_changed_path = env.cwd.join(hello_world_file);
+
+            // Monitor for file change detection and rebuild
+            let mut file_change_detected = false;
+            let mut rebuild_started = false;
+            let mut rebuild_completed = false;
+            let mut new_vite_errors = Vec::new();
+
+            let client = reqwest::Client::new();
+            let hello_world_client_path = "/src/contracts/stellar_hello_world_contract.ts";
+
+            // Monitor for 60 seconds for the rebuild process
+            let rebuild_timeout = tokio::time::Duration::from_secs(60);
+            let rebuild_start_time = tokio::time::Instant::now();
+
+            while rebuild_start_time.elapsed() < rebuild_timeout {
+                // Check for output from watch process
+                match tokio::time::timeout(
+                    tokio::time::Duration::from_millis(500),
+                    output_receiver.recv(),
+                )
+                .await
+                {
+                    Ok(Some((source, line))) => {
+                        println!("📝 [{}] {}", source, line);
+
+                        // Check for file change detection
+                        if !file_change_detected
+                            && line.contains("File changed:")
+                            && line.contains(&format!("{file_changed_path:?}"))
+                        {
+                            file_change_detected = true;
+                        }
+
+                        // Check for rebuild start
+                        if !rebuild_started && line.contains("cargo rustc") {
+                            rebuild_started = true;
+                        }
+
+                        // Check for rebuild completion
+                        if !rebuild_completed
+                            && file_change_detected
+                            && rebuild_started
+                            && line.contains("Watching for changes. Press Ctrl+C to stop.")
+                        {
+                            rebuild_completed = true;
+                        }
+
+                        // Check for new vite errors during rebuild
+                        if line.contains("Internal server error")
+                            || line.contains("Failed to resolve import")
+                            || line.contains("Does the file exist?")
+                        {
+                            new_vite_errors.push(line.clone());
+                        }
+                    }
+                    Ok(None) => {
+                        panic!("Output channel closed unexpectedly during rebuild test");
+                    }
+                    Err(_) => {
+                        // Timeout occurred, periodically query the hello world client file
+                        if file_change_detected {
+                            match client
+                                .get(&format!(
+                                    "http://localhost:{}{}",
+                                    port, hello_world_client_path
+                                ))
+                                .timeout(tokio::time::Duration::from_secs(5))
+                                .send()
+                                .await
+                            {
+                                Ok(response) => {
+                                    if response.status().is_success() {
+                                        println!(
+                                            "✅ Hello world client file accessible during rebuild"
+                                        );
+                                    } else {
+                                        println!(
+                                            "⚠️  Hello world client file returned status: {}",
+                                            response.status()
+                                        );
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("⚠️  Error querying hello world client file: {}", e);
+                                }
+                            }
+                        }
+                        continue;
+                    }
+                }
+
+                // Break if rebuild is complete
+                if rebuild_completed {
+                    break;
+                }
+            }
+
+            assert!(
+                file_change_detected,
+                "File change was not detected by watch process"
+            );
+
+            assert!(
+                rebuild_started,
+                "Rebuild process did not start after file change"
+            );
+
+            assert!(
+                rebuild_completed,
+                "Rebuild process did not complete within timeout"
+            );
+
+            // Final check for any vite errors that occurred during rebuild
+            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            while let Ok((_, line)) = output_receiver.try_recv() {
+                if line.contains("Internal server error")
+                    || line.contains("Failed to resolve import")
+                    || line.contains("Does the file exist?")
+                {
+                    new_vite_errors.push(line.clone());
+                }
+            }
+
+            assert!(
+                new_vite_errors.is_empty(),
+                "Vite errors detected during hello world rebuild. Errors found: {:?}",
+                new_vite_errors
+            );
+
+            // Final verification that hello world client is accessible after rebuild
+            let final_response = client
+                .get(&format!(
+                    "http://localhost:{}{}",
+                    port, hello_world_client_path
+                ))
+                .timeout(tokio::time::Duration::from_secs(10))
+                .send()
+                .await
+                .expect("Failed to query hello world client after rebuild");
+
+            assert!(
+                final_response.status().is_success(),
+                "Hello world client file not accessible after rebuild: {}",
+                final_response.status()
+            );
+
+            println!("✅ Hello world modification and rebuild test completed successfully");
+
             // Cleanup
             stdout_monitor.abort();
             stderr_monitor.abort();
