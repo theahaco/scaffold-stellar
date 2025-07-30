@@ -654,23 +654,24 @@ export default new Client.Client({{
                 return Err(Error::BadContractName(name.to_string()));
             }
 
-            let hash = self.upload_contract_wasm(name, &wasm_path).await?;
+            let new_hash = self.upload_contract_wasm(name, &wasm_path).await?;
             let mut upgraded_contract = None;
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                let existing_hash = self
+                if let Some(current_hash) = self
                     .get_contract_hash(&existing_contract_id, network)
-                    .await?;
-                if let Some(h) = &existing_hash {
-                    if *h == hash {
+                    .await?
+                    .as_deref()
+                {
+                    if current_hash == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
                         self.generate_contract_bindings(name, &existing_contract_id.to_string())
                             .await?;
                         return Ok(());
                     }
                     upgraded_contract = self
-                        .try_upgrade_contract(name, existing_contract_id, h, &hash)
+                        .try_upgrade_contract(name, existing_contract_id, current_hash, &new_hash)
                         .await?;
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
@@ -680,7 +681,7 @@ export default new Client.Client({{
             let contract_id = if let Some(upgraded) = upgraded_contract {
                 upgraded
             } else {
-                self.deploy_contract(name, &hash, &settings).await?
+                self.deploy_contract(name, &new_hash, &settings).await?
             };
             // Run after_deploy script if in development or test environment
             if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
@@ -843,10 +844,10 @@ export default new Client.Client({{
         printer
             .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
 
-        let existing_contract_id = existing_contract_id.to_string();
+        let existing_contract_id_str = existing_contract_id.to_string();
         let mut redeploy_args = vec![
             "--id",
-            existing_contract_id.as_str(),
+            existing_contract_id_str.as_str(),
             "--",
             "upgrade",
             "--new_wasm_hash",
@@ -855,8 +856,8 @@ export default new Client.Client({{
 
         let invoke_cmd = if legacy_upgradeable {
             let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
-            redeploy_args.push("--operator".to_string());
-            redeploy_args.push(upgrade_operator);
+            redeploy_args.push("--operator");
+            redeploy_args.push(&upgrade_operator);
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
         } else {
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
