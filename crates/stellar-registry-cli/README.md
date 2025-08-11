@@ -32,27 +32,31 @@ stellar registry publish \
 
 Options:
 - `--wasm`: Path to the compiled WASM file (required)
-- `--author`: Author address (optional, defaults to the configured source account)
+- `--author (-a)`: Author address (optional, defaults to the configured source account)
 - `--wasm-name`: Name for the published contract (optional, extracted from contract metadata if not provided)
 - `--binver`: Binary version (optional, extracted from contract metadata if not provided)
-- `--dry-run`: Simulate the publish operation without actually executing it
+- `--dry-run`: Simulate the publish operation without actually executing it (optional)
 
 ### Deploy
 
 Deploy a published contract with optional initialization parameters:
 ```bash
 stellar registry deploy \
-  --network <NETWORK_NAME> \
   --contract-name <NAME> \
   --wasm-name <NAME> \
+  [--version <VERSION>] \
   -- \
-  [CONSTRUCTOR_ARGS...]
+  [CONSTRUCTOR_FUNCTION] [CONSTRUCTOR_ARGS...]
 ```
 
 Options:
-- `--contract-name`: Name to give this contract instance
-- `--wasm-name`: Name of the published contract to deploy
-- `CONSTRUCTOR_ARGS`: Optional arguments if contract implements `__constructor` to deploy and initialize the contract
+- `--contract-name`: Name to give this contract instance (required)
+- `--wasm-name`: Name of the published contract to deploy (required)
+- `--version`: Specific version of the published contract to deploy (optional, defaults to most recent version)
+- `CONSTRUCTOR_FUNCTION`: Optional constructor function name if contract implements initialization
+- `CONSTRUCTOR_ARGS`: Optional arguments for the constructor function
+
+Note: Use `--` to separate CLI options from constructor function and arguments.
 
 ### Install
 
@@ -62,7 +66,7 @@ stellar registry install <CONTRACT_NAME>
 ```
 
 Options:
-- `CONTRACT_NAME`: Name of the deployed contract to install
+- `CONTRACT_NAME`: Name of the deployed contract to install (required)
 
 ## Configuration
 
@@ -91,14 +95,17 @@ These variables can also be in a `.env` file in the current working directory.
 ```bash
 stellar registry publish \
   --wasm path/to/my_token.wasm \
-  --wasm-name token
+  --wasm-name token \
+  --binver "1.0.0"
 ```
 
-2. Deploy the published contract:
+2. Deploy the published contract with initialization:
 ```bash
 stellar registry deploy \
   --contract-name my-token \
   --wasm-name token \
+  --version "1.0.0" \
+  -- \
   initialize \
   --name "My Token" \
   --symbol "MTK" \
