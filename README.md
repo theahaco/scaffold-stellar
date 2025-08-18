@@ -78,24 +78,24 @@ You should see your React frontend at http://localhost:5173.
 ### 6. For testnet/mainnet deployment:
 ```
 # First publish your contract to the registry
-stellar registry publish
+stellar registry publish --wasm path/to/contract.wasm --wasm-name my-contract
 
 # Then deploy an instance with constructor parameters
 stellar registry deploy \
-  --deployed-name my-contract \
-  --published-name my-contract \
+  --contract-name my-contract-instance \
+  --wasm-name my-contract \
   -- \
   --param1 value1
   
-# Can access the help docs with --help
+# Can access the help docs for constructor parameters
 stellar registry deploy \
-  --deployed-name my-contract \
-  --published-name my-contract \
+  --contract-name my-contract-instance \
+  --wasm-name my-contract \
   -- \
   --help
 
-# Install the deployed contract locally
-stellar registry install my-contract
+# Install the deployed contract locally for use with stellar-cli
+stellar registry install my-contract-instance
 ```
 
 ## Project Layout
@@ -125,48 +125,82 @@ See the [CLI Documentation](https://github.com/AhaLabs/scaffold-stellar/blob/mai
 ## CLI Tools
 Scaffold Stellar provides two main CLI tools:
 
-stellar-scaffold
+**stellar-scaffold**
 Initialize and manage dApp projects:
 ```
 stellar scaffold init my-project
 stellar scaffold build
 ```
+
+**stellar-registry**
 Manage contract deployment and versions:
 ```
-stellar registry publish    # Publish contract to the registry
-stellar registry deploy     # Deploy a contract instance
-stellar registry install    # Install deployed contracts locally
+stellar registry publish --wasm contract.wasm --wasm-name my-contract    # Publish contract to the registry
+stellar registry deploy --contract-name instance --wasm-name my-contract # Deploy a contract instance
+stellar registry install my-contract-instance                           # Install deployed contracts locally
 ```
 > Use `--help` on any command for usage instructions.
 
 ---
 ## Smart Contract Deployment
-1. Publish Your Contract
+
+### 1. Publish Your Contract
+```bash
+# Publish with automatic metadata extraction
+stellar registry publish --wasm target/stellar/my_contract.wasm
+
+# Or specify details manually
+stellar registry publish \
+  --wasm target/stellar/my_contract.wasm \
+  --wasm-name my-contract \
+  --binver "1.0.0"
 ```
-stellar registry publish
-```
-2. Deploy the Contract
-```
+
+### 2. Deploy the Contract
+```bash
+# Deploy without initialization
 stellar registry deploy \
-  --deployed-name my-contract \
-  --published-name my-contract \
+  --contract-name my-contract-instance \
+  --wasm-name my-contract
+
+# Deploy with constructor parameters
+stellar registry deploy \
+  --contract-name my-token \
+  --wasm-name token \
+  --version "1.0.0" \
   -- \
-  --param1 value1
+  --name "My Token" \
+  --symbol "MTK" \
+  --decimals 7
 ```
-3. Install the Deployed Contract
+
+### 3. Install the Deployed Contract
+```bash
+stellar registry install my-contract-instance
 ```
-stellar registry install my-contract
+
+After installation, you can interact with the contract using `stellar-cli`:
+```bash
+stellar contract invoke --id my-contract-instance -- --help
 ```
+
 > You can deploy to testnet or mainnet depending on your `.env` and `environments.toml`.
 
 ---
 ## Concept: What Is the Contract Registry?
 The registry is an on-chain smart contract that lets you:
-* Publish and verify other contracts
-* Manage multiple versions
+* Publish and verify contract WASM binaries with versioning
+* Deploy published contracts as named instances
+* Manage multiple versions of the same contract
 * Reuse deployed contracts across dApps
 
+The registry separates the concepts of:
+- **WASM publication**: Publishing reusable contract code
+- **Contract deployment**: Creating instances of published contracts
+- **Local installation**: Creating aliases for easy CLI access
+
 >This means your contracts can be upgraded, shared, and used like packages.
+
 ---
 ## Project Structure (Top-Level)
 Your repo contains the following key folders:
@@ -183,7 +217,7 @@ Your repo contains the following key folders:
 
 ---
 
-Documentation 
+## Documentation 
 * [CLI Commands](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md)
 * [Environment Setup](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md)
 * [Registry Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/registry.md)
@@ -197,7 +231,7 @@ Documentation
 
 ---
 ## Contributing
-We love contributions! If you’re new, check these out:
+We love contributions! If you're new, check these out:
 
 [Contributing Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/CONTRIBUTING.md)
 
@@ -207,7 +241,7 @@ We love contributions! If you’re new, check these out:
 ---
 
 ## Need Help?
-If you’re new to Stellar, Rust, or smart contracts:
+If you're new to Stellar, Rust, or smart contracts:
 
 Ask questions in the repo Discussions tab
 
