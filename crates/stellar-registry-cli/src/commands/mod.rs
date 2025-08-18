@@ -9,7 +9,6 @@ pub mod version;
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
-// long_about is shown when someone uses `--help`; short help when using `-h`
 
 #[derive(Parser, Debug)]
 #[command(
