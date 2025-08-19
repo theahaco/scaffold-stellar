@@ -9,14 +9,10 @@ pub mod version;
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
-// long_about is shown when someone uses `--help`; short help when using `-h`
-const LONG_ABOUT: &str = "LONG ABOUT";
-
 #[derive(Parser, Debug)]
 #[command(
     name = "stellar-registry",
     about = ABOUT,
-    long_about = ABOUT.to_string() + LONG_ABOUT,
     disable_help_subcommand = true,
 )]
 pub struct Root {
