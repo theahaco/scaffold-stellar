@@ -9,7 +9,6 @@ pub mod version;
 
 const ABOUT: &str = "Publish and install Soroban contracts";
 
-
 #[derive(Parser, Debug)]
 #[command(
     name = "stellar-registry",
