@@ -659,19 +659,18 @@ export default new Client.Client({{
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                if let Some(current_hash) = self
+                let existing_hash = self
                     .get_contract_hash(&existing_contract_id, network)
-                    .await?
-                    .as_deref()
-                {
-                    if current_hash == new_hash {
+                    .await?;
+                if let Some(h) = &existing_hash {
+                    if *h == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
                         self.generate_contract_bindings(name, &existing_contract_id.to_string())
                             .await?;
                         return Ok(());
                     }
                     upgraded_contract = self
-                        .try_upgrade_contract(name, existing_contract_id, current_hash, &new_hash)
+                        .try_upgrade_contract(name, existing_contract_id, h, &new_hash)
                         .await?;
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
