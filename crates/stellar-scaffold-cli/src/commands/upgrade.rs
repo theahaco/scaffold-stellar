@@ -312,13 +312,13 @@ impl Cmd {
 
                 // Update cargo toml to include metadata
                 if content.contains("[package.metadata.stellar]") {
-                    printer.infoln("Found metadata section [package.metadata.stellar]")
+                    printer.infoln("Found metadata section [package.metadata.stellar]");
                 } else {
                     content.push_str("\n[package.metadata.stellar]\ncargo_inherit = true\n");
 
                     let res = write(path.join("Cargo.toml"), content);
                     if let Err(e) = res {
-                        printer.errorln(format!("Failed to write Cargo.toml file {}", e));
+                        printer.errorln(format!("Failed to write Cargo.toml file {e}"));
                     }
                 }
 
