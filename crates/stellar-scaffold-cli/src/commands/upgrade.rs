@@ -7,6 +7,7 @@ use std::fs;
 use std::fs::{create_dir_all, metadata, read_dir, write};
 use std::io;
 use std::path::{Path, PathBuf};
+use stellar_cli::commands::global::Args;
 use toml_edit::{value, DocumentMut, Item, Table};
 
 use crate::{arg_parsing, commands::build};
@@ -199,7 +200,7 @@ impl Cmd {
         }
 
         // Discover contracts by looking in contracts/ directory
-        let contracts = self.discover_contracts()?;
+        let contracts = self.discover_contracts(global_args)?;
 
         // Build contracts to get WASM files for constructor arg analysis
         self.build_contracts(global_args).await?;
@@ -281,8 +282,9 @@ impl Cmd {
         Ok(())
     }
 
-    fn discover_contracts(&self) -> Result<Vec<String>, Error> {
+    fn discover_contracts(&self, global_args: &Args) -> Result<Vec<String>, Error> {
         let contracts_dir = self.workspace_path.join("contracts");
+        let printer = Print::new(global_args.quiet);
 
         let contracts = std::fs::read_dir(&contracts_dir)?
             .map(|entry_res| -> Result<Option<String>, Error> {
@@ -295,7 +297,7 @@ impl Cmd {
                     return Ok(None);
                 }
 
-                let content = std::fs::read_to_string(&cargo_toml)?;
+                let mut content = fs::read_to_string(&cargo_toml)?;
                 if !content.contains("cdylib") {
                     return Ok(None);
                 }
@@ -307,6 +309,18 @@ impl Cmd {
                     .and_then(|p| p.get("name"))
                     .and_then(|n| n.as_str())
                     .ok_or_else(|| Error::InvalidPackageName)?;
+
+                // Update cargo toml to include metadata
+                if content.contains("[package.metadata.stellar]") {
+                    printer.infoln("Found metadata section [package.metadata.stellar]");
+                } else {
+                    content.push_str("\n[package.metadata.stellar]\ncargo_inherit = true\n");
+
+                    let res = write(path.join("Cargo.toml"), content);
+                    if let Err(e) = res {
+                        printer.errorln(format!("Failed to write Cargo.toml file {e}"));
+                    }
+                }
 
                 Ok(Some(name.to_string()))
             })
