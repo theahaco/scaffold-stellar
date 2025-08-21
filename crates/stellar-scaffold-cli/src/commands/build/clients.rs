@@ -659,18 +659,16 @@ export default new Client.Client({{
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                let existing_hash = self
+                if let Some(current_hash) = self
                     .get_contract_hash(&existing_contract_id, network)
-                    .await?;
-                if let Some(h) = &existing_hash {
-                    if *h == new_hash {
+                    .await?
+                {
+                    if current_hash == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
-                        self.generate_contract_bindings(name, &existing_contract_id.to_string())
-                            .await?;
                         return Ok(());
                     }
                     upgraded_contract = self
-                        .try_upgrade_contract(name, existing_contract_id, h, &new_hash)
+                        .try_upgrade_contract(name, existing_contract_id, &current_hash, &new_hash)
                         .await?;
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
@@ -683,14 +681,12 @@ export default new Client.Client({{
                 self.deploy_contract(name, &new_hash, &settings).await?
             };
             // Run after_deploy script if in development or test environment
-            if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-                printer.infoln(format!("Running after_deploy script for {name:?}"));
-                self.run_after_deploy_script(
-                    name,
-                    &contract_id,
-                    settings.after_deploy.as_ref().unwrap(),
-                )
-                .await?;
+            if let Some(after_deploy) = settings.after_deploy.as_deref() {
+                if env == "development" || env == "testing" {
+                    printer.infoln(format!("Running after_deploy script for {name:?}"));
+                    self.run_after_deploy_script(name, &contract_id, after_deploy)
+                        .await?;
+                }
             }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
