@@ -7,7 +7,7 @@ pub mod install;
 pub mod publish;
 pub mod version;
 
-const ABOUT: &str = "Publish and install Soroban contracts";
+const ABOUT: &str = "Add, manage, and use Wasm packages & named contracts in the Stellar Registry";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -56,14 +56,14 @@ impl FromStr for Root {
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
-    /// publish contract to registry
+    /// Publish Wasm to registry with package name and semantic version
     Publish(Box<publish::Cmd>),
+    /// Deploy a named contract from a published Wasm
+    Deploy(Box<deploy::Cmd>),
+    /// Create a local `stellar contract alias` from a named registry contract
+    Install(Box<install::Cmd>),
     /// Version of the scaffold-registry-cli
     Version(version::Cmd),
-    /// deploy contract from deployed Wasm
-    Deploy(Box<deploy::Cmd>),
-    /// install contracts
-    Install(Box<install::Cmd>),
 }
 
 #[derive(thiserror::Error, Debug)]
