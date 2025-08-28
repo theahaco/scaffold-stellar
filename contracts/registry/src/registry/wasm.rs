@@ -4,7 +4,7 @@ use loam_sdk::{
 };
 use loam_subcontract_core::Core as _;
 
-use crate::{error::Error, name::validate, util::REGISTRY};
+use crate::{error::Error, name::canonicalize, util::REGISTRY};
 
 use super::IsPublishable;
 
@@ -92,7 +92,7 @@ impl IsPublishable for W {
         version: String,
     ) -> Result<(), Error> {
         author.require_auth();
-        validate(&wasm_name)?;
+        canonicalize(&wasm_name)?;
         if let Some(current) = self.author(&wasm_name) {
             if author != current {
                 return Err(Error::AlreadyPublished);

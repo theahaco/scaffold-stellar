@@ -11,7 +11,7 @@ use loam_subcontract_core::Core;
 
 use crate::{
     error::Error,
-    name::validate,
+    name::canonicalize,
     registry::Publishable,
     util::{hash_string, REGISTRY},
     Contract as Contract_,
@@ -63,7 +63,7 @@ impl IsDeployable for C {
         admin: Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Address, Error> {
-        validate(&contract_name)?;
+        canonicalize(&contract_name)?;
         let env = env();
         if self.r.has(contract_name.clone()) {
             return Err(Error::AlreadyDeployed);

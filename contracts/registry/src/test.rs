@@ -96,7 +96,7 @@ fn returns_most_recent_version() {
 
 fn test_string(s: &str, result: bool) {
     assert!(
-        is_valid(&to_string(s)) == result,
+        is_valid(&to_string(s)).is_some() == result,
         "{s} should be {}valid",
         if result { "" } else { "in" }
     );

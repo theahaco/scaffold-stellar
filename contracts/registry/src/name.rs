@@ -2,25 +2,38 @@ use loam_sdk::soroban_sdk::String;
 
 use crate::error::Error;
 
-pub(crate) fn is_valid(s: &String) -> bool {
+pub(crate) fn is_valid(s: &String) -> Option<String> {
+    let env = s.env();
     if s.len() > 64 || s.is_empty() {
-        return false;
+        return None;
     }
     let mut out = [0u8; 64];
     let (first, _) = out.split_at_mut(s.len() as usize);
     s.copy_into_slice(first);
-    let Ok(s) = core::str::from_utf8(first) else {
-        return false;
+    let Ok(s) = core::str::from_utf8_mut(first) else {
+        return None;
     };
     if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
-        return false;
+        return None;
     }
-    s.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    let mut chars_to_change: [Option<usize>; 64] = [None; 64];
+    for (i, c) in s.chars().enumerate() {
+        if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+            return None;
+        }
+        if c == '_' {
+            chars_to_change[i] = Some(i);
+        }
+    }
+    let as_bytes = unsafe { s.as_bytes_mut() };
+    for i in chars_to_change.into_iter().filter_map(|x| x) {
+        as_bytes[i] = b'-';
+    }
+    Some(String::from_bytes(env, as_bytes))
 }
 
-pub(crate) fn validate(s: &String) -> Result<(), Error> {
-    is_valid(s).then_some(()).ok_or(Error::InvalidName)
+pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
+    is_valid(s).ok_or(Error::InvalidName)
 }
 
 /// from crate `check_keyword`
