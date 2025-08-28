@@ -1,9 +1,6 @@
 use clap::Parser;
 
-use stellar_cli::{
-    commands::contract::{fetch, invoke},
-    config,
-};
+use stellar_cli::{commands::contract::invoke, config};
 use stellar_strkey::Contract;
 
 use crate::contract::NetworkContract;
@@ -20,11 +17,7 @@ pub struct Cmd {
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Fetch(#[from] fetch::Error),
-    #[error(transparent)]
     Invoke(#[from] invoke::Error),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
     #[error(transparent)]
     Strkey(#[from] stellar_strkey::DecodeError),
     #[error(transparent)]
