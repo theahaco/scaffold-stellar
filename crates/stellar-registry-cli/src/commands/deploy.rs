@@ -117,48 +117,37 @@ impl Cmd {
         let contract_address = self.config.contract_sc_address()?;
         let contract_id = &self.config.contract_id()?;
         let spec_entries = self.spec_entries().await?;
-
-        let (args, signers) = if self.slop.is_empty() {
-            (ScVal::Void, vec![])
-        } else {
-            let res = arg_parsing::build_host_function_parameters(
-                contract_id,
-                &self.slop,
-                &spec_entries,
-                &config::Args::default(),
-            );
-            match res {
-                Ok((_, _, host_function_params, signers)) => {
-                    if host_function_params.function_name.len() > 64 {
-                        return Err(Error::FunctionNameTooLong(
-                            host_function_params.function_name.to_string(),
-                        ));
-                    }
-                    let args = ScVal::Vec(Some(
-                        vec![
-                            ScVal::Symbol(host_function_params.function_name),
-                            ScVal::Vec(Some(host_function_params.args.into())),
-                        ]
-                        .try_into()
-                        .unwrap(),
+        let mut slop = self.slop.clone();
+        slop.insert(0, "__constructor".to_string().into());
+        let res = arg_parsing::build_host_function_parameters(
+            contract_id,
+            &slop,
+            &spec_entries,
+            &config::Args::default(),
+        );
+        let (args, signers) = match res {
+            Ok((_, _, host_function_params, signers)) => {
+                if host_function_params.function_name.len() > 64 {
+                    return Err(Error::FunctionNameTooLong(
+                        host_function_params.function_name.to_string(),
                     ));
-                    (args, signers)
                 }
-                Err(arg_parsing::Error::HelpMessage(help)) => {
-                    println!("{help}");
-                    return Ok(());
-                }
-                Err(e) => {
-                    return Err(Error::CannotParseArg {
-                        arg: self
-                            .slop
-                            .iter()
-                            .map(|s| s.to_string_lossy())
-                            .collect::<Vec<_>>()
-                            .join(" "),
-                        error: e,
-                    });
-                }
+                let args = ScVal::Vec(Some(host_function_params.args.into()));
+                (args, signers)
+            }
+            Err(arg_parsing::Error::HelpMessage(help)) => {
+                println!("{help}");
+                return Ok(());
+            }
+            Err(e) => {
+                return Err(Error::CannotParseArg {
+                    arg: slop
+                        .iter()
+                        .map(|s| s.to_string_lossy())
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                    error: e,
+                });
             }
         };
 
@@ -189,11 +178,10 @@ impl Cmd {
             .sign_soroban_authorizations(&txn, &signers)
             .await?
             .unwrap_or(txn);
-        let res = client
+        let return_value = client
             .send_transaction_polling(&config.sign(txn).await?)
-            .await?;
-
-        let return_value = res.return_value()?;
+            .await?
+            .return_value()?;
         println!("{return_value:#?}");
         Ok(())
     }
