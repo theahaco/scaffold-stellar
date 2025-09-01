@@ -1,7 +1,7 @@
 [package]
 name = "registry"
 description = "A crate for managing and deploying smart contracts on the Soroban blockchain."
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Aha Labs <hello@ahalabs.dev>"]
 license = "Apache-2.0"
 rust-version = "1.69"
@@ -30,6 +30,3 @@ contract = true
 cargo_inherit = true
 homepage = "ahalabs.dev"
 repository = "https://github.com/AhaLabs/scaffold-stellar"
-
-# should add this here
-#[package.metadata.loam.dependencies]

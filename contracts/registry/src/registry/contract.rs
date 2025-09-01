@@ -41,6 +41,13 @@ impl C {
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let contract_id = self.fetch_contract_id(name.clone())?;
+        if let Ok(Ok(author)) = env().try_invoke_contract::<Address, Error>(
+            &contract_id,
+            &symbol_short!("admin"),
+            vec![],
+        ) {
+            author.require_auth();
+        };
         let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("upgrade"));
         env().invoke_contract::<()>(&contract_id, &fn_name, vec![wasm_hash.into_val(env())]);
         Ok(contract_id)
