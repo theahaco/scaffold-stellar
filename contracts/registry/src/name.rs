@@ -10,9 +10,7 @@ pub(crate) fn is_valid(s: &String) -> Option<String> {
     let mut out = [0u8; 64];
     let (first, _) = out.split_at_mut(s.len() as usize);
     s.copy_into_slice(first);
-    let Ok(s) = core::str::from_utf8_mut(first) else {
-        return None;
-    };
+    let s = core::str::from_utf8_mut(first).ok()?;
     if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
         return None;
     }
@@ -26,7 +24,7 @@ pub(crate) fn is_valid(s: &String) -> Option<String> {
         }
     }
     let as_bytes = unsafe { s.as_bytes_mut() };
-    for i in chars_to_change.into_iter().filter_map(|x| x) {
+    for i in chars_to_change.into_iter().flatten() {
         as_bytes[i] = b'-';
     }
     Some(String::from_bytes(env, as_bytes))
