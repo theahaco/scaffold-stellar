@@ -46,7 +46,7 @@ impl Cmd {
         let raw = self.config.invoke_registry(&slop, None, true).await?;
         if let Some(file) = self.out_file.as_deref() {
             let mut f = std::fs::File::create(file)?;
-            f.write_all(raw.as_bytes())?
+            f.write_all(raw.as_bytes())?;
         } else {
             println!("{raw}");
         }

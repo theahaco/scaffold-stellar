@@ -71,7 +71,7 @@ pub enum Cmd {
     /// Version of the scaffold-registry-cli
     Version(version::Cmd),
     /// Upgrade a contract using a published Wasm
-    Upgrade(upgrade::Cmd),
+    Upgrade(Box<upgrade::Cmd>),
 }
 
 #[derive(thiserror::Error, Debug)]
