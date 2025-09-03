@@ -3,7 +3,7 @@ use clap::Parser;
 use stellar_cli::{commands::contract::invoke, config};
 use stellar_strkey::Contract;
 
-use crate::contract::NetworkContract;
+use crate::contract::{NetworkContract, REGISTRY_NAME};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -33,33 +33,27 @@ impl Cmd {
         let network_passphrase = network.network_passphrase;
 
         let contract = self.get_contract_id().await?;
+        let alias = &self.contract_name;
 
         // Only create alias mapping, don't fetch wasm here
-        self.config.locator.save_contract_id(
-            &network_passphrase,
-            &contract,
-            &self.contract_name,
-        )?;
+        self.config
+            .locator
+            .save_contract_id(&network_passphrase, &contract, alias)?;
 
-        eprintln!(
-            "✅ Successfully registered contract alias '{}'",
-            self.contract_name
-        );
-        eprintln!("Contract ID: {:?}", contract.to_string());
+        eprintln!("✅ Successfully registered contract alias '{alias}' for {contract}");
 
         Ok(())
     }
 
     pub async fn get_contract_id(&self) -> Result<Contract, Error> {
-        if self.contract_name == "registry" {
+        if self.contract_name == REGISTRY_NAME {
             return Ok(self.config.contract_id()?);
         }
         // Prepare the arguments for invoke_registry
-        let slop = vec!["fetch_contract_id", "--contract-name", &self.contract_name];
+        let slop = ["fetch_contract_id", "--contract-name", &self.contract_name];
         // Use this.config directly
         eprintln!("Fetching contract ID via registry...");
         let raw = self.config.invoke_registry(&slop, None, true).await?;
-
         let contract_id = raw.trim_matches('"').to_string();
         Ok(contract_id.parse()?)
     }
@@ -67,7 +61,7 @@ impl Cmd {
 
 #[cfg(test)]
 mod tests {
-    
+
     use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
@@ -106,7 +100,7 @@ mod tests {
             .success();
 
         // Create test command for install
-        let cmd = registry.parse_cmd::<super::Cmd>(&["hello"]).unwrap();
+        let cmd = registry.parse_cmd::<create_alias::Cmd>(&["hello"]).unwrap();
 
         // Run the install command
         cmd.run().await.unwrap();

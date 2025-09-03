@@ -2,19 +2,15 @@
 use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;
-
+use soroban_rpc as rpc;
+pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
     commands::contract::invoke,
     config, fee,
     utils::rpc::get_remote_wasm_from_hash,
-    xdr::{
-        self, AccountId, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256,
-    },
+    xdr::{self, AccountId, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256},
 };
-
-use soroban_rpc as rpc;
-pub use soroban_spec_tools::contract as contract_spec;
 
 use crate::contract::NetworkContract;
 
@@ -47,7 +43,7 @@ pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
-    Install(#[from] super::install::Error),
+    Install(#[from] super::create_alias::Error),
     #[error(transparent)]
     Rpc(#[from] rpc::Error),
     #[error(transparent)]

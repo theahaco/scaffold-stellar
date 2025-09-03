@@ -7,6 +7,8 @@ use stellar_cli::{
     xdr::{self, WriteXdr},
 };
 
+pub const REGISTRY_NAME: &str = "registry";
+
 pub trait NetworkContract {
     fn contract_id(&self) -> Result<stellar_strkey::Contract, config::Error>;
 

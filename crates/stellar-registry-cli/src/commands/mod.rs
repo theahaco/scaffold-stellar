@@ -3,8 +3,8 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod deploy;
-pub mod fetch;
-pub mod install;
+pub mod download;
+pub mod create_alias;
 pub mod publish;
 pub mod upgrade;
 pub mod version;
@@ -40,9 +40,9 @@ impl Root {
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
             Cmd::Deploy(deploy) => deploy.run().await?,
-            Cmd::Fetch(cmd) => cmd.run().await?,
+            Cmd::Download(cmd) => cmd.run().await?,
             Cmd::Publish(p) => p.run().await?,
-            Cmd::Install(i) => i.run().await?,
+            Cmd::CreateAlias(i) => i.run().await?,
             Cmd::Version(p) => p.run(),
             Cmd::Upgrade(u) => u.run().await?,
         }
@@ -63,9 +63,9 @@ pub enum Cmd {
     /// Deploy a named contract from a published Wasm
     Deploy(Box<deploy::Cmd>),
     /// Download a Wasm binary, optionally creating a local file
-    Fetch(Box<fetch::Cmd>),
+    Download(Box<download::Cmd>),
     /// Create a local `stellar contract alias` from a named registry contract
-    Install(Box<install::Cmd>),
+    CreateAlias(Box<create_alias::Cmd>),
     /// Publish Wasm to registry with package name and semantic version
     Publish(Box<publish::Cmd>),
     /// Version of the scaffold-registry-cli
@@ -79,9 +79,9 @@ pub enum Error {
     #[error(transparent)]
     Deploy(#[from] deploy::Error),
     #[error(transparent)]
-    Fetch(#[from] fetch::Error),
+    Fetch(#[from] download::Error),
     #[error(transparent)]
-    Install(#[from] install::Error),
+    Install(#[from] create_alias::Error),
     #[error(transparent)]
     Publish(#[from] publish::Error),
     #[error(transparent)]
