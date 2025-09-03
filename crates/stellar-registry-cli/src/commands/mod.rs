@@ -62,7 +62,7 @@ impl FromStr for Root {
 pub enum Cmd {
     /// Deploy a named contract from a published Wasm
     Deploy(Box<deploy::Cmd>),
-    /// Fetch a published Wasm
+    /// Download a Wasm binary, optionally creating a local file
     Fetch(Box<fetch::Cmd>),
     /// Create a local `stellar contract alias` from a named registry contract
     Install(Box<install::Cmd>),
