@@ -1,7 +1,7 @@
 use std::{io::Write, path::PathBuf};
 
 use clap::Parser;
-use stellar_cli::{commands::contract::invoke, config};
+use stellar_cli::{commands::contract::invoke, config, xdr};
 
 use crate::contract::NetworkContract;
 
@@ -34,6 +34,13 @@ pub enum Error {
     Config(#[from] stellar_cli::config::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Rpc(#[from] soroban_rpc::Error),
+    #[error(transparent)]
+    Xdr(#[from] xdr::Error),
+    #[error(transparent)]
+    Network(#[from] stellar_cli::config::network::Error),
 }
 
 impl Cmd {
@@ -44,11 +51,16 @@ impl Cmd {
             slop.push(version);
         }
         let raw = self.config.invoke_registry(&slop, None, true).await?;
+        let bytes = stellar_cli::utils::rpc::get_remote_wasm_from_hash(
+            &self.config.get_network()?.rpc_client()?,
+            &raw.parse()?,
+        )
+        .await?;
         if let Some(file) = self.out_file.as_deref() {
             let mut f = std::fs::File::create(file)?;
-            f.write_all(raw.as_bytes())?;
+            f.write_all(&bytes)?;
         } else {
-            println!("{raw}");
+            std::io::stdout().write_all(&bytes)?;
         }
         Ok(())
     }

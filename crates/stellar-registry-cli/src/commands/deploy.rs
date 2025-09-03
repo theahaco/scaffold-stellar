@@ -2,17 +2,14 @@
 use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;
-use ed25519_dalek::SigningKey;
 
 use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
-    commands::contract::{arg_parsing, invoke},
+    commands::contract::invoke,
     config, fee,
     utils::rpc::get_remote_wasm_from_hash,
     xdr::{
-        self, AccountId, HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo,
-        MuxedAccount, Operation, OperationBody, Preconditions, ScSpecEntry, ScString, ScVal,
-        SequenceNumber, Transaction, TransactionExt, Uint256, VecM,
+        self, AccountId, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256,
     },
 };
 
@@ -20,6 +17,8 @@ use soroban_rpc as rpc;
 pub use soroban_spec_tools::contract as contract_spec;
 
 use crate::contract::NetworkContract;
+
+mod util;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -74,12 +73,28 @@ pub enum Error {
     MissingFileArg(PathBuf),
     #[error("Missing argument {0}")]
     MissingArgument(String),
+    #[error("Constructor help message: {0}")]
+    ConstructorHelpMessage(String),
+    #[error("{0}")]
+    InvalidReturnValue(String),
 }
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
-        self.invoke().await?;
-        Ok(())
+        match self.invoke().await {
+            Ok(contract_id) => {
+                println!(
+                    "Contract {} deployed successfully to {contract_id}",
+                    self.contract_name
+                );
+                Ok(())
+            }
+            Err(Error::ConstructorHelpMessage(help)) => {
+                println!("Constructor help message:\n{help}");
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
@@ -105,51 +120,16 @@ impl Cmd {
             .spec)
     }
 
-    async fn invoke(&self) -> Result<(), Error> {
+    async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
-        // Get the account sequence number
-        let public_strkey =
-            stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
-
         let contract_address = self.config.contract_sc_address()?;
         let contract_id = &self.config.contract_id()?;
         let spec_entries = self.spec_entries().await?;
-        let mut slop = self.slop.clone();
-        slop.insert(0, "__constructor".to_string().into());
-        let res = arg_parsing::build_host_function_parameters(
-            contract_id,
-            &slop,
-            &spec_entries,
-            &config::Args::default(),
-        );
-        let (args, signers) = match res {
-            Ok((_, _, host_function_params, signers)) => {
-                if host_function_params.function_name.len() > 64 {
-                    return Err(Error::FunctionNameTooLong(
-                        host_function_params.function_name.to_string(),
-                    ));
-                }
-                let args = ScVal::Vec(Some(host_function_params.args.into()));
-                (args, signers)
-            }
-            Err(arg_parsing::Error::HelpMessage(help)) => {
-                println!("{help}");
-                return Ok(());
-            }
-            Err(e) => {
-                return Err(Error::CannotParseArg {
-                    arg: slop
-                        .iter()
-                        .map(|s| s.to_string_lossy())
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                    error: e,
-                });
-            }
-        };
+        let (args, signers) =
+            util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries)?;
 
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
@@ -169,9 +149,13 @@ impl Cmd {
             .unwrap(),
         };
 
+        // Get the account sequence number
+        let public_strkey =
+            stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
         let account_details = client.get_account(&public_strkey).await?;
         let sequence: i64 = account_details.seq_num.into();
-        let tx = build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
+        let tx =
+            util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
         let assembled = simulate_and_assemble_transaction(&client, &tx).await?;
         let mut txn = assembled.transaction().clone();
         txn = config
@@ -182,31 +166,13 @@ impl Cmd {
             .send_transaction_polling(&config.sign(txn).await?)
             .await?
             .return_value()?;
-        println!("{return_value:#?}");
-        Ok(())
+        match return_value {
+            ScVal::Address(xdr::ScAddress::Contract(xdr::ContractId(hash))) => {
+                Ok(stellar_strkey::Contract(hash.0))
+            }
+            _ => Err(Error::InvalidReturnValue(
+                "{return_value:#?} is not a contract address".to_string(),
+            )),
+        }
     }
-}
-
-fn build_invoke_contract_tx(
-    parameters: InvokeContractArgs,
-    sequence: i64,
-    fee: u32,
-    key: &SigningKey,
-) -> Result<Transaction, Error> {
-    let op = Operation {
-        source_account: None,
-        body: OperationBody::InvokeHostFunction(InvokeHostFunctionOp {
-            host_function: HostFunction::InvokeContract(parameters),
-            auth: VecM::default(),
-        }),
-    };
-    Ok(Transaction {
-        source_account: MuxedAccount::Ed25519(Uint256(key.verifying_key().to_bytes())),
-        fee,
-        seq_num: SequenceNumber(sequence),
-        cond: Preconditions::None,
-        memo: Memo::None,
-        operations: vec![op].try_into()?,
-        ext: TransactionExt::V0,
-    })
 }
