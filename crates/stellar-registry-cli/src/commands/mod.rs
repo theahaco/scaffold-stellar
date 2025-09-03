@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
+pub mod create_alias;
 pub mod deploy;
 pub mod download;
-pub mod create_alias;
 pub mod publish;
 pub mod upgrade;
 pub mod version;

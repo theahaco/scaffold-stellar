@@ -40,7 +40,7 @@ impl RegistryTest {
         // Deploy registry contract
         let registry_address = Self::deploy_registry(&env).await;
         // Set environment variables for testnet configuration
-        unsafe { 
+        unsafe {
             env::set_var("STELLAR_RPC_URL", "http://moss:8000/soroban/rpc");
             env::set_var("STELLAR_ACCOUNT", "alice");
             env::set_var(
@@ -49,7 +49,7 @@ impl RegistryTest {
             );
             env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
         };
-            
+
         Self {
             env,
             registry_address,

@@ -7,12 +7,11 @@ use stellar_cli::{
     commands::contract::arg_parsing,
     config,
     xdr::{
-        HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo,
-        MuxedAccount, Operation, OperationBody, Preconditions, ScSpecEntry, ScVal,
-        SequenceNumber, Transaction, TransactionExt, Uint256, VecM,
+        HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo, MuxedAccount, Operation,
+        OperationBody, Preconditions, ScSpecEntry, ScVal, SequenceNumber, Transaction,
+        TransactionExt, Uint256, VecM,
     },
 };
-
 
 use super::Error;
 
