@@ -12,7 +12,7 @@ stellar-registry = { path = "crates/stellar-registry" }
 
 loam-sdk = { git = "https://github.com/loambuild/loam", rev = "096da30cedd371651906cfbed034b955c7b50ab4" }
 loam-subcontract-core = { git = "https://github.com/loambuild/loam", rev = "096da30cedd371651906cfbed034b955c7b50ab4" }
-stellar-cli = { version = "23.0.0", package = "soroban-cli" }
+stellar-cli = { version = "23.0.0", package = "soroban-cli", default-features = false  }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.0-rc.5" }
 soroban-spec-tools = "23.0.0"
 
@@ -23,6 +23,8 @@ stellar-strkey = "0.0.11"
 cargo_metadata = "0.18.1"
 thiserror = "1.0.38"
 sha2 = "0.10.8"
+
+clap = "4.1.8"
 
 [profile.contracts]
 inherits = "release"
