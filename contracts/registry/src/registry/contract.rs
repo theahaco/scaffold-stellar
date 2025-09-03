@@ -109,11 +109,12 @@ fn deploy_and_init(
     wasm_hash: BytesN<32>,
     args: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
 ) -> Address {
-    // Deploy the contract using the installed Wasm code with given hash.
-    env()
-        .deployer()
-        .with_current_contract(salt.into_val(env()))
-        .deploy_v2(wasm_hash, args.unwrap_or_else(|| vec![]))
+    let deployer = env().deployer().with_current_contract(salt.into_val(env()));
+    if let Some(args) = args {
+        deployer.deploy_v2(wasm_hash, args)
+    } else {
+        deployer.deploy_v2(wasm_hash, ())
+    }
 }
 
 impl IsRedeployable for C {
