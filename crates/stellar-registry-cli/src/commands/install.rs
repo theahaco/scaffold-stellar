@@ -67,25 +67,14 @@ impl Cmd {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "integration-tests")]
+    
+    use stellar_scaffold_test::RegistryTest;
+
     #[tokio::test]
     async fn test_run() {
-        use super::*;
-        use std::env;
-        use stellar_cli::config::{locator, network};
-        use stellar_scaffold_test::RegistryTest;
         // Create test environment
         let registry = RegistryTest::new().await;
         let test_env = registry.clone().env;
-
-        // Set environment variables for testnet configuration
-        env::set_var("STELLAR_RPC_URL", "http://localhost:8000/soroban/rpc");
-        env::set_var("STELLAR_ACCOUNT", "alice");
-        env::set_var(
-            "STELLAR_NETWORK_PASSPHRASE",
-            "Standalone Network ; February 2017",
-        );
-        env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry.registry_address);
 
         // Path to the hello world contract WASM
         let wasm_path = test_env
@@ -94,7 +83,6 @@ mod tests {
 
         // First publish the contract
         registry
-            .clone()
             .registry_cli("publish")
             .arg("--wasm")
             .arg(&wasm_path)
@@ -112,27 +100,13 @@ mod tests {
             .arg("hello")
             .arg("--wasm-name")
             .arg("hello")
-            .arg("version")
+            .arg("--version")
             .arg("0.0.2")
             .assert()
             .success();
 
         // Create test command for install
-        let cmd = Cmd {
-            contract_name: "hello".to_owned(),
-            config: config::Args {
-                locator: locator::Args {
-                    global: false,
-                    config_dir: Some(test_env.cwd.to_str().unwrap().into()),
-                },
-                network: network::Args {
-                    rpc_url: Some("http://localhost:8000/soroban/rpc".to_string()),
-                    network_passphrase: Some("Standalone Network ; February 2017".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        };
+        let cmd = registry.parse_cmd::<super::Cmd>(&["hello"]).unwrap();
 
         // Run the install command
         cmd.run().await.unwrap();

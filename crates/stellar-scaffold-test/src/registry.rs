@@ -1,9 +1,13 @@
+use std::env;
+
+use assert_cmd::Command;
+use stellar_cli::{
+    CommandParser,
+    commands::{self as cli, NetworkRunnable, contract::upload, global, network},
+};
+
 use crate::AssertExt;
 use crate::common::{TestEnv, find_registry_wasm};
-use assert_cmd::Command;
-use std::path::PathBuf;
-use stellar_cli::commands::NetworkRunnable;
-use stellar_cli::{CommandParser, commands as cli};
 
 #[derive(Clone)]
 pub struct RegistryTest {
@@ -14,11 +18,38 @@ pub struct RegistryTest {
 impl RegistryTest {
     pub async fn new() -> Self {
         let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
+        Self::parse_cmd_internal::<network::add::Cmd>(
+            &env,
+            &[
+                "localhost",
+                "--rpc-url",
+                "http://moss:8000/soroban/rpc",
+                "--network-passphrase",
+                "Standalone Network ; February 2017",
+            ],
+        )
+        .unwrap()
+        .run()
+        .unwrap();
+        Self::parse_cmd_internal::<network::default::Cmd>(&env, &["localhost"])
+            .unwrap()
+            .run(&global::Args::default())
+            .unwrap();
         //let env = TestEnv::new("soroban-init-boilerplate");
 
         // Deploy registry contract
         let registry_address = Self::deploy_registry(&env).await;
-
+        // Set environment variables for testnet configuration
+        unsafe { 
+            env::set_var("STELLAR_RPC_URL", "http://moss:8000/soroban/rpc");
+            env::set_var("STELLAR_ACCOUNT", "alice");
+            env::set_var(
+                "STELLAR_NETWORK_PASSPHRASE",
+                "Standalone Network ; February 2017",
+            );
+            env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
+        };
+            
         Self {
             env,
             registry_address,
@@ -29,7 +60,7 @@ impl RegistryTest {
         // Set up environment with an account
         env.set_environments_toml(r#"
 [development]
-network = { rpc-url = "http://localhost:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
+network = { rpc-url = "http://moss:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
 accounts = ["alice"]
 [development.contracts]
 soroban_hello_world_contract.client = false
@@ -49,20 +80,21 @@ soroban_hello_world_contract.client = false
         let wasm_path = find_registry_wasm().unwrap();
 
         // Upload wasm using the Stellar CLI library directly with alice account
-        let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
-            "--wasm",
-            wasm_path
-                .to_str()
-                .expect("we do not support non-utf8 paths"),
-            "--source",
-            "alice",
-            "--config-dir",
-            env.cwd.to_str().unwrap(),
-            "--rpc-url",
-            "http://localhost:8000/soroban/rpc",
-            "--network-passphrase",
-            "Standalone Network ; February 2017",
-        ])
+        let hash = Self::parse_cmd_internal::<upload::Cmd>(
+            env,
+            &[
+                "--wasm",
+                wasm_path
+                    .to_str()
+                    .expect("we do not support non-utf8 paths"),
+                "--source",
+                "alice",
+                "--rpc-url",
+                "http://localhost:8000/soroban/rpc",
+                "--network-passphrase",
+                "Standalone Network ; February 2017",
+            ],
+        )
         .expect("Failed to parse arguments for upload")
         .run_against_rpc_server(None, None)
         .await
@@ -79,8 +111,6 @@ soroban_hello_world_contract.client = false
             &hash,
             "--source",
             "alice",
-            "--config-dir",
-            env.cwd.to_str().unwrap(),
             "--rpc-url",
             "http://localhost:8000/soroban/rpc",
             "--network-passphrase",
@@ -89,34 +119,45 @@ soroban_hello_world_contract.client = false
             "--admin",
             "alice",
         ];
-        let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_args)
-            .expect("Failed to parse arguments for deploy")
-            .run_against_rpc_server(None, None)
-            .await
-            .expect("Failed to deploy contract")
-            .into_result()
-            .expect("no contract id returned by 'contract deploy'")
-            .to_string()
-            .trim()
-            .to_string();
+        let contract_id =
+            Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
+                .expect("Failed to parse arguments for deploy")
+                .run_against_rpc_server(None, None)
+                .await
+                .expect("Failed to deploy contract")
+                .into_result()
+                .expect("no contract id returned by 'contract deploy'")
+                .to_string()
+                .trim()
+                .to_string();
 
         eprintln!("✅ Registry deployed at: {contract_id}");
 
         contract_id
     }
 
-    pub fn register_contract(&self, name: &str, wasm_path: &PathBuf) -> Command {
-        // Add logic to register a contract
-        let mut cmd = self.env.registry_cli("register");
-        cmd.arg("--name").arg(name);
-        cmd.arg("--wasm").arg(wasm_path);
-        cmd
+    pub fn parse_cmd<T>(&self, s: &[&str]) -> Result<T, clap::Error>
+    where
+        T: CommandParser<T>,
+    {
+        Self::parse_cmd_internal(&self.env, s)
+    }
+
+    fn parse_cmd_internal<T>(env: &TestEnv, s: &[&str]) -> Result<T, clap::Error>
+    where
+        T: CommandParser<T>,
+    {
+        let mut cmd = s.to_vec();
+        cmd.insert(0, &format!("--config-dir={}", env.cwd.to_str().unwrap()));
+        T::parse_arg_vec(s)
     }
 
     pub fn registry_cli(&self, cmd: &str) -> Command {
         let mut registry = Command::cargo_bin("stellar-registry").unwrap();
         registry.current_dir(&self.env.cwd);
         registry.arg(cmd);
+        registry.arg("--config-dir");
+        registry.arg(self.env.cwd.to_str().unwrap());
         registry
     }
 }

@@ -45,6 +45,7 @@ test: build
 
 test-integration: build-cli-test-contracts
     cargo nextest run -E 'package(stellar-scaffold-cli)' --features integration-tests
+    cargo nextest run -E 'package(stellar-registry-cli)' --features integration-tests
 
 create: build
     rm -rf .soroban
