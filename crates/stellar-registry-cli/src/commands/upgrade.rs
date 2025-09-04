@@ -197,12 +197,7 @@ mod tests {
 
         // Upgrade the contract without specifying version to upgrade to the latest version
         registry
-            .parse_cmd::<upgrade::Cmd>(&[
-                "--contract-name",
-                "hello",
-                "--wasm-name",
-                "hello",
-            ])
+            .parse_cmd::<upgrade::Cmd>(&["--contract-name", "hello", "--wasm-name", "hello"])
             .unwrap()
             .run()
             .await
@@ -217,6 +212,5 @@ mod tests {
             .into_result()
             .unwrap();
         assert_eq!(res, r#""world""#);
-
     }
 }
