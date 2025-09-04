@@ -262,7 +262,9 @@ impl Args {
     }
 
     fn create_contract_template(&self, name: &str, contract_id: &str) -> Result<(), Error> {
-        let allow_http = if self.stellar_scaffold_env(ScaffoldEnv::Production) == "production" {
+        let allow_http = if ["development", "test"]
+            .contains(&self.stellar_scaffold_env(ScaffoldEnv::Production).as_str())
+        {
             "\n  allowHttp: true,"
         } else {
             ""
