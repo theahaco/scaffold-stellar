@@ -100,7 +100,7 @@ mod tests {
             .success();
 
         // Create test command for install
-        let cmd = registry.parse_cmd::<create_alias::Cmd>(&["hello"]).unwrap();
+        let cmd = registry.parse_cmd::<super::Cmd>(&["hello"]).unwrap();
 
         // Run the install command
         cmd.run().await.unwrap();

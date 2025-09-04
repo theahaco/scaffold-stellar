@@ -45,6 +45,17 @@ pub enum Error {
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
+        let bytes = self.download_bytes().await?;
+        if let Some(file) = self.out_file.as_deref() {
+            let mut f = std::fs::File::create(file)?;
+            f.write_all(&bytes)?;
+        } else {
+            std::io::stdout().write_all(&bytes)?;
+        }
+        Ok(())
+    }
+
+    pub async fn download_bytes(&self) -> Result<Vec<u8>, Error> {
         let mut slop = vec!["fetch_hash", "--wasm-name", &self.wasm_name];
         if let Some(version) = self.version.as_deref() {
             slop.push("--version");
@@ -53,15 +64,52 @@ impl Cmd {
         let raw = self.config.invoke_registry(&slop, None, true).await?;
         let bytes = stellar_cli::utils::rpc::get_remote_wasm_from_hash(
             &self.config.get_network()?.rpc_client()?,
-            &raw.parse()?,
+            &raw.trim_matches('"').parse()?,
         )
         .await?;
-        if let Some(file) = self.out_file.as_deref() {
-            let mut f = std::fs::File::create(file)?;
-            f.write_all(&bytes)?;
-        } else {
-            std::io::stdout().write_all(&bytes)?;
-        }
-        Ok(())
+        Ok(bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use std::path::PathBuf;
+
+    use stellar_scaffold_test::RegistryTest;
+
+    #[tokio::test]
+    async fn simple() {
+        // Create test environment
+        let target_dir = PathBuf::from("../../target/stellar")
+            .canonicalize()
+            .unwrap();
+        let v1 = target_dir.join("hello_v1.wasm");
+
+        let registry = RegistryTest::new().await;
+        let _test_env = registry.clone().env;
+
+        // Path to the hello world contract WASM
+
+        // First publish the contract
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(v1.to_str().unwrap())
+            .arg("--binver")
+            .arg("0.0.1")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .success();
+
+        let bytes = registry
+            .parse_cmd::<crate::commands::download::Cmd>(&["hello"])
+            .unwrap()
+            .download_bytes()
+            .await
+            .unwrap();
+        let expected = std::fs::read(v1).unwrap();
+        assert_eq!(bytes, expected);
     }
 }

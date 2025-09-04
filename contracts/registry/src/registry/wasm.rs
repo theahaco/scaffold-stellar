@@ -32,7 +32,7 @@ impl W {
     pub fn most_recent_version(&self, name: &String) -> Result<String, Error> {
         self.registry(name)?
             .keys()
-            .first()
+            .last()
             .ok_or(Error::NoSuchVersion)
     }
 

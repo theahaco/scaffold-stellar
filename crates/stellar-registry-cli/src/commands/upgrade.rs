@@ -67,3 +67,156 @@ impl Cmd {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use std::path::PathBuf;
+
+    use stellar_cli::commands::{contract::invoke, global};
+
+    use stellar_scaffold_test::RegistryTest;
+
+    use crate::commands::{create_alias, upgrade};
+
+    #[tokio::test]
+    async fn simple_upgrade() {
+        // Create test environment
+        let target_dir = PathBuf::from("../../target/stellar")
+            .canonicalize()
+            .unwrap();
+        let v1 = target_dir.join("hello_v1.wasm");
+        let v2 = target_dir.join("hello_v2.wasm");
+
+        let registry = RegistryTest::new().await;
+        let _test_env = registry.clone().env;
+
+        // Path to the hello world contract WASM
+
+        // First publish the contract
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(v1.to_str().unwrap())
+            .arg("--binver")
+            .arg("0.0.1")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .success();
+
+        // Then deploy it
+        registry
+            .registry_cli("deploy")
+            .arg("--contract-name")
+            .arg("hello")
+            .arg("--wasm-name")
+            .arg("hello")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+
+        registry
+            .parse_cmd::<create_alias::Cmd>(&["hello"])
+            .unwrap()
+            .run()
+            .await
+            .unwrap();
+
+        let res = registry
+            .parse_cmd::<invoke::Cmd>(&["--id=hello", "--", "hello", "--to=world"])
+            .unwrap()
+            .invoke(&global::Args::default())
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        assert_eq!(res, r#""world""#);
+
+        // Publish new version
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(v2.to_str().unwrap())
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .success();
+
+        registry
+            .parse_cmd::<upgrade::Cmd>(&[
+                "--contract-name",
+                "hello",
+                "--wasm-name",
+                "hello",
+                "--version",
+                "0.0.2",
+            ])
+            .unwrap()
+            .run()
+            .await
+            .unwrap();
+
+        let res = registry
+            .parse_cmd::<invoke::Cmd>(&["--id=hello", "--", "hi", "--to=world"])
+            .unwrap()
+            .invoke(&global::Args::default())
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        assert_eq!(res, r#""world""#);
+
+        // Upgrade the contract using the old version
+        registry
+            .parse_cmd::<upgrade::Cmd>(&[
+                "--contract-name",
+                "hello",
+                "--wasm-name",
+                "hello",
+                "--version",
+                "0.0.1",
+            ])
+            .unwrap()
+            .run()
+            .await
+            .unwrap();
+
+        let res = registry
+            .parse_cmd::<invoke::Cmd>(&["--id=hello", "--", "hello", "--to=world"])
+            .unwrap()
+            .invoke(&global::Args::default())
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        assert_eq!(res, r#""world""#);
+
+        // Upgrade the contract without specifying version to upgrade to the latest version
+        registry
+            .parse_cmd::<upgrade::Cmd>(&[
+                "--contract-name",
+                "hello",
+                "--wasm-name",
+                "hello",
+            ])
+            .unwrap()
+            .run()
+            .await
+            .unwrap();
+
+        let res = registry
+            .parse_cmd::<invoke::Cmd>(&["--id=hello", "--", "hi", "--to=world"])
+            .unwrap()
+            .invoke(&global::Args::default())
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        assert_eq!(res, r#""world""#);
+
+    }
+}

@@ -1,7 +1,11 @@
 [workspace]
 resolver = "2"
 default-members = ["crates/*"]
-members = ["crates/*", "contracts/*"]
+members = [
+    "crates/*",
+    "contracts/*",
+    "crates/stellar-scaffold-test/fixtures/contracts/*",
+]
 
 [workspace.package]
 repository = "https://github.com/ahalabs/scaffold-stellar"
