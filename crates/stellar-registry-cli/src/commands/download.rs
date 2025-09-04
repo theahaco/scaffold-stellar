@@ -61,7 +61,7 @@ impl Cmd {
             slop.push("--version");
             slop.push(version);
         }
-        let raw = self.config.invoke_registry(&slop, None, true).await?;
+        let raw = self.config.view_registry(&slop).await?;
         let bytes = stellar_cli::utils::rpc::get_remote_wasm_from_hash(
             &self.config.get_network()?.rpc_client()?,
             &raw.trim_matches('"').parse()?,

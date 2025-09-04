@@ -25,6 +25,11 @@ pub trait NetworkContract {
         view_only: bool,
     ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
 
+    fn view_registry(
+        &self,
+        slop: &[&str],
+    ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
+
     fn rpc_client(&self) -> Result<rpc::Client, config::Error>;
 }
 
@@ -51,6 +56,10 @@ impl NetworkContract for config::Args {
         view_only: bool,
     ) -> Result<String, invoke::Error> {
         invoke_registry(slop, self, fee, view_only).await
+    }
+
+    async fn view_registry(&self, slop: &[&str]) -> Result<String, invoke::Error> {
+        invoke_registry(slop, self, None, true).await
     }
 
     fn rpc_client(&self) -> Result<rpc::Client, config::Error> {

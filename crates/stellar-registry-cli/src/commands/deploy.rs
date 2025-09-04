@@ -96,11 +96,7 @@ impl Cmd {
     pub async fn hash(&self) -> Result<xdr::Hash, Error> {
         let res = self
             .config
-            .invoke_registry(
-                &["fetch_hash", "--wasm_name", &self.wasm_name],
-                Some(&self.fee),
-                true,
-            )
+            .view_registry(&["fetch_hash", "--wasm_name", &self.wasm_name])
             .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())

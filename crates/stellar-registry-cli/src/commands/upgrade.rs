@@ -1,8 +1,5 @@
 use clap::Parser;
-use stellar_cli::{
-    commands::contract::{deploy::wasm, invoke},
-    config,
-};
+use stellar_cli::{commands::contract::invoke, config};
 
 use crate::contract::NetworkContract;
 
@@ -63,7 +60,7 @@ impl Cmd {
             version.to_string()
         } else {
             self.config
-                .invoke_registry(&["current_version", "--wasm-name", wasm_name], None, true)
+                .view_registry(&["current_version", "--wasm-name", wasm_name])
                 .await?
         };
         println!("Upgraded {contract_name} to {wasm_name}@{version}",);

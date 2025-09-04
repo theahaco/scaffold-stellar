@@ -92,3 +92,6 @@ crate-git-revision = "0.0.6"
 
 [features]
 integration-tests = []
+
+[lints]
+workspace = true
