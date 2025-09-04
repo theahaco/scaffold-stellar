@@ -1,5 +1,8 @@
 use clap::Parser;
-use stellar_cli::{commands::contract::invoke, config};
+use stellar_cli::{
+    commands::contract::{deploy::wasm, invoke},
+    config,
+};
 
 use crate::contract::NetworkContract;
 
@@ -33,41 +36,42 @@ pub enum Error {
     Config(#[from] stellar_cli::config::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    #[error("Upgrade failed: {0:?}")]
+    UpgradeFailed(invoke::Error),
 }
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
+        let contract_name = &self.contract_name;
+        let wasm_name = &self.wasm_name;
         let mut slop = vec![
             "upgrade_contract",
             "--name",
-            &self.contract_name,
+            contract_name,
             "--wasm-name",
-            &self.wasm_name,
+            wasm_name,
         ];
         if let Some(version) = self.version.as_deref() {
             slop.push("--version");
             slop.push(version);
         }
-        self.config.invoke_registry(&slop, None, false).await?;
+        self.config
+            .invoke_registry(&slop, None, false)
+            .await
+            .map_err(Error::UpgradeFailed)?;
         let version = if let Some(version) = self.version.as_deref() {
             version.to_string()
         } else {
             self.config
-                .invoke_registry(
-                    &["current_version", "--wasm-name", &self.wasm_name],
-                    None,
-                    true,
-                )
+                .invoke_registry(&["current_version", "--wasm-name", wasm_name], None, true)
                 .await?
         };
-        println!(
-            "Upgraded {} to {}@{version}",
-            self.contract_name, self.wasm_name
-        );
+        println!("Upgraded {contract_name} to {wasm_name}@{version}",);
         Ok(())
     }
 }
 
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
 

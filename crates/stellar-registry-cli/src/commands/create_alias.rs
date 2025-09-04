@@ -59,6 +59,7 @@ impl Cmd {
     }
 }
 
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
 
