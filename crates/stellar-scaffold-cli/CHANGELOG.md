@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.8...stellar-scaffold-cli-v0.0.9) - 2025-09-03
+
+### Fixed
+
+- *(build-clients)* only `allowHttp` in dev & test ([#180](https://github.com/AhaLabs/scaffold-stellar/pull/180))
+
 ## [0.0.8](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.7...stellar-scaffold-cli-v0.0.8) - 2025-08-19
 
 ### Other
