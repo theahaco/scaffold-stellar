@@ -13,7 +13,15 @@ use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
 use stellar_cli::{
-    commands as cli, commands::NetworkRunnable, print::Print, utils::contract_hash, CommandParser,
+    commands as cli,
+    commands::contract::info::shared::{
+        self as contract_spec, fetch, Args as FetchArgs, Error as FetchError,
+    },
+    commands::NetworkRunnable,
+    print::Print,
+    utils::contract_hash,
+    utils::contract_spec::Spec,
+    CommandParser,
 };
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::ScSpecEntry::FunctionV0;
@@ -108,6 +116,10 @@ pub enum Error {
     AccountFund(#[from] cli::keys::fund::Error),
     #[error("Failed to get upgrade operator: {0:?}")]
     UpgradeArgsError(arg_parsing::Error),
+    #[error(transparent)]
+    FetchError(#[from] FetchError),
+    #[error(transparent)]
+    SpecError(#[from] stellar_cli::get_spec::contract_spec::Error),
 }
 
 impl Args {
@@ -655,22 +667,27 @@ export default new Client.Client({{
             if !wasm_path.exists() {
                 return Err(Error::BadContractName(name.to_string()));
             }
-
             let new_hash = self.upload_contract_wasm(name, &wasm_path).await?;
             let mut upgraded_contract = None;
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                if let Some(current_hash) = self
+                let hash = self
                     .get_contract_hash(&existing_contract_id, network)
-                    .await?
-                {
+                    .await?;
+                if let Some(current_hash) = hash {
                     if current_hash == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
                         return Ok(());
                     }
                     upgraded_contract = self
-                        .try_upgrade_contract(name, existing_contract_id, &current_hash, &new_hash)
+                        .try_upgrade_contract(
+                            name,
+                            existing_contract_id,
+                            &current_hash,
+                            &new_hash,
+                            network,
+                        )
                         .await?;
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
@@ -814,21 +831,11 @@ export default new Client.Client({{
         existing_contract_id: Contract,
         existing_hash: &str,
         hash: &str,
+        network: &Network,
     ) -> Result<Option<Contract>, Error> {
         let printer = self.printer();
-
-        let info_args = vec!["--wasm-hash", existing_hash, "--output", "json"];
-
-        let (_, existing_spec) = cli::contract::info::interface::Cmd::parse_arg_vec(&info_args)?
-            .get_spec(self.global_args.as_ref())
-            .await?;
-
-        let info_args = vec!["--wasm-hash", hash, "--output", "json"];
-
-        let (_, spec_to_upgrade) = cli::contract::info::interface::Cmd::parse_arg_vec(&info_args)?
-            .get_spec(self.global_args.as_ref())
-            .await?;
-
+        let existing_spec = fetch_contract_spec(existing_hash, network).await?;
+        let spec_to_upgrade = fetch_contract_spec(hash, network).await?;
         let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(existing_spec) else {
             return Ok(None);
         };
@@ -964,5 +971,26 @@ export default new Client.Client({{
             "After deploy script for {name:?} completed successfully"
         ));
         Ok(())
+    }
+}
+
+async fn fetch_contract_spec(
+    wasm_hash: &str,
+    network: &Network,
+) -> Result<Vec<ScSpecEntry>, Error> {
+    let fetched = fetch(
+        &FetchArgs {
+            wasm_hash: Some(wasm_hash.to_string()),
+            network: network.into(),
+            ..Default::default()
+        },
+        // Quiets the output of the fetch command
+        &Print::new(true),
+    )
+    .await?;
+
+    match fetched.contract {
+        contract_spec::Contract::Wasm { wasm_bytes } => Ok(Spec::new(&wasm_bytes)?.spec),
+        contract_spec::Contract::StellarAssetContract => unreachable!(),
     }
 }
