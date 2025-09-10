@@ -61,11 +61,11 @@ impl ArgParser {
             self.handle_simple_enum_argument(arg_name, &value_name)
         } else {
             // For all other types (complex enums, structs, strings), use string input
-            self.handle_formatted_input(arg_name)
+            self.handle_formatted_input(arg_name, true).map(Some)
         }
     }
 
-    fn handle_formatted_input(&self, arg_name: &str) -> Result<Option<String>, Error> {
+    fn handle_formatted_input(&self, arg_name: &str, with_name: bool) -> Result<String, Error> {
         let input_result: String = if self.skip_prompt {
             String::new()
         } else {
@@ -96,7 +96,11 @@ impl ArgParser {
                 value
             }
         };
-        Ok(Some(format!("--{arg_name} {value}")))
+        if with_name {
+            Ok(format!("--{arg_name} {value}"))
+        } else {
+            Ok(value.to_string())
+        }
     }
 
     fn handle_simple_enum_argument(
@@ -143,6 +147,12 @@ impl ArgParser {
             .default(false)
             .interact()?;
         Ok(bool_value.then(|| format!("--{arg_name}")))
+    }
+
+    pub fn get_upgrade_args(contract_name: &str) -> Result<String, Error> {
+        println!("\n📋 Contract '{contract_name}' requires upgrade arguments:");
+        let parser = Self { skip_prompt: false };
+        parser.handle_formatted_input("operator", false)
     }
 }
 

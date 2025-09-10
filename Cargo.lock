@@ -5425,9 +5425,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-typescript"
-version = "23.0.0"
+version = "23.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b19cd0a7ebb7252b9b4bb76d3f1cf156d06d31f86aeb7fadb9a07b9dc8fb6db3"
+checksum = "b2ed4459149655b4e6e0430e96534fd5176733c4842c97109a49a9bfc62bf7a9"
 dependencies = [
  "base64 0.21.7",
  "heck 0.4.1",
