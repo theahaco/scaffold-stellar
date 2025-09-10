@@ -64,7 +64,7 @@ jobs:
           target: ${{ matrix.target }}
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev
+        run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev pkg-config
       - uses: taiki-e/install-action@cross
         if: contains(matrix.target, '-musl')
       - run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
