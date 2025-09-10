@@ -7,15 +7,17 @@ publish = false
 
 [package.metadata.stellar]
 # Set contract metadata for authors, homepage, and version based on the Cargo.toml package values
-cargo_inherit = true 
+cargo_inherit = true
 
 [lib]
 crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "5a99659f1483c926ff87ea45f8823b8c00dc4cbd" }
-admin-sep = { git = "https://github.com/AhaLabs/admin-sep", rev = "bf195f4d67cc96587974212f998680ccf9a61cd7" }
+soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f" }
+admin-sep = { git = "https://github.com/AhaLabs/admin-sep", rev = "42bda1f5579638aa9dd75bc93450dbd42a0c8337" }
 
 [dev-dependencies]
-soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "5a99659f1483c926ff87ea45f8823b8c00dc4cbd", features = ["testutils"] }
+soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f", features = [
+    "testutils",
+] }
