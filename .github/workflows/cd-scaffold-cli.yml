@@ -59,6 +59,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/CHANGELOG.md') }}
       - uses: taiki-e/setup-cross-toolchain-action@v1
         with:
           target: ${{ matrix.target }}
@@ -71,6 +80,9 @@ jobs:
         if: endsWith(matrix.target, 'windows-msvc')
       - name: Use static openssl
         run: echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
+      - name: set PKG_CONFIG_PATH
+        run: echo "PKG_CONFIG_PATH=/usr/lib/${{ matrix.target }}/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        if: startsWith(matrix.os, 'ubuntu')
       - name: Set Perl environment variables
         if: runner.os == 'Windows'
         shell: pwsh
@@ -88,3 +100,4 @@ jobs:
           dry-run: ${{ github.event_name == 'pull_request' }}
         env:
           OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
+          PKG_CONFIG_PATH: ${{ env.PKG_CONFIG_PATH }}
