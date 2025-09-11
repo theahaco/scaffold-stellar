@@ -31,6 +31,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Install needed Ubuntu Deps
         run: sudo apt install libdbus-1-dev pkg-config libudev-dev
+      - name: clear cache
+        run: cargo clean
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@main
         env:
