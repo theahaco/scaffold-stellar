@@ -1,13 +1,13 @@
-name: CD - Registry # Continuous Deployment
+name: CD # Continuous Deployment
 
 permissions:
   # TODO: once `releases: write` is supported, use it instead.
   contents: write
 
 on:
-  push:
-    tags:
-      - "stellar-registry-cli-v[0-9]+.[0-9]+.[0-9]+*"
+  pull_request:
+    paths:
+      - crates/stellar-scaffold-cli/CHANGELOG.md
 env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -75,12 +75,13 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: stellar-registry
+          bin: stellar-scaffold
           target: ${{ matrix.target }}
           tar: all
           zip: windows
           archive: $tag-$target
           token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: true
         env:
           OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
