@@ -73,7 +73,7 @@ jobs:
           target: ${{ matrix.target }}
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev
+        run: sudo apt-get update && sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libudev-dev libdbus-1-dev
       - uses: taiki-e/install-action@cross
         if: contains(matrix.target, '-musl')
       - name: Use static openssl
