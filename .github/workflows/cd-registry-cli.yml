@@ -25,7 +25,7 @@ defaults:
 jobs:
   upload-assets:
     name: ${{ matrix.target }}
-    if: github.repository_owner == 'ahalabs'
+    if: github.repository_owner == 'theahaco'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
