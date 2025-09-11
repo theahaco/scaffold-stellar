@@ -41,16 +41,16 @@ jobs:
             os: macos-14
           # - target: x86_64-pc-windows-msvc
           #   os: windows-2022
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-22.04
+          # - target: x86_64-unknown-linux-musl
+          #   os: ubuntu-22.04
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-22.04
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-22.04
+          # - target: aarch64-unknown-linux-musl
+          #   os: ubuntu-22.04
           - target: aarch64-apple-darwin
             os: macos-14
-          - target: x86_64-unknown-freebsd
-            os: ubuntu-22.04
+          # - target: x86_64-unknown-freebsd
+          #   os: ubuntu-22.04
           - target: universal-apple-darwin
             os: macos-14
     timeout-minutes: 60
@@ -73,22 +73,12 @@ jobs:
           target: ${{ matrix.target }}
         if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
       - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev pkg-config
+        run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev
       - uses: taiki-e/install-action@cross
         if: contains(matrix.target, '-musl')
-      - run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
-        if: endsWith(matrix.target, 'windows-msvc')
       - name: Use static openssl
         run: echo "OPENSSL_STATIC=1" >> $GITHUB_ENV
-      - name: set PKG_CONFIG_PATH
-        run: echo "PKG_CONFIG_PATH=/usr/lib/${{ matrix.target }}/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
         if: startsWith(matrix.os, 'ubuntu')
-      - name: Set Perl environment variables
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          echo "PERL=$(where.exe perl)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          echo "OPENSSL_SRC_PERL=$(where.exe perl)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: stellar-scaffold
@@ -100,4 +90,4 @@ jobs:
           dry-run: ${{ github.event_name == 'pull_request' }}
         env:
           OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
-          PKG_CONFIG_PATH: ${{ env.PKG_CONFIG_PATH }}
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
