@@ -5590,7 +5590,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.10"
+version = "0.0.11"
 dependencies = [
  "assert_cmd",
  "assert_fs",
