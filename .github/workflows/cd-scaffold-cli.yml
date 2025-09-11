@@ -69,10 +69,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ matrix.target }}-cargo-${{ hashFiles('**/CHANGELOG.md') }}
-      # - uses: taiki-e/setup-cross-toolchain-action@v1
-      #   with:
-      #     target: ${{ matrix.target }}
-      #   if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get -y install libudev-dev libdbus-1-dev
       - uses: taiki-e/install-action@cross
