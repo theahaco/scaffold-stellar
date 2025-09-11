@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.10...stellar-scaffold-cli-v0.0.11) - 2025-09-11
+
+### Fixed
+
+- split dry run into separate action; bump versions to test release ([#185](https://github.com/theahaco/scaffold-stellar/pull/185))
+
 ## [0.0.10](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.9...stellar-scaffold-cli-v0.0.10) - 2025-09-11
 
 ### Added
