@@ -14,10 +14,10 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f" }
-admin-sep = { git = "https://github.com/AhaLabs/admin-sep", rev = "42bda1f5579638aa9dd75bc93450dbd42a0c8337" }
+soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f" }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "185888d67df52943b4478537bfe412cc2dc97e89" }
 
 [dev-dependencies]
-soroban-sdk = { git = "https://github.com/AhaLabs/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f", features = [
+soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f", features = [
     "testutils",
 ] }

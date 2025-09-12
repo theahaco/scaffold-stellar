@@ -26,9 +26,9 @@ checksum = "512761e0bb2578dd7380c6baaa0f4ce03e84f95e960231d1dec8bf4d7d6e2627"
 [[package]]
 name = "admin-sep"
 version = "0.0.0"
-source = "git+https://github.com/AhaLabs/admin-sep?rev=42bda1f5579638aa9dd75bc93450dbd42a0c8337#42bda1f5579638aa9dd75bc93450dbd42a0c8337"
+source = "git+https://github.com/theahaco/admin-sep?rev=185888d67df52943b4478537bfe412cc2dc97e89#185888d67df52943b4478537bfe412cc2dc97e89"
 dependencies = [
- "soroban-sdk 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-sdk 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
 ]
 
 [[package]]
@@ -1989,7 +1989,7 @@ name = "hello_v1"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-sdk 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
 ]
 
 [[package]]
@@ -1997,7 +1997,7 @@ name = "hello_v2"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-sdk 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
 ]
 
 [[package]]
@@ -5225,7 +5225,7 @@ dependencies = [
 [[package]]
 name = "soroban-ledger-snapshot"
 version = "23.0.2"
-source = "git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
+source = "git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
 dependencies = [
  "serde",
  "serde_json",
@@ -5278,7 +5278,7 @@ dependencies = [
 [[package]]
 name = "soroban-sdk"
 version = "23.0.2"
-source = "git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
+source = "git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
 dependencies = [
  "arbitrary",
  "bytes-lit",
@@ -5292,8 +5292,8 @@ dependencies = [
  "serde_json",
  "soroban-env-guest 23.0.1",
  "soroban-env-host 23.0.1",
- "soroban-ledger-snapshot 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
- "soroban-sdk-macros 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-ledger-snapshot 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-sdk-macros 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
  "stellar-strkey 0.0.13",
 ]
 
@@ -5340,7 +5340,7 @@ dependencies = [
 [[package]]
 name = "soroban-sdk-macros"
 version = "23.0.2"
-source = "git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
+source = "git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
 dependencies = [
  "darling",
  "heck 0.5.0",
@@ -5350,8 +5350,8 @@ dependencies = [
  "quote",
  "sha2 0.10.9",
  "soroban-env-common 23.0.1",
- "soroban-spec 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
- "soroban-spec-rust 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-spec 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-spec-rust 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
  "stellar-xdr 23.0.0",
  "syn 2.0.100",
 ]
@@ -5383,7 +5383,7 @@ dependencies = [
 [[package]]
 name = "soroban-spec"
 version = "23.0.2"
-source = "git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
+source = "git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
 dependencies = [
  "base64 0.22.1",
  "stellar-xdr 23.0.0",
@@ -5441,13 +5441,13 @@ dependencies = [
 [[package]]
 name = "soroban-spec-rust"
 version = "23.0.2"
-source = "git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
+source = "git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f#367e4efc2462c841b046aeac0dda8fcee05b790f"
 dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
  "sha2 0.10.9",
- "soroban-spec 23.0.2 (git+https://github.com/AhaLabs/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
+ "soroban-spec 23.0.2 (git+https://github.com/theahaco/rs-soroban-sdk?rev=367e4efc2462c841b046aeac0dda8fcee05b790f)",
  "stellar-xdr 23.0.0",
  "syn 2.0.100",
  "thiserror 1.0.69",
