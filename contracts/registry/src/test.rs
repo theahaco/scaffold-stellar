@@ -145,7 +145,6 @@ fn publish_to_kebab_case() {
     client.publish(name, address, &bytes, &version);
     let most_recent_version = client.current_version(&to_string("hello_world"));
     assert_eq!(most_recent_version, to_string("0.0.0"));
-
 }
 
 #[test]

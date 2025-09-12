@@ -107,11 +107,7 @@ impl IsPublishable for W {
         self.set(&wasm_name, version, wasm_hash)
     }
 
-    fn fetch_hash(
-        &self,
-        wasm_name: String,
-        version: Option<String>,
-    ) -> Result<BytesN<32>, Error> {
+    fn fetch_hash(&self, wasm_name: String, version: Option<String>) -> Result<BytesN<32>, Error> {
         let wasm_name = canonicalize(&wasm_name)?;
         self.get(&wasm_name, version)
     }
