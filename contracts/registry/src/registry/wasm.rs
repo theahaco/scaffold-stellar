@@ -69,8 +69,8 @@ impl W {
 }
 
 impl IsPublishable for W {
-    fn current_version(&self, contract_name: String) -> Result<String, Error> {
-        self.most_recent_version(&contract_name)
+    fn current_version(&self, wasm_name: String) -> Result<String, Error> {
+        self.most_recent_version(&wasm_name)
     }
 
     fn publish(

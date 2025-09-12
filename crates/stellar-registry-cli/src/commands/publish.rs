@@ -116,3 +116,75 @@ impl Cmd {
         Ok(())
     }
 }
+
+#[cfg(feature = "integration-tests")]
+#[cfg(test)]
+mod tests {
+
+    use stellar_cli::commands::{contract::invoke, global};
+    use stellar_scaffold_test::RegistryTest;
+
+    use crate::commands::create_alias;
+
+    #[tokio::test]
+    async fn test_run() {
+        // Create test environment
+        let registry = RegistryTest::new().await;
+        let test_env = registry.clone().env;
+
+        // Path to the hello world contract WASM
+        let wasm_path = test_env
+            .cwd
+            .join("target/stellar/soroban_hello_world_contract.wasm");
+
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .success();
+
+        // Then deploy it
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .failure();
+
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.3")
+            .arg("--wasm-name")
+            .arg("hello")
+            .assert()
+            .success();
+
+        registry
+            .parse_cmd::<create_alias::Cmd>(&["registry"])
+            .unwrap()
+            .run()
+            .await
+            .unwrap();
+
+        let res = registry
+            .parse_cmd::<invoke::Cmd>(&["--id=registry", "--", "current_version", "--wasm-name=hello"])
+            .unwrap()
+            .invoke(&global::Args::default())
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+    }
+}
