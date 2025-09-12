@@ -41,7 +41,9 @@ build-cli-test-contracts:
     just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
-    cargo nextest run --workspace
+    cargo nextest run -E 'package(stellar-scaffold-cli)' 
+    cargo nextest run -E 'package(stellar-registry-cli)'
+    cd contracts/registry && cargo nextest run
 
 test-integration: build-cli-test-contracts
     cargo nextest run -E 'package(stellar-scaffold-cli)' --features integration-tests
@@ -50,4 +52,4 @@ test-integration: build-cli-test-contracts
 create: build
     rm -rf .soroban
     -stellar keys generate default --fund
-    #just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core --source-account default
+    # just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core --source-account default
