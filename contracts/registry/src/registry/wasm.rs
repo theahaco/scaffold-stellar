@@ -69,8 +69,9 @@ impl W {
 }
 
 impl IsPublishable for W {
-    fn current_version(&self, contract_name: String) -> Result<String, Error> {
-        self.most_recent_version(&contract_name)
+    fn current_version(&self, wasm_name: String) -> Result<String, Error> {
+        let wasm_name = canonicalize(&wasm_name)?;
+        self.most_recent_version(&wasm_name)
     }
 
     fn publish(
@@ -92,7 +93,7 @@ impl IsPublishable for W {
         version: String,
     ) -> Result<(), Error> {
         author.require_auth();
-        canonicalize(&wasm_name)?;
+        let wasm_name = canonicalize(&wasm_name)?;
         if let Some(current) = self.author(&wasm_name) {
             if author != current {
                 return Err(Error::AlreadyPublished);
@@ -108,9 +109,10 @@ impl IsPublishable for W {
 
     fn fetch_hash(
         &self,
-        contract_name: String,
+        wasm_name: String,
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
-        self.get(&contract_name, version)
+        let wasm_name = canonicalize(&wasm_name)?;
+        self.get(&wasm_name, version)
     }
 }
