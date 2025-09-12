@@ -179,7 +179,12 @@ mod tests {
             .unwrap();
 
         let res = registry
-            .parse_cmd::<invoke::Cmd>(&["--id=registry", "--", "current_version", "--wasm-name=hello"])
+            .parse_cmd::<invoke::Cmd>(&[
+                "--id=registry",
+                "--",
+                "current_version",
+                "--wasm-name=hello",
+            ])
             .unwrap()
             .invoke(&global::Args::default())
             .await
