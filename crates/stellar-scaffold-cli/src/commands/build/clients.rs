@@ -1,4 +1,8 @@
 #![allow(clippy::struct_excessive_bools)]
+use super::env_toml::Network;
+use crate::arg_parsing;
+use crate::arg_parsing::ArgParser;
+use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml;
 use indexmap::IndexMap;
 use regex::Regex;
@@ -9,12 +13,19 @@ use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
 use stellar_cli::{
-    commands as cli, commands::NetworkRunnable, print::Print, utils::contract_hash, CommandParser,
+    commands as cli,
+    commands::contract::info::shared::{
+        self as contract_spec, fetch, Args as FetchArgs, Error as FetchError,
+    },
+    commands::NetworkRunnable,
+    print::Print,
+    utils::contract_hash,
+    utils::contract_spec::Spec,
+    CommandParser,
 };
 use stellar_strkey::{self, Contract};
-use stellar_xdr::curr::Error as xdrError;
-
-use super::env_toml::Network;
+use stellar_xdr::curr::ScSpecEntry::FunctionV0;
+use stellar_xdr::curr::{Error as xdrError, ScSpecEntry, ScSpecTypeBytesN, ScSpecTypeDef};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, clap::ValueEnum)]
 pub enum ScaffoldEnv {
@@ -47,7 +58,8 @@ pub struct Args {
 pub enum Error {
     #[error(transparent)]
     EnvironmentsToml(#[from] env_toml::Error),
-    #[error("⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url")]
+    #[error("⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url"
+    )]
     MalformedNetwork,
     #[error(transparent)]
     ParsingNetwork(#[from] cli::network::Error),
@@ -59,7 +71,8 @@ pub enum Error {
     InvalidPublicKey(#[from] cli::keys::public_key::Error),
     #[error(transparent)]
     AddressParsing(#[from] stellar_cli::config::address::Error),
-    #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations")]
+    #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations"
+    )]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
     BadContractName(String),
@@ -88,6 +101,8 @@ pub enum Error {
     #[error(transparent)]
     ContractInvoke(#[from] cli::contract::invoke::Error),
     #[error(transparent)]
+    ContractInfo(#[from] cli::contract::info::interface::Error),
+    #[error(transparent)]
     Clap(#[from] clap::Error),
     #[error(transparent)]
     WasmHash(#[from] xdrError),
@@ -99,6 +114,12 @@ pub enum Error {
     NpmCommandFailure(std::path::PathBuf, String),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
+    #[error("Failed to get upgrade operator: {0:?}")]
+    UpgradeArgsError(arg_parsing::Error),
+    #[error(transparent)]
+    FetchError(#[from] FetchError),
+    #[error(transparent)]
+    SpecError(#[from] stellar_cli::get_spec::contract_spec::Error),
 }
 
 impl Args {
@@ -217,12 +238,11 @@ impl Args {
         config_dir.get_contract_id(name, &network_passphrase)
     }
 
-    async fn contract_hash_matches(
+    async fn get_contract_hash(
         &self,
         contract_id: &Contract,
-        hash: &str,
         network: &Network,
-    ) -> Result<bool, Error> {
+    ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
             contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
             out_file: None,
@@ -235,11 +255,11 @@ impl Args {
         match result {
             Ok(result) => {
                 let ctrct_hash = contract_hash(&result)?;
-                Ok(hex::encode(ctrct_hash) == hash)
+                Ok(Some(hex::encode(ctrct_hash)))
             }
             Err(e) => {
                 if e.to_string().contains("Contract not found") {
-                    Ok(false)
+                    Ok(None)
                 } else {
                     Err(Error::ContractFetch(e))
                 }
@@ -647,34 +667,45 @@ export default new Client.Client({{
             if !wasm_path.exists() {
                 return Err(Error::BadContractName(name.to_string()));
             }
-
-            let hash = self.upload_contract_wasm(name, &wasm_path).await?;
+            let new_hash = self.upload_contract_wasm(name, &wasm_path).await?;
+            let mut upgraded_contract = None;
 
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
-                if self
-                    .contract_hash_matches(&existing_contract_id, &hash, network)
-                    .await?
-                {
-                    printer.checkln(format!("Contract {name:?} is up to date"));
-                    self.generate_contract_bindings(name, &existing_contract_id.to_string())
+                let hash = self
+                    .get_contract_hash(&existing_contract_id, network)
+                    .await?;
+                if let Some(current_hash) = hash {
+                    if current_hash == new_hash {
+                        printer.checkln(format!("Contract {name:?} is up to date"));
+                        return Ok(());
+                    }
+                    upgraded_contract = self
+                        .try_upgrade_contract(
+                            name,
+                            existing_contract_id,
+                            &current_hash,
+                            &new_hash,
+                            network,
+                        )
                         .await?;
-                    return Ok(());
                 }
                 printer.infoln(format!("Updating contract {name:?}"));
             }
 
-            // Deploy new contract if we got here
-            let contract_id = self.deploy_contract(name, &hash, &settings).await?;
+            // Deploy new contract if we got here (don't deploy if we already run an upgrade)
+            let contract_id = if let Some(upgraded) = upgraded_contract {
+                upgraded
+            } else {
+                self.deploy_contract(name, &new_hash, &settings).await?
+            };
             // Run after_deploy script if in development or test environment
-            if (env == "development" || env == "testing") && settings.after_deploy.is_some() {
-                printer.infoln(format!("Running after_deploy script for {name:?}"));
-                self.run_after_deploy_script(
-                    name,
-                    &contract_id,
-                    settings.after_deploy.as_ref().unwrap(),
-                )
-                .await?;
+            if let Some(after_deploy) = settings.after_deploy.as_deref() {
+                if env == "development" || env == "testing" {
+                    printer.infoln(format!("Running after_deploy script for {name:?}"));
+                    self.run_after_deploy_script(name, &contract_id, after_deploy)
+                        .await?;
+                }
             }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
@@ -794,6 +825,71 @@ export default new Client.Client({{
         Ok(contract_id)
     }
 
+    async fn try_upgrade_contract(
+        &self,
+        name: &str,
+        existing_contract_id: Contract,
+        existing_hash: &str,
+        hash: &str,
+        network: &Network,
+    ) -> Result<Option<Contract>, Error> {
+        let printer = self.printer();
+        let existing_spec = fetch_contract_spec(existing_hash, network).await?;
+        let spec_to_upgrade = fetch_contract_spec(hash, network).await?;
+        let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(existing_spec) else {
+            return Ok(None);
+        };
+
+        if Self::is_legacy_upgradeable(spec_to_upgrade).is_none() {
+            printer.warnln("New WASM is not upgradable. Contract will be redeployed instead of being upgraded.");
+            return Ok(None);
+        }
+
+        printer
+            .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
+
+        let existing_contract_id_str = existing_contract_id.to_string();
+        let mut redeploy_args = vec![
+            "--id",
+            existing_contract_id_str.as_str(),
+            "--",
+            "upgrade",
+            "--new_wasm_hash",
+            hash,
+        ];
+
+        let invoke_cmd = if legacy_upgradeable {
+            let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
+            redeploy_args.push("--operator");
+            redeploy_args.push(&upgrade_operator);
+            cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
+        } else {
+            cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
+        }?;
+        printer.infoln(format!("Upgrading {name:?} smart contract"));
+        invoke_cmd
+            .run_against_rpc_server(self.global_args.as_ref(), None)
+            .await?
+            .into_result()
+            .expect("no result returned by 'contract invoke'");
+        printer.infoln(format!("Contract upgraded: {existing_contract_id}"));
+
+        Ok(Some(existing_contract_id))
+    }
+
+    /// Returns: none if not upgradable, Some(true) if legacy upgradeable, Some(false) if new upgradeable
+    fn is_legacy_upgradeable(spec: Vec<ScSpecEntry>) -> Option<bool> {
+        spec.iter()
+            .filter_map(|x| if let FunctionV0(e) = x { Some(e) } else { None })
+            .filter(|x| x.name.to_string() == "upgrade")
+            .find(|x| {
+                x.inputs
+                    .iter()
+                    .any(|y| matches!(y.type_, ScSpecTypeDef::BytesN(ScSpecTypeBytesN { n: 32 })))
+            })
+            .map(|x| x.inputs.iter().any(|y| y.type_ == ScSpecTypeDef::Address))
+    }
+
     fn resolve_line(re: &Regex, line: &str, shell: &str, flag: &str) -> Result<String, Error> {
         let mut result = String::new();
         let mut last_match = 0;
@@ -875,5 +971,26 @@ export default new Client.Client({{
             "After deploy script for {name:?} completed successfully"
         ));
         Ok(())
+    }
+}
+
+async fn fetch_contract_spec(
+    wasm_hash: &str,
+    network: &Network,
+) -> Result<Vec<ScSpecEntry>, Error> {
+    let fetched = fetch(
+        &FetchArgs {
+            wasm_hash: Some(wasm_hash.to_string()),
+            network: network.into(),
+            ..Default::default()
+        },
+        // Quiets the output of the fetch command
+        &Print::new(true),
+    )
+    .await?;
+
+    match fetched.contract {
+        contract_spec::Contract::Wasm { wasm_bytes } => Ok(Spec::new(&wasm_bytes)?.spec),
+        contract_spec::Contract::StellarAssetContract => unreachable!(),
     }
 }
