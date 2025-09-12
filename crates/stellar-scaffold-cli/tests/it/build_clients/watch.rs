@@ -303,9 +303,7 @@ async fn watch_and_vite_integration_test() {
                     Ok(None) => {
                         panic!("Output channel closed unexpectedly");
                     }
-                    Err(_) => {
-                        continue;
-                    }
+                    Err(_) => {}
                 }
             }
 
