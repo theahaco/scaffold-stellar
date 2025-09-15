@@ -48,8 +48,8 @@ test: build
 test-integration: build-cli-test-contracts
     cargo nextest run --verbose --package stellar-scaffold-cli --features integration-tests --no-run
     cargo nextest run --verbose --package stellar-registry-cli --features integration-tests --no-run
-    cargo nextest run --package stellar- scaffold-cli --features integration-tests 
-    cargo nextest run --package stellar- registry-cli --features integration-tests
+    cargo nextest run --package stellar-scaffold-cli --features integration-tests 
+    cargo nextest run --package stellar-registry-cli --features integration-tests
 
 create: build
     rm -rf .soroban
