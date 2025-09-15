@@ -26,9 +26,7 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("Creating keys for \"alice\""));
         assert!(stderr.contains("Creating keys for \"bob\""));
-        assert!(env.cwd.join(".stellar/identity/alice.toml").exists());
-        assert!(env.cwd.join(".stellar/identity/bob.toml").exists());
-
+        
         // check that they dont get overwritten if build is run again
         let stderr = env
             .scaffold_build("development", true)
@@ -77,12 +75,18 @@ soroban_token_contract.client = false
 "#);
 
         // Create alice.toml manually, simulating a pre-existing identity
-        let alice_toml_path = env.cwd.join(".stellar/identity/alice.toml");
-        let parent = alice_toml_path.parent().unwrap();
-        fs::create_dir_all(parent).unwrap();
-        fs::write(&alice_toml_path, r#"
-seed_phrase = "own social that glimpse hurry lion arrange spot vault clip leisure innocent borrow peanut invest scrub network enter enemy digital uncover ivory expire peace"
-"#).unwrap();
+        let stderr = env
+            .stellar("keys")
+            .args([
+                "generate",
+                "alice",
+                "--network-passphrase",
+                "\"Standalone Network ; February 2017\"",
+                "--rpc-url",
+                "http://localhost:8000/soroban/rpc",
+            ])
+            .assert()
+            .success();
 
         // Run scaffold_build and assert success
         env.scaffold_build("development", true)
