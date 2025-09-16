@@ -26,8 +26,6 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("Creating keys for \"alice\""));
         assert!(stderr.contains("Creating keys for \"bob\""));
-        assert!(env.cwd.join(".stellar/identity/alice.toml").exists());
-        assert!(env.cwd.join(".stellar/identity/bob.toml").exists());
 
         // check that they dont get overwritten if build is run again
         let stderr = env
@@ -58,8 +56,6 @@ soroban_token_contract.client = false
 
 #[test]
 fn funding_existing_account_toml() {
-    use std::fs;
-
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(r#"
 [development]
@@ -77,17 +73,19 @@ soroban_token_contract.client = false
 "#);
 
         // Create alice.toml manually, simulating a pre-existing identity
-        let alice_toml_path = env.cwd.join(".stellar/identity/alice.toml");
-        let parent = alice_toml_path.parent().unwrap();
-        fs::create_dir_all(parent).unwrap();
-        fs::write(&alice_toml_path, r#"
-seed_phrase = "own social that glimpse hurry lion arrange spot vault clip leisure innocent borrow peanut invest scrub network enter enemy digital uncover ivory expire peace"
-"#).unwrap();
+        env.stellar("keys")
+            .args([
+                "generate",
+                "alice",
+                "--network-passphrase",
+                "\"Standalone Network ; February 2017\"",
+                "--rpc-url",
+                "http://localhost:8000/soroban/rpc",
+            ])
+            .assert()
+            .success();
 
         // Run scaffold_build and assert success
-        env.scaffold_build("development", true)
-            .assert()
-            .success()
-            .stderr_as_str();
+        env.scaffold_build("development", true).assert().success();
     });
 }

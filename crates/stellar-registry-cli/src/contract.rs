@@ -7,6 +7,8 @@ use stellar_cli::{
     xdr::{self, WriteXdr},
 };
 
+pub const REGISTRY_NAME: &str = "registry";
+
 pub trait NetworkContract {
     fn contract_id(&self) -> Result<stellar_strkey::Contract, config::Error>;
 
@@ -21,6 +23,11 @@ pub trait NetworkContract {
         slop: &[&str],
         fee: Option<&stellar_cli::fee::Args>,
         view_only: bool,
+    ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
+
+    fn view_registry(
+        &self,
+        slop: &[&str],
     ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
 
     fn rpc_client(&self) -> Result<rpc::Client, config::Error>;
@@ -51,6 +58,10 @@ impl NetworkContract for config::Args {
         invoke_registry(slop, self, fee, view_only).await
     }
 
+    async fn view_registry(&self, slop: &[&str]) -> Result<String, invoke::Error> {
+        invoke_registry(slop, self, None, true).await
+    }
+
     fn rpc_client(&self) -> Result<rpc::Client, config::Error> {
         Ok(rpc::Client::new(&self.get_network()?.rpc_url)?)
     }
@@ -67,7 +78,11 @@ pub fn build_invoke_cmd(
         slop: slop.iter().map(Into::into).collect(),
         config: config.clone(),
         fee: fee.cloned().unwrap_or_default(),
-        send: view_only.then_some(invoke::Send::No).unwrap_or_default(),
+        send: if view_only {
+            invoke::Send::No
+        } else {
+            invoke::Send::Default
+        },
         ..Default::default()
     })
 }

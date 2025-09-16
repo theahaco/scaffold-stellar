@@ -1,0 +1,22 @@
+[package]
+name = "hello_v2"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata.stellar]
+# Set contract metadata for authors, homepage, and version based on the Cargo.toml package values
+cargo_inherit = true
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f" }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "185888d67df52943b4478537bfe412cc2dc97e89" }
+
+[dev-dependencies]
+soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f", features = [
+    "testutils",
+] }

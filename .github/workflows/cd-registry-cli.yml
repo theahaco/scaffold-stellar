@@ -8,6 +8,9 @@ on:
   push:
     tags:
       - "stellar-registry-cli-v[0-9]+.[0-9]+.[0-9]+*"
+  pull_request:
+    paths:
+      - crates/stellar-registry-cli/CHANGELOG.md
 env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -81,6 +84,7 @@ jobs:
           zip: windows
           archive: $tag-$target
           token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: ${{ github.event_name == 'pull_request' }}
         env:
           OPENSSL_STATIC: ${{ env.OPENSSL_STATIC }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
