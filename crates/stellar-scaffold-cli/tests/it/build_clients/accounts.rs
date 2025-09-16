@@ -26,7 +26,7 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("Creating keys for \"alice\""));
         assert!(stderr.contains("Creating keys for \"bob\""));
-        
+
         // check that they dont get overwritten if build is run again
         let stderr = env
             .scaffold_build("development", true)
@@ -56,8 +56,6 @@ soroban_token_contract.client = false
 
 #[test]
 fn funding_existing_account_toml() {
-    use std::fs;
-
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(r#"
 [development]
@@ -75,8 +73,7 @@ soroban_token_contract.client = false
 "#);
 
         // Create alice.toml manually, simulating a pre-existing identity
-        let stderr = env
-            .stellar("keys")
+        env.stellar("keys")
             .args([
                 "generate",
                 "alice",
@@ -89,9 +86,6 @@ soroban_token_contract.client = false
             .success();
 
         // Run scaffold_build and assert success
-        env.scaffold_build("development", true)
-            .assert()
-            .success()
-            .stderr_as_str();
+        env.scaffold_build("development", true).assert().success();
     });
 }
