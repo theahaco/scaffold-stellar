@@ -51,4 +51,6 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - run: just setup
       - run: just create
-      - run: just test-integration
+      - name: Run integration tests
+        shell: bash
+        run: just test-integration
