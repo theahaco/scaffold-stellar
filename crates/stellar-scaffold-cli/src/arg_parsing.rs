@@ -17,15 +17,15 @@ pub enum Error {
     #[error(transparent)]
     Xdr(#[from] xdr::Error),
     #[error(transparent)]
-    StrVal(#[from] soroban_spec_tools::Error),
+    StrVal(#[from] Box<soroban_spec_tools::Error>),
     #[error(transparent)]
-    ScAddress(#[from] sc_address::Error),
+    ScAddress(#[from] Box<sc_address::Error>),
     #[error(transparent)]
-    Config(#[from] config::Error),
+    Config(#[from] Box<config::Error>),
     #[error(transparent)]
-    Dialoguer(#[from] dialoguer::Error),
+    Dialoguer(#[from] Box<dialoguer::Error>),
     #[error(transparent)]
-    Spec(#[from] soroban_spec_tools::contract::Error),
+    Spec(#[from] Box<soroban_spec_tools::contract::Error>),
 }
 
 pub fn build_custom_cmd(name: &str, spec: &Spec) -> Result<clap::Command, Error> {
