@@ -8,9 +8,9 @@ use stellar_cli::{
 };
 
 pub trait NetworkContract {
-    fn contract_id(&self) -> Result<stellar_strkey::Contract, config::Error>;
+    fn contract_id(&self) -> Result<stellar_strkey::Contract, Box<config::Error>>;
 
-    fn contract_sc_address(&self) -> Result<xdr::ScAddress, config::Error> {
+    fn contract_sc_address(&self) -> Result<xdr::ScAddress, Box<config::Error>> {
         Ok(xdr::ScAddress::Contract(xdr::ContractId(xdr::Hash(
             self.contract_id()?.0,
         ))))
@@ -23,11 +23,11 @@ pub trait NetworkContract {
         view_only: bool,
     ) -> impl std::future::Future<Output = Result<String, invoke::Error>> + Send;
 
-    fn rpc_client(&self) -> Result<rpc::Client, config::Error>;
+    fn rpc_client(&self) -> Result<rpc::Client, Box<config::Error>>;
 }
 
 impl NetworkContract for config::Args {
-    fn contract_id(&self) -> Result<stellar_strkey::Contract, config::Error> {
+    fn contract_id(&self) -> Result<stellar_strkey::Contract, Box<config::Error>> {
         let Network {
             network_passphrase, ..
         } = &self.get_network()?;
@@ -51,7 +51,7 @@ impl NetworkContract for config::Args {
         invoke_registry(slop, self, fee, view_only).await
     }
 
-    fn rpc_client(&self) -> Result<rpc::Client, config::Error> {
+    fn rpc_client(&self) -> Result<rpc::Client, Box<config::Error>> {
         Ok(rpc::Client::new(&self.get_network()?.rpc_url)?)
     }
 }

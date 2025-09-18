@@ -66,7 +66,7 @@ pub enum Error {
     #[error("parsing argument {arg}: {error}")]
     CannotParseArg {
         arg: String,
-        error: stellar_cli::commands::contract::arg_parsing::Error,
+        error: Box<stellar_cli::commands::contract::arg_parsing::Error>,
     },
     #[error("function name {0} is too long")]
     FunctionNameTooLong(String),
