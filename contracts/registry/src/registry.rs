@@ -40,11 +40,6 @@ pub trait IsPublishable {
         wasm_hash: loam_sdk::soroban_sdk::BytesN<32>,
         version: loam_sdk::soroban_sdk::String,
     ) -> Result<(), Error>;
-
-    fn keys(
-        &self,
-        wasm_name: loam_sdk::soroban_sdk::String,
-    ) -> Result<loam_sdk::soroban_sdk::Vec<loam_sdk::soroban_sdk::String>, Error>;
 }
 
 #[loam_sdk::subcontract]
