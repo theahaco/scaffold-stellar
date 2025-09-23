@@ -1,11 +1,11 @@
+use std::fs;
 use stellar_scaffold_test::{AssertExt, TestEnv};
-
 #[test]
 fn create_two_accounts() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(r#"
 [development]
-network = { rpc-url = "http://localhost:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
+network = { rpc-url = "http://moss:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
 
 accounts = [
     "alice",
@@ -18,12 +18,16 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#);
+        for dir in fs::read_dir(&env.cwd).unwrap() {
+            println!("Found directory: {:?}", dir);
+        }
 
         let stderr = env
             .scaffold_build("development", true)
             .assert()
             .success()
             .stderr_as_str();
+        println!("{stderr}");
         assert!(stderr.contains("Creating keys for \"alice\""));
         assert!(stderr.contains("Creating keys for \"bob\""));
 
@@ -35,6 +39,9 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("identity with the name \'alice\' already exists"));
         assert!(stderr.contains("identity with the name \'bob\' already exists"));
+        for dir in fs::read_dir(&env.cwd.join(".stellar")).unwrap() {
+            println!("Found directory: {:?}", dir);
+        }
 
         // check that they're actually funded
         let stderr = env
@@ -45,7 +52,7 @@ soroban_token_contract.client = false
                 "--network-passphrase",
                 "\"Standalone Network ; February 2017\"",
                 "--rpc-url",
-                "http://localhost:8000/soroban/rpc",
+                "http://moss:8000/soroban/rpc",
             ])
             .assert()
             .success()

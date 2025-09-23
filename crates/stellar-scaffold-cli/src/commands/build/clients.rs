@@ -218,13 +218,15 @@ impl Args {
     }
 
     fn get_config_locator(&self) -> stellar_cli::config::locator::Args {
-        let workspace_root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace_root not set");
+        let config_dir = Some(
+            self.workspace_root
+                .as_ref()
+                .expect("workspace_root not set")
+                .join(".stellar"),
+        );
         stellar_cli::config::locator::Args {
             global: false,
-            config_dir: Some(workspace_root.clone()),
+            config_dir,
         }
     }
 
@@ -443,6 +445,8 @@ export default new Client.Client({{
             ([candidate], _) => candidate.to_string(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
+        let config = self.get_config_locator();
+        eprintln!("------------------------------\n{config:#?}");
 
         for account in accounts {
             printer.infoln(format!("Creating keys for {:?}", account.name));
@@ -451,14 +455,14 @@ export default new Client.Client({{
                 self.global_args
                     .clone()
                     .unwrap_or_else(|| stellar_cli::commands::global::Args {
-                        locator: self.clone().get_config_locator(),
+                        locator: config.clone(),
                         ..Default::default()
                     });
 
             let generate_cmd = cli::keys::generate::Cmd {
                 name: account.name.clone().parse()?,
                 fund: true,
-                config_locator: self.get_config_locator(),
+                config_locator: config.clone(),
                 network: Self::get_network_args(network),
                 seed: None,
                 hd_path: None,
@@ -479,8 +483,8 @@ export default new Client.Client({{
                     )?;
 
                     let public_key_cmd = cli::keys::public_key::Cmd {
-                        name: account.name.clone().parse()?,
-                        locator: self.get_config_locator(),
+                        name: account.name.parse()?,
+                        locator: config.clone(),
                         hd_path: None,
                     };
                     let address = public_key_cmd.public_key().await?;
