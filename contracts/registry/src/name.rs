@@ -2,25 +2,37 @@ use loam_sdk::soroban_sdk::String;
 
 use crate::error::Error;
 
-pub(crate) fn is_valid(s: &String) -> bool {
-    if s.len() > 64 || s.is_empty() {
-        return false;
+const MAX_NAME_LENGTH: usize = 64;
+
+pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
+    let env = s.env();
+    if s.len() as usize > MAX_NAME_LENGTH || s.is_empty() {
+        return Err(Error::InvalidName);
     }
-    let mut out = [0u8; 64];
+    let mut out = [0u8; MAX_NAME_LENGTH];
     let (first, _) = out.split_at_mut(s.len() as usize);
     s.copy_into_slice(first);
-    let Ok(s) = core::str::from_utf8(first) else {
-        return false;
-    };
+    let s = core::str::from_utf8_mut(first).map_err(|_| Error::InvalidName)?;
     if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
-        return false;
+        return Err(Error::InvalidName);
     }
-    s.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-}
-
-pub(crate) fn validate(s: &String) -> Result<(), Error> {
-    is_valid(s).then_some(()).ok_or(Error::InvalidName)
+    let mut chars_to_change: [Option<(usize, char)>; MAX_NAME_LENGTH] = [None; MAX_NAME_LENGTH];
+    for (i, c) in s.chars().enumerate() {
+        if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+            return Err(Error::InvalidName);
+        }
+        if c == '_' {
+            chars_to_change[i] = Some((i, '-'));
+        }
+        if c.is_ascii_uppercase() {
+            chars_to_change[i] = Some((i, c.to_ascii_lowercase()));
+        }
+    }
+    let as_bytes = unsafe { s.as_bytes_mut() };
+    for (i, c) in chars_to_change.into_iter().flatten() {
+        as_bytes[i] = c as u8;
+    }
+    Ok(String::from_bytes(env, as_bytes))
 }
 
 /// from crate `check_keyword`
