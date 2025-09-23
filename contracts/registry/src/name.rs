@@ -6,7 +6,7 @@ const MAX_NAME_LENGTH: usize = 64;
 
 pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     let env = s.env();
-    if s.len() > MAX_NAME_LENGTH as u32 || s.is_empty() {
+    if s.len() as usize > MAX_NAME_LENGTH || s.is_empty() {
         return Err(Error::InvalidName);
     }
     let mut out = [0u8; MAX_NAME_LENGTH];
@@ -16,7 +16,7 @@ pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
         return Err(Error::InvalidName);
     }
-    let mut chars_to_change: [Option<(usize, char)>; 64] = [None; 64];
+    let mut chars_to_change: [Option<(usize, char)>; MAX_NAME_LENGTH] = [None; MAX_NAME_LENGTH];
     for (i, c) in s.chars().enumerate() {
         if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
             return Err(Error::InvalidName);
