@@ -1,4 +1,4 @@
-use crate::{error::Error, name::is_valid, SorobanContract__Client as SorobanContractClient};
+use crate::{error::Error, name::canonicalize, SorobanContract__Client as SorobanContractClient};
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
     self, env, set_env,
@@ -96,7 +96,7 @@ fn returns_most_recent_version() {
 
 fn test_string(s: &str, result: bool) {
     assert!(
-        is_valid(&to_string(s)).is_some() == result,
+        canonicalize(&to_string(s)).is_ok() == result,
         "{s} should be {}valid",
         if result { "" } else { "in" }
     );
@@ -124,11 +124,17 @@ fn validate_names() {
     test_string("1ab", false);
 
     assert_eq!(
-        is_valid(&to_string("ls_test")).unwrap(),
+        canonicalize(&to_string("ls_test")).unwrap(),
         to_string("ls-test")
     );
     assert_eq!(
-        is_valid(&to_string("ls-test")).unwrap(),
+        canonicalize(&to_string("ls-test")).unwrap(),
+        to_string("ls-test")
+    );
+
+    assert_eq!(canonicalize(&to_string("Test")).unwrap(), to_string("test"));
+    assert_eq!(
+        canonicalize(&to_string("Ls-teSt")).unwrap(),
         to_string("ls-test")
     );
 }

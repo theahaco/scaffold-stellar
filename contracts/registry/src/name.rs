@@ -2,36 +2,37 @@ use loam_sdk::soroban_sdk::String;
 
 use crate::error::Error;
 
-pub(crate) fn is_valid(s: &String) -> Option<String> {
+const MAX_NAME_LENGTH: usize = 64;
+
+pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     let env = s.env();
-    if s.len() > 64 || s.is_empty() {
-        return None;
+    if s.len() > MAX_NAME_LENGTH as u32 || s.is_empty() {
+        return Err(Error::InvalidName);
     }
-    let mut out = [0u8; 64];
+    let mut out = [0u8; MAX_NAME_LENGTH];
     let (first, _) = out.split_at_mut(s.len() as usize);
     s.copy_into_slice(first);
-    let s = core::str::from_utf8_mut(first).ok()?;
+    let s = core::str::from_utf8_mut(first).map_err(|_| Error::InvalidName)?;
     if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
-        return None;
+        return Err(Error::InvalidName);
     }
-    let mut chars_to_change: [Option<usize>; 64] = [None; 64];
+    let mut chars_to_change: [Option<(usize, char)>; 64] = [None; 64];
     for (i, c) in s.chars().enumerate() {
         if !(c.is_ascii_alphanumeric() || c == '_' || c == '-') {
-            return None;
+            return Err(Error::InvalidName);
         }
         if c == '_' {
-            chars_to_change[i] = Some(i);
+            chars_to_change[i] = Some((i, '-'));
+        }
+        if c.is_ascii_uppercase() {
+            chars_to_change[i] = Some((i, c.to_ascii_lowercase()));
         }
     }
     let as_bytes = unsafe { s.as_bytes_mut() };
-    for i in chars_to_change.into_iter().flatten() {
-        as_bytes[i] = b'-';
+    for (i, c) in chars_to_change.into_iter().flatten() {
+        as_bytes[i] = c as u8;
     }
-    Some(String::from_bytes(env, as_bytes))
-}
-
-pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
-    is_valid(s).ok_or(Error::InvalidName)
+    Ok(String::from_bytes(env, as_bytes))
 }
 
 /// from crate `check_keyword`
