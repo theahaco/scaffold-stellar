@@ -13,14 +13,7 @@ use super::IsPublishable;
 pub struct W {
     pub r: PersistentMap<String, Map<String, BytesN<32>>>,
     pub a: PersistentMap<String, Address>,
-}
-
-impl W {
-    pub fn new(name: &String, author: Address) -> Self {
-        let mut s = Self::default();
-        s.a.set(name.clone(), &author);
-        s
-    }
+    pub c: PersistentMap<String, String>,
 }
 
 impl W {
@@ -30,20 +23,17 @@ impl W {
             .ok_or(Error::NoSuchContractPublished)
     }
     pub fn most_recent_version(&self, name: &String) -> Result<String, Error> {
-        self.registry(name)?
-            .keys()
-            .first()
-            .ok_or(Error::NoSuchVersion)
+        self.c
+            .get(name.clone())
+            .ok_or(Error::NoSuchContractPublished)
     }
 
     pub fn get(&self, name: &String, version: Option<String>) -> Result<BytesN<32>, Error> {
         let registry = self.registry(name)?;
-        if let Some(version) = version {
-            registry.get(version)
-        } else {
-            registry.values().last()
-        }
-        .ok_or(Error::NoSuchVersion)
+        let version = version
+            .or_else(|| self.most_recent_version(name).ok())
+            .ok_or(Error::NoSuchContractPublished)?;
+        registry.get(version).ok_or(Error::NoSuchVersion)
     }
 
     pub fn set(&mut self, name: &String, version: String, binary: BytesN<32>) -> Result<(), Error> {
@@ -104,11 +94,24 @@ impl IsPublishable for W {
         }
         self.validate_version(&version, &wasm_name)?;
         self.a.set(wasm_name.clone(), &author);
-        self.set(&wasm_name, version, wasm_hash)
+        self.set(&wasm_name, version.clone(), wasm_hash)?;
+        self.c.set(wasm_name, &version);
+        Ok(())
     }
 
     fn fetch_hash(&self, wasm_name: String, version: Option<String>) -> Result<BytesN<32>, Error> {
         let wasm_name = canonicalize(&wasm_name)?;
         self.get(&wasm_name, version)
+    }
+
+    fn keys(
+        &self,
+        name: soroban_sdk::String,
+    ) -> Result<loam_sdk::soroban_sdk::Vec<loam_sdk::soroban_sdk::String>, Error> {
+        Ok(self
+            .r
+            .get(name)
+            .ok_or(Error::NoSuchContractPublished)?
+            .keys())
     }
 }

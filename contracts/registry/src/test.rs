@@ -1,4 +1,7 @@
-use crate::{error::Error, name::canonicalize, SorobanContract__Client as SorobanContractClient};
+use crate::{
+    error::Error, name::canonicalize, SorobanContract__,
+    SorobanContract__Client as SorobanContractClient,
+};
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
     self, env, set_env,
@@ -22,12 +25,10 @@ stellar_registry::import_contract_client!(registry);
 fn init() -> (SorobanContractClient<'static>, Address) {
     set_env(Env::default());
     let env = env();
-    let contract_id = Address::generate(env);
+    // let contract_id = Address::generate(env);
     let address = Address::generate(env);
-    let client = SorobanContractClient::new(
-        env,
-        &env.register_at(&contract_id, registry::WASM, (address.clone(),)),
-    );
+    let client =
+        SorobanContractClient::new(env, &env.register(SorobanContract__, (address.clone(),)));
     (client, address)
 }
 
@@ -82,7 +83,6 @@ fn returns_most_recent_version() {
     let fetched_hash = client.fetch_hash(name, &None);
     let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
     assert_eq!(fetched_hash, wasm_hash);
-
     let second_hash: BytesN<32> = BytesN::random(env);
     client.publish_hash(
         name,
@@ -90,6 +90,28 @@ fn returns_most_recent_version() {
         &second_hash.into_val(env),
         &to_string("0.0.1"),
     );
+    let res = client.fetch_hash(name, &None);
+    assert_eq!(res, second_hash);
+
+    let second_hash: BytesN<32> = BytesN::random(env);
+    client.publish_hash(
+        name,
+        address,
+        &second_hash.into_val(env),
+        &to_string("0.0.9"),
+    );
+    let res = client.fetch_hash(name, &None);
+    assert_eq!(res, second_hash);
+    let second_hash: BytesN<32> = BytesN::random(env);
+    client.publish_hash(
+        name,
+        address,
+        &second_hash.into_val(env),
+        &to_string("0.0.10"),
+    );
+
+    let version = client.current_version(name);
+    assert_eq!(version, to_string("0.0.10"));
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
 }
