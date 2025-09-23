@@ -14,24 +14,18 @@ pub enum Error {
     NoSuchContractDeployed = 4,
     /// Contract already deployed
     AlreadyDeployed = 5,
-    /// Contract already claimed
-    AlreadyClaimed = 6,
-    /// Failed to initialize contract
-    InitFailed = 7,
     /// Failed to redeploy a deployed contract with no coreriff macro
-    RedeployDeployedFailed = 8,
-    /// Contract doesn't have owner, impossible to perform the operation
-    NoOwnerSet = 9,
+    UpgradeInvokeFailed = 6,
     /// Only Admin is allowed
-    AdminOnly = 10,
+    AdminOnly = 7,
     /// New version must be greater than the most recent version
-    VersionMustBeGreaterThanCurrent = 11,
+    VersionMustBeGreaterThanCurrent = 8,
     /// Invalid name.
     /// Must be 64 characters or less;
     /// ascii alphanumeric, '-', or '_';
     /// start with a ascii alphabetic character;
     /// and not be a Rust keyword
-    InvalidName = 12,
-    /// Invalid Version. Must be valid cargo version
-    InvalidVersion = 13,
+    InvalidName = 9,
+    /// Must be valid cargo version
+    InvalidVersion = 10,
 }

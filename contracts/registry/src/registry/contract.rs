@@ -3,7 +3,7 @@ use loam_sdk::{
     loamstorage,
     soroban_sdk::{
         self, assert_with_error, contracttype, env, symbol_short, to_string, Address, BytesN, Env,
-        IntoVal, PersistentMap, String, Symbol,
+        IntoVal, InvokeError, PersistentMap, String, Symbol,
     },
     vec,
 };
@@ -56,7 +56,13 @@ impl C {
             author.require_auth();
         }
         let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("upgrade"));
-        env().invoke_contract::<()>(&contract_id, &fn_name, vec![wasm_hash.into_val(env())]);
+        let _ = env()
+            .try_invoke_contract::<(), InvokeError>(
+                &contract_id,
+                &fn_name,
+                vec![wasm_hash.into_val(env())],
+            )
+            .map_err(|_| Error::UpgradeInvokeFailed)?;
         Ok(contract_id)
     }
 }
