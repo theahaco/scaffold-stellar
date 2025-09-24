@@ -16,9 +16,9 @@ stellar-cli = { version = "23.0.0", package = "soroban-cli" }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.0-rc.5" }
 soroban-spec-tools = "23.0.0"
 
-soroban-sdk = "23.0.0-rc.2.1"
-stellar-xdr = "23.0.0-rc.2"
-stellar-strkey = "0.0.11"
+soroban-sdk = "23.0.2"
+stellar-xdr = "23.0.0"
+stellar-strkey = "0.0.13"
 
 cargo_metadata = "0.18.1"
 thiserror = "1.0.38"
