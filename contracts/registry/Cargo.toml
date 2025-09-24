@@ -2,7 +2,7 @@
 name = "registry"
 description = "A crate for managing and deploying smart contracts on the Soroban blockchain."
 version = "0.1.1"
-authors = ["Aha Labs <hello@ahalabs.dev>"]
+authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 rust-version = "1.69"
 edition = "2021"
@@ -28,5 +28,5 @@ contract = true
 
 [package.metadata.stellar]
 cargo_inherit = true
-homepage = "ahalabs.dev"
+homepage = "theaha.co"
 repository = "https://github.com/theahaco/scaffold-stellar"

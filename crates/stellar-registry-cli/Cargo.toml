@@ -2,7 +2,7 @@
 name = "stellar-registry-cli"
 description = "Stellar CLI plugin for publishing and deploying contracts"
 homepage = "https://github.com/theahaco/scaffold-stellar"
-authors = ["Aha Labs <hello@ahalabs.dev>"]
+authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
 version = "0.0.10"

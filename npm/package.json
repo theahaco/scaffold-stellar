@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/theahaco/scaffold-stellar.git"
   },
-  "author": "Aha labs (hello@ahalabs.dev)",
+  "author": "Aha labs (hello@theaha.co)",
   "bin": {
     "stellar-scaffold": "run.js"
   },

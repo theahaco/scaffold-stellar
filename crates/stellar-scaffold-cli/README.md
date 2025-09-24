@@ -114,7 +114,7 @@ For example:
 cargo_inherit = true
 # Override one of the inherited values
 name = "my-awesome-contract"
-homepage = "ahalabs.dev"
+homepage = "theaha.co"
 repository = "https://github.com/theahaco/scaffold-stellar"
 ```
 
