@@ -29,4 +29,4 @@ contract = true
 [package.metadata.stellar]
 cargo_inherit = true
 homepage = "ahalabs.dev"
-repository = "https://github.com/AhaLabs/scaffold-stellar"
+repository = "https://github.com/theahaco/scaffold-stellar"

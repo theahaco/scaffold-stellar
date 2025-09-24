@@ -39,7 +39,7 @@ cd my-project
 
 This creates:
 - A smart contract project with recommended configurations
-- A frontend application based on [scaffold-stellar-frontend](https://github.com/AhaLabs/scaffold-stellar-frontend)
+- A frontend application based on [scaffold-stellar-frontend](https://github.com/theahaco/scaffold-stellar-frontend)
 - Environment configurations for both contract and frontend development
 
 ### Upgrading Existing Workspace
@@ -115,7 +115,7 @@ cargo_inherit = true
 # Override one of the inherited values
 name = "my-awesome-contract"
 homepage = "ahalabs.dev"
-repository = "https://github.com/AhaLabs/scaffold-stellar"
+repository = "https://github.com/theahaco/scaffold-stellar"
 ```
 
 ## Environment Variables
@@ -128,6 +128,6 @@ repository = "https://github.com/AhaLabs/scaffold-stellar"
 ## For More Information
 
 See the full documentation:
-- [CLI Commands Guide](https://github.com/ahalabs/scaffold-stellar/blob/main/docs/cli.md)
-- [Environment Configuration](https://github.com/ahalabs/scaffold-stellar/blob/main/docs/environments.md)
-- [Deployment Guide](https://github.com/ahalabs/scaffold-stellar/blob/main/docs/deploy.md)
+- [CLI Commands Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md)
+- [Environment Configuration](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md)
+- [Deployment Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/deploy.md)
