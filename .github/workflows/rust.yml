@@ -14,12 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential binutils
-      - name: Set environment for cc-rs
-        run: |
-          echo "CC=gcc" >> $GITHUB_ENV
-          echo "AR=ar" >> $GITHUB_ENV
       - uses: actions/cache@v3
         with:
           path: |
