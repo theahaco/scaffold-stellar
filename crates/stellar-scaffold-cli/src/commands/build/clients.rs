@@ -1022,7 +1022,6 @@ mod tests {
 
     #[test]
     fn test_get_package_dir() {
-        // create a folder at this temporary path for the test
         let temp_dir = TempDir::new().unwrap();
         let package_path = temp_dir.path().join("packages/existing_package");
         std::fs::create_dir_all(&package_path).unwrap();
