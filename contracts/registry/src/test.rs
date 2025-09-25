@@ -194,17 +194,28 @@ fn validate_version() {
     let version = &to_string("0.0.0");
     let new_version = &to_string("0.0.1");
     client.publish(name, address, bytes, version);
+    let random_hash: BytesN<32> = BytesN::random(env);
     assert_eq!(
-        client.try_publish(name, address, bytes, version),
+        client.try_publish_hash(name, address, &random_hash.into_val(env), version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
     assert_eq!(
-        client.try_publish(name, address, bytes, &to_string("0.  0.0"),),
+        client.try_publish_hash(
+            name,
+            address,
+            &random_hash.into_val(env),
+            &to_string("0.  0.0"),
+        ),
         Err(Ok(Error::InvalidVersion))
     );
-    client.publish(name, address, bytes, new_version);
+    client.publish_hash(name, address, &random_hash.into_val(env), new_version);
     assert_eq!(
-        client.try_publish(name, address, bytes, version),
+        client.try_publish_hash(
+            name,
+            address,
+            &BytesN::<32>::random(env).into_val(env),
+            version
+        ),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
 }
