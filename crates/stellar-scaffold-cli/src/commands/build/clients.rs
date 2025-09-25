@@ -1,4 +1,4 @@
-#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::struct_excessive_bools, clippy::result_large_err)]
 use super::env_toml::Network;
 use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;

@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::env_toml::{Account, Contract, Environment, Network};
 use clap::Parser;
