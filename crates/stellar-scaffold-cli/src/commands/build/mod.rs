@@ -1,4 +1,4 @@
-#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::struct_excessive_bools, clippy::result_large_err)]
 use crate::commands::build::Error::EmptyPackageName;
 use crate::commands::version;
 use cargo_metadata::camino::Utf8PathBuf;

@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use clap::value_parser;
 
 use heck::ToKebabCase;
