@@ -237,9 +237,7 @@ impl Command {
             }
         }
 
-        meta_map
-            .iter()
-            .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
+        for (k, v) in &meta_map { cmd.meta.push((k.clone(), v.clone())); }
 
         Ok(cmd)
     }
