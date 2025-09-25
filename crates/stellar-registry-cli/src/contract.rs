@@ -68,7 +68,11 @@ pub fn build_invoke_cmd(
         slop: slop.iter().map(Into::into).collect(),
         config: config.clone(),
         fee: fee.cloned().unwrap_or_default(),
-        send: if view_only { invoke::Send::No } else { invoke::Send::Yes },
+        send: if view_only {
+            invoke::Send::No
+        } else {
+            invoke::Send::Yes
+        },
         ..Default::default()
     })
 }
