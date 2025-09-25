@@ -80,8 +80,8 @@ impl Cmd {
         let printer = Print::new(global_args.quiet);
 
         printer.infoln(format!(
-            "Upgrading Soroban workspace to scaffold project in {:?}",
-            self.workspace_path
+            "Upgrading Soroban workspace to scaffold project in {}",
+            self.workspace_path.display()
         ));
 
         // Validate workspace
@@ -104,8 +104,8 @@ impl Cmd {
         self.create_environments_toml(global_args).await?;
 
         printer.checkln(format!(
-            "Workspace successfully upgraded to scaffold project at {:?}",
-            self.workspace_path
+            "Workspace successfully upgraded to scaffold project at {}",
+            self.workspace_path.display()
         ));
 
         Ok(())
