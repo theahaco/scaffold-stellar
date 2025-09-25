@@ -1,4 +1,4 @@
-#![allow(non_upper_case_globals)]
+#![allow(non_upper_case_globals, clippy::result_large_err)]
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
