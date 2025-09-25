@@ -54,7 +54,7 @@ impl Cmd {
         });
 
         printer.infoln(format!(
-            "Creating new Stellar project in {absolute_project_path:?}"
+            "Creating new Stellar project in {}", absolute_project_path.display()
         ));
 
         let project_str = absolute_project_path
