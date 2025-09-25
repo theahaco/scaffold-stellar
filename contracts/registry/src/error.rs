@@ -8,8 +8,8 @@ pub enum Error {
     NoSuchContractPublished = 1,
     /// No such version of the contact has been published
     NoSuchVersion = 2,
-    /// Contract already published
-    AlreadyPublished = 3,
+    /// Wasm name already claimed
+    WasmNameAlreadyTaken = 3,
     /// No such contract deployed
     NoSuchContractDeployed = 4,
     /// Contract already deployed
@@ -28,4 +28,6 @@ pub enum Error {
     InvalidName = 9,
     /// Must be valid cargo version
     InvalidVersion = 10,
+    /// Hash has aleady been published
+    HashAlreadyPublished = 11,
 }

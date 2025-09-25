@@ -93,6 +93,15 @@ fn returns_most_recent_version() {
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
 
+    assert!(client
+        .try_publish_hash(
+            name,
+            address,
+            &second_hash.into_val(env),
+            &to_string("0.0.2"),
+        )
+        .is_err());
+
     let second_hash: BytesN<32> = BytesN::random(env);
     client.publish_hash(
         name,

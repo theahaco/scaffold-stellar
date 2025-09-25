@@ -1,7 +1,7 @@
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
-        self, contracttype, env, to_string, Address, BytesN, Map, PersistentMap, String,
+        self, contracttype, env, to_string, Address, BytesN, Env, Map, PersistentMap, String,
     },
 };
 use loam_subcontract_core::Core as _;
@@ -27,6 +27,24 @@ impl PublishedWasm {
         self.versions
             .get(version.unwrap_or_else(|| self.current_version.clone()))
             .ok_or(Error::NoSuchVersion)
+    }
+}
+
+pub struct HashMap;
+
+impl HashMap {
+    pub fn add(env: &Env, hash: &BytesN<32>) {
+        env.storage().persistent().set(hash, &());
+    }
+
+    pub fn has(env: &Env, hash: &BytesN<32>) -> bool {
+        env.storage().persistent().has(hash)
+    }
+
+    pub fn bump(env: &Env, hash: &BytesN<32>) {
+        env.storage()
+            .persistent()
+            .extend_ttl(hash, MAX_BUMP, MAX_BUMP);
     }
 }
 
@@ -66,7 +84,9 @@ impl W {
     ) -> Result<BytesN<32>, Error> {
         let registry = self.registry(name)?;
         self.r.extend_ttl(name.clone(), MAX_BUMP, MAX_BUMP);
-        registry.get_hash(version)
+        let hash = registry.get_hash(version)?;
+        HashMap::bump(env(), &hash);
+        Ok(hash)
     }
 
     pub fn set(
@@ -126,11 +146,15 @@ impl IsPublishable for W {
         wasm_hash: soroban_sdk::BytesN<32>,
         version: String,
     ) -> Result<(), Error> {
+        if HashMap::has(env(), &wasm_hash) {
+            return Err(Error::WasmNameAlreadyTaken);
+        }
+        HashMap::add(env(), &wasm_hash);
         author.require_auth();
         let wasm_name = canonicalize(&wasm_name)?;
         if let Some(current) = self.author(&wasm_name) {
             if author != current {
-                return Err(Error::AlreadyPublished);
+                return Err(Error::WasmNameAlreadyTaken);
             }
         }
         if wasm_name == to_string(REGISTRY) && crate::Contract::admin_get().unwrap() != author {
