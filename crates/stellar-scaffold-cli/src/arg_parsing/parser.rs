@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 use dialoguer::{Confirm, Input, Select};
 
 use super::Error;

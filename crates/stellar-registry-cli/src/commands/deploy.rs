@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, clippy::result_large_err)]
 use std::{ffi::OsString, path::PathBuf};
 
 use clap::Parser;

@@ -1,4 +1,4 @@
-#![allow(clippy::struct_excessive_bools)]
+#![allow(clippy::struct_excessive_bools, clippy::result_large_err)]
 use crate::commands::build::Error::EmptyPackageName;
 use crate::commands::version;
 use cargo_metadata::camino::Utf8PathBuf;
@@ -237,9 +237,9 @@ impl Command {
             }
         }
 
-        meta_map
-            .iter()
-            .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
+        for (k, v) in &meta_map {
+            cmd.meta.push((k.clone(), v.clone()));
+        }
 
         Ok(cmd)
     }
