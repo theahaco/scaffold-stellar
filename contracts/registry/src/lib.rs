@@ -6,7 +6,7 @@ use registry::{contract::C as Contract_, wasm::W as Wasm, Deployable, Publishabl
 pub mod error;
 pub mod name;
 pub mod registry;
-pub mod util;
+mod util;
 pub mod version;
 
 #[cfg(target_family = "wasm")]
