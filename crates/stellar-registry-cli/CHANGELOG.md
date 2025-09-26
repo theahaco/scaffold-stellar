@@ -7,84 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.10](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.9...stellar-registry-cli-v0.0.10) - 2025-09-11
+## [0.0.10](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.9...stellar-registry-cli-v0.0.10) - 2025-09-11
 
 ### Added
 
-- update CD github actions to do a dry run on a release PR ([#183](https://github.com/AhaLabs/scaffold-stellar/pull/183))
+- update CD github actions to do a dry run on a release PR ([#183](https://github.com/theahaco/scaffold-stellar/pull/183))
 
-## [0.0.9](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.8...stellar-registry-cli-v0.0.9) - 2025-09-03
-
-### Other
-
-- better help docs for root commands ([#173](https://github.com/AhaLabs/scaffold-stellar/pull/173))
-
-## [0.0.8](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.7...stellar-registry-cli-v0.0.8) - 2025-08-19
-
-### Fixed
-
-- update registry guide with proper args ([#163](https://github.com/AhaLabs/scaffold-stellar/pull/163))
+## [0.0.9](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.8...stellar-registry-cli-v0.0.9) - 2025-09-03
 
 ### Other
 
-- fix typo in help doc for registry cli ([#157](https://github.com/AhaLabs/scaffold-stellar/pull/157))
+- better help docs for root commands ([#173](https://github.com/theahaco/scaffold-stellar/pull/173))
 
-## [0.0.7](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.6...stellar-registry-cli-v0.0.7) - 2025-07-17
+## [0.0.8](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.7...stellar-registry-cli-v0.0.8) - 2025-08-19
 
 ### Fixed
 
-- update to newest CLI ([#144](https://github.com/AhaLabs/scaffold-stellar/pull/144))
+- update registry guide with proper args ([#163](https://github.com/theahaco/scaffold-stellar/pull/163))
 
 ### Other
 
-- Add version command ([#140](https://github.com/AhaLabs/scaffold-stellar/pull/140))
+- fix typo in help doc for registry cli ([#157](https://github.com/theahaco/scaffold-stellar/pull/157))
 
-## [0.0.6](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.5...stellar-registry-cli-v0.0.6) - 2025-07-08
+## [0.0.7](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.6...stellar-registry-cli-v0.0.7) - 2025-07-17
+
+### Fixed
+
+- update to newest CLI ([#144](https://github.com/theahaco/scaffold-stellar/pull/144))
 
 ### Other
 
-- add publish documentation, remove unecessary config docs at top level ([#121](https://github.com/AhaLabs/scaffold-stellar/pull/121))
+- Add version command ([#140](https://github.com/theahaco/scaffold-stellar/pull/140))
 
-## [0.0.5](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.4...stellar-registry-cli-v0.0.5) - 2025-06-26
+## [0.0.6](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.5...stellar-registry-cli-v0.0.6) - 2025-07-08
 
-### Fixed
+### Other
 
-- *(registry-cli)* update mainnet instructions to inform about security practices and docs ([#112](https://github.com/AhaLabs/scaffold-stellar/pull/112))
+- add publish documentation, remove unecessary config docs at top level ([#121](https://github.com/theahaco/scaffold-stellar/pull/121))
 
-## [0.0.4](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.3...stellar-registry-cli-v0.0.4) - 2025-06-18
-
-### Fixed
-
-- update readmes to point to current directory instead of project ([#109](https://github.com/AhaLabs/scaffold-stellar/pull/109))
-- [registry-cli] add wasm_name arg to publish  ([#90](https://github.com/AhaLabs/scaffold-stellar/pull/90))
-
-## [0.0.3](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.2...stellar-registry-cli-v0.0.3) - 2025-06-11
+## [0.0.5](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.4...stellar-registry-cli-v0.0.5) - 2025-06-26
 
 ### Fixed
 
-- CD binary builds  ([#97](https://github.com/AhaLabs/scaffold-stellar/pull/97))
+- *(registry-cli)* update mainnet instructions to inform about security practices and docs ([#112](https://github.com/theahaco/scaffold-stellar/pull/112))
+
+## [0.0.4](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.3...stellar-registry-cli-v0.0.4) - 2025-06-18
+
+### Fixed
+
+- update readmes to point to current directory instead of project ([#109](https://github.com/theahaco/scaffold-stellar/pull/109))
+- [registry-cli] add wasm_name arg to publish  ([#90](https://github.com/theahaco/scaffold-stellar/pull/90))
+
+## [0.0.3](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.2...stellar-registry-cli-v0.0.3) - 2025-06-11
+
+### Fixed
+
+- CD binary builds  ([#97](https://github.com/theahaco/scaffold-stellar/pull/97))
 - use correct repo in cargo.toml's
 
 ### Other
 
-- Update README.md ([#96](https://github.com/AhaLabs/scaffold-stellar/pull/96))
+- Update README.md ([#96](https://github.com/theahaco/scaffold-stellar/pull/96))
 
-## [0.0.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.1...stellar-registry-cli-v0.0.2) - 2025-06-05
-
-### Added
-
-- *(registry)* Update readme with instructions for mainnet; Update to newest loam_sdk; Use correct contract Ids ([#86](https://github.com/AhaLabs/scaffold-stellar/pull/86))
-
-## [0.0.1-alpha.2](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.1-alpha.1...stellar-registry-cli-v0.0.1-alpha.2) - 2025-05-19
+## [0.0.2](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.1...stellar-registry-cli-v0.0.2) - 2025-06-05
 
 ### Added
 
-- Add metadata to wasm and use in registry publish ([#46](https://github.com/AhaLabs/scaffold-stellar/pull/46))
-- initial deploy work ([#57](https://github.com/AhaLabs/scaffold-stellar/pull/57))
-- deterministically derive contract id ([#52](https://github.com/AhaLabs/scaffold-stellar/pull/52))
+- *(registry)* Update readme with instructions for mainnet; Update to newest loam_sdk; Use correct contract Ids ([#86](https://github.com/theahaco/scaffold-stellar/pull/86))
 
-## [0.0.1-alpha.1](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-registry-cli-v0.0.1-alpha...stellar-registry-cli-v0.0.1-alpha.1) - 2025-05-13
+## [0.0.1-alpha.2](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.1-alpha.1...stellar-registry-cli-v0.0.1-alpha.2) - 2025-05-19
+
+### Added
+
+- Add metadata to wasm and use in registry publish ([#46](https://github.com/theahaco/scaffold-stellar/pull/46))
+- initial deploy work ([#57](https://github.com/theahaco/scaffold-stellar/pull/57))
+- deterministically derive contract id ([#52](https://github.com/theahaco/scaffold-stellar/pull/52))
+
+## [0.0.1-alpha.1](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.1-alpha...stellar-registry-cli-v0.0.1-alpha.1) - 2025-05-13
 
 ### Other
 
-- docs ([#39](https://github.com/AhaLabs/scaffold-stellar/pull/39))
+- docs ([#39](https://github.com/theahaco/scaffold-stellar/pull/39))
