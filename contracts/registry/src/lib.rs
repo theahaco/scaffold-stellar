@@ -1,7 +1,7 @@
 #![no_std]
-use loam_subcontract_core::{admin::Admin, Core};
 
-use registry::{contract::C as Contract_, wasm::W as Wasm, Deployable, Publishable, Redeployable};
+use admin_sep::Administratable;
+use soroban_sdk::{contract, contractimpl, Address, Env};
 
 pub mod error;
 pub mod name;
@@ -14,13 +14,18 @@ mod alloc;
 
 pub use error::Error;
 
-#[loam_sdk::derive_contract(
-    Core(Admin),
-    Publishable(Wasm),
-    Deployable(Contract_),
-    Redeployable(Contract_)
-)]
+#[contract]
 pub struct Contract;
+
+#[contractimpl]
+impl Administratable for Contract {}
+
+#[contractimpl]
+impl Contract {
+    pub fn __constructor(env: &Env, admin: &Address) {
+        Self::set_admin(env, admin);
+    }
+}
 
 #[cfg(test)]
 mod test;

@@ -1,17 +1,14 @@
-use crate::{
-    error::Error, name::canonicalize, SorobanContract__,
-    SorobanContract__Client as SorobanContractClient,
-};
+use crate::{error::Error, name::canonicalize, Contract, ContractClient as SorobanContractClient};
 use assert_matches::assert_matches;
-use loam_sdk::soroban_sdk::{
-    self, env, set_env,
+use soroban_sdk::{
+    self,
     testutils::{Address as _, BytesN as _},
-    to_string, Address, Bytes, BytesN, Env, IntoVal,
+    Address, Bytes, BytesN, Env, IntoVal,
 };
 extern crate std;
 
-fn default_version() -> soroban_sdk::String {
-    to_string("0.0.0")
+fn default_version(env: &Env) -> soroban_sdk::String {
+    soroban_sdk::String::from_str(&env, "0.0.0")
 }
 
 stellar_registry::import_contract_client!(registry);
@@ -22,20 +19,21 @@ stellar_registry::import_contract_client!(registry);
 //     soroban_sdk::contractimport!(file = "../../../../target/stellar/registry.wasm");
 // }
 
-fn init() -> (SorobanContractClient<'static>, Address) {
-    set_env(Env::default());
-    let env = env();
-    // let contract_id = Address::generate(env);
-    let address = Address::generate(env);
-    let client =
-        SorobanContractClient::new(env, &env.register(SorobanContract__, (address.clone(),)));
-    (client, address)
+fn init(env: &Env) -> (SorobanContractClient<'static>, Address) {
+    let admin = Address::generate(env);
+    let contract_id = env.register(Contract, (admin.clone(),));
+    let client = SorobanContractClient::new(&env, &contract_id);
+    (client, admin)
+}
+
+fn to_string(s: &str) -> soroban_sdk::String {
+    soroban_sdk::String::from_str(&Env::default(), s)
 }
 
 #[test]
 fn handle_error_cases() {
-    let (client, address) = &init();
-    let env = env();
+    let env = Env::default();
+    let (client, address) = &init(&env);
 
     let name = &to_string("publisher");
     assert_matches!(
@@ -50,9 +48,9 @@ fn handle_error_cases() {
         Ok(Error::NoSuchContractPublished)
     );
 
-    let bytes = Bytes::from_slice(env, registry::WASM);
+    let bytes = Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
-    let version = default_version();
+    let version = default_version(&env);
     client.publish(name, address, &bytes, &version);
     assert_eq!(client.fetch_hash(name, &None), wasm_hash);
 
@@ -72,22 +70,23 @@ fn handle_error_cases() {
 
 #[test]
 fn returns_most_recent_version() {
-    let (client, address) = &init();
-    let env = env();
+    let env = Env::default();
+    let (client, address) = &init(&env);
+
     let name = &to_string("publisher");
     // client.register_name(address, name);
-    let bytes = Bytes::from_slice(env, registry::WASM);
+    let bytes = Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
-    let version = default_version();
+    let version = default_version(&env);
     client.publish(name, address, &bytes, &version);
     let fetched_hash = client.fetch_hash(name, &None);
     let wasm_hash = env.deployer().upload_contract_wasm(registry::WASM);
     assert_eq!(fetched_hash, wasm_hash);
-    let second_hash: BytesN<32> = BytesN::random(env);
+    let second_hash: BytesN<32> = BytesN::random(&env);
     client.publish_hash(
         name,
         address,
-        &second_hash.into_val(env),
+        &second_hash.into_val(&env),
         &to_string("0.0.1"),
     );
     let res = client.fetch_hash(name, &None);
@@ -97,25 +96,25 @@ fn returns_most_recent_version() {
         .try_publish_hash(
             name,
             address,
-            &second_hash.into_val(env),
+            &second_hash.into_val(&env),
             &to_string("0.0.2"),
         )
         .is_err());
 
-    let second_hash: BytesN<32> = BytesN::random(env);
+    let second_hash: BytesN<32> = BytesN::random(&env);
     client.publish_hash(
         name,
         address,
-        &second_hash.into_val(env),
+        &second_hash.into_val(&env),
         &to_string("0.0.9"),
     );
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
-    let second_hash: BytesN<32> = BytesN::random(env);
+    let second_hash: BytesN<32> = BytesN::random(&env);
     client.publish_hash(
         name,
         address,
-        &second_hash.into_val(env),
+        &second_hash.into_val(&env),
         &to_string("0.0.10"),
     );
 
@@ -135,7 +134,6 @@ fn test_string(s: &str, result: bool) {
 
 #[test]
 fn validate_names() {
-    set_env(Env::default());
     test_string("publish", true);
     test_string("a_a_b", true);
     test_string("abcdefghabcdefgh", true);
@@ -172,13 +170,14 @@ fn validate_names() {
 
 #[test]
 fn publish_to_kebab_case() {
-    let (client, address) = &init();
-    let env = env();
+    let env = Env::default();
+    let (client, address) = &init(&env);
+
     let name = &to_string("hello_world");
     // client.register_name(address, name);
-    let bytes = Bytes::from_slice(env, registry::WASM);
+    let bytes = Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
-    let version = default_version();
+    let version = default_version(&env);
     client.publish(name, address, &bytes, &version);
     let most_recent_version = client.current_version(&to_string("hello_world"));
     assert_eq!(most_recent_version, to_string("0.0.0"));
@@ -186,34 +185,35 @@ fn publish_to_kebab_case() {
 
 #[test]
 fn validate_version() {
-    let (client, address) = &init();
-    let env = env();
+    let env = Env::default();
+    let (client, address) = &init(&env);
+
     let name = &to_string("registry");
-    let bytes = &Bytes::from_slice(env, registry::WASM);
+    let bytes = &Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
     let version = &to_string("0.0.0");
     let new_version = &to_string("0.0.1");
     client.publish(name, address, bytes, version);
-    let random_hash: BytesN<32> = BytesN::random(env);
+    let random_hash: BytesN<32> = BytesN::random(&env);
     assert_eq!(
-        client.try_publish_hash(name, address, &random_hash.into_val(env), version),
+        client.try_publish_hash(name, address, &random_hash.into_val(&env), version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
     assert_eq!(
         client.try_publish_hash(
             name,
             address,
-            &random_hash.into_val(env),
+            &random_hash.into_val(&env),
             &to_string("0.  0.0"),
         ),
         Err(Ok(Error::InvalidVersion))
     );
-    client.publish_hash(name, address, &random_hash.into_val(env), new_version);
+    client.publish_hash(name, address, &random_hash.into_val(&env), new_version);
     assert_eq!(
         client.try_publish_hash(
             name,
             address,
-            &BytesN::<32>::random(env).into_val(env),
+            &BytesN::<32>::random(&env).into_val(&env),
             version
         ),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))

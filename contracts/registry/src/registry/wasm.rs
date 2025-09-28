@@ -1,15 +1,13 @@
-use loam_sdk::{
-    loamstorage,
-    soroban_sdk::{
-        self, contracttype, env, to_string, Address, BytesN, Env, Map, PersistentMap, String,
-    },
-};
-use loam_subcontract_core::Core as _;
+use crate::ContractArgs;
+use crate::ContractClient;
+use admin_sep::Administratable;
+use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
 use crate::{
     error::Error,
     name::canonicalize,
     util::{MAX_BUMP, REGISTRY},
+    Contract,
 };
 
 use super::IsPublishable;
@@ -48,72 +46,81 @@ impl HashMap {
     }
 }
 
-/// Contains
-#[loamstorage]
-pub struct W {
-    pub r: PersistentMap<String, PublishedWasm>,
-}
-
-impl W {
-    fn registry(&self, name: &String) -> Result<PublishedWasm, Error> {
-        self.r
-            .get(name.clone())
+#[contractimpl]
+impl Contract {
+    fn registry(env: &Env, name: &String) -> Result<PublishedWasm, Error> {
+        env.storage()
+            .persistent()
+            .get(&name.clone().to_val())
             .ok_or(Error::NoSuchContractPublished)
     }
-    pub fn most_recent_version(&self, name: &String) -> Result<String, Error> {
-        self.r
-            .get(name.clone())
-            .map(|wasm| wasm.current_version)
+    pub fn most_recent_version(env: &Env, name: &String) -> Result<String, Error> {
+        env.storage()
+            .persistent()
+            .get(&name.clone().to_val())
+            .map(|wasm: PublishedWasm| wasm.current_version)
             .ok_or(Error::NoSuchContractPublished)
     }
 
-    pub fn get_version(&self, name: &String, version: Option<String>) -> Result<String, Error> {
+    pub fn get_version(env: &Env, name: &String, version: Option<String>) -> Result<String, Error> {
         version
-            .or_else(|| self.most_recent_version(name).ok())
+            .or_else(|| Self::most_recent_version(env, name).ok())
             .ok_or(Error::NoSuchContractPublished)
     }
 
-    pub fn get_hash(&self, name: &String, version: Option<String>) -> Result<BytesN<32>, Error> {
-        self.registry(name)?.get_hash(version)
-    }
-
-    pub fn get_hash_and_bump(
-        &mut self,
+    pub fn get_hash(
+        env: &Env,
         name: &String,
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
-        let registry = self.registry(name)?;
-        self.r.extend_ttl(name.clone(), MAX_BUMP, MAX_BUMP);
+        Self::registry(env, name)?.get_hash(version)
+    }
+
+    pub fn get_hash_and_bump(
+        env: &Env,
+        name: &String,
+        version: Option<String>,
+    ) -> Result<BytesN<32>, Error> {
+        let registry = Self::registry(env, name)?;
+        env.storage()
+            .persistent()
+            .extend_ttl(&name.clone().to_val(), MAX_BUMP, MAX_BUMP);
         let hash = registry.get_hash(version)?;
-        HashMap::bump(env(), &hash);
+        HashMap::bump(env, &hash);
         Ok(hash)
     }
 
     pub fn set(
-        &mut self,
+        env: &Env,
         name: &String,
         version: String,
         binary: BytesN<32>,
         author: Address,
     ) -> Result<(), Error> {
-        let mut registry = self.r.get(name.clone()).unwrap_or_else(|| PublishedWasm {
-            versions: Map::new(env()),
-            author,
-            current_version: version.clone(),
-        });
+        let mut registry = env
+            .storage()
+            .persistent()
+            .get(&name.clone().to_val())
+            .unwrap_or_else(|| PublishedWasm {
+                versions: Map::new(env),
+                author,
+                current_version: version.clone(),
+            });
         registry.versions.set(version.clone(), binary);
         registry.current_version = version;
-        self.r.set(name.clone(), &registry);
+        env.storage()
+            .persistent()
+            .set(&name.clone().to_val(), &registry);
         Ok(())
     }
 
-    pub fn author(&self, name: &String) -> Option<Address> {
-        self.registry(name).ok().map(|wasm| wasm.author)
+    pub fn author(env: &Env, name: &String) -> Option<Address> {
+        Self::registry(env, name).ok().map(|wasm| wasm.author)
     }
 
-    fn validate_version(&self, version: &String, wasm_name: &String) -> Result<(), Error> {
+    fn validate_version(env: &Env, version: &String, wasm_name: &String) -> Result<(), Error> {
         let version = crate::version::parse(version)?;
-        if let Ok(current_version) = self.most_recent_version(wasm_name) {
+        if let Ok(current_version) = Self::most_recent_version(env, wasm_name) {
             if version <= crate::version::parse(&current_version)? {
                 return Err(Error::VersionMustBeGreaterThanCurrent);
             }
@@ -122,51 +129,57 @@ impl W {
     }
 }
 
-impl IsPublishable for W {
-    fn current_version(&self, wasm_name: String) -> Result<String, Error> {
+#[contractimpl]
+impl IsPublishable for Contract {
+    fn current_version(env: &Env, wasm_name: String) -> Result<String, Error> {
         let wasm_name = canonicalize(&wasm_name)?;
-        self.most_recent_version(&wasm_name)
+        Self::most_recent_version(env, &wasm_name)
     }
 
     fn publish(
-        &mut self,
+        env: &Env,
         wasm_name: String,
         author: Address,
         wasm: soroban_sdk::Bytes,
         version: String,
     ) -> Result<(), Error> {
-        let wasm_hash = env().deployer().upload_contract_wasm(wasm);
-        self.publish_hash(wasm_name, author, wasm_hash, version)
+        let wasm_hash = env.deployer().upload_contract_wasm(wasm);
+        Self::publish_hash(env, wasm_name, author, wasm_hash, version)
     }
 
     fn publish_hash(
-        &mut self,
+        env: &Env,
         wasm_name: soroban_sdk::String,
         author: soroban_sdk::Address,
         wasm_hash: soroban_sdk::BytesN<32>,
         version: String,
     ) -> Result<(), Error> {
-        if HashMap::has(env(), &wasm_hash) {
+        if HashMap::has(env, &wasm_hash) {
             return Err(Error::WasmNameAlreadyTaken);
         }
-        HashMap::add(env(), &wasm_hash);
+        HashMap::add(env, &wasm_hash);
         author.require_auth();
         let wasm_name = canonicalize(&wasm_name)?;
-        if let Some(current) = self.author(&wasm_name) {
+        if let Some(current) = Self::author(env, &wasm_name) {
             if author != current {
                 return Err(Error::WasmNameAlreadyTaken);
             }
         }
-        if wasm_name == to_string(REGISTRY) && crate::Contract::admin_get().unwrap() != author {
+        let str = soroban_sdk::String::from_str(env, REGISTRY);
+        if wasm_name == str && Self::admin_from_storage(env).unwrap() != author {
             return Err(Error::AdminOnly);
         }
-        self.validate_version(&version, &wasm_name)?;
-        self.set(&wasm_name, version.clone(), wasm_hash, author)?;
+        Self::validate_version(env, &version, &wasm_name)?;
+        Self::set(env, &wasm_name, version.clone(), wasm_hash, author)?;
         Ok(())
     }
 
-    fn fetch_hash(&self, wasm_name: String, version: Option<String>) -> Result<BytesN<32>, Error> {
+    fn fetch_hash(
+        env: &Env,
+        wasm_name: String,
+        version: Option<String>,
+    ) -> Result<BytesN<32>, Error> {
         let wasm_name = canonicalize(&wasm_name)?;
-        self.get_hash(&wasm_name, version)
+        Self::get_hash(env, &wasm_name, version)
     }
 }

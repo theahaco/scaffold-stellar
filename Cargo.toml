@@ -16,7 +16,7 @@ stellar-cli = { version = "23.0.0", package = "soroban-cli" }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.0-rc.5" }
 soroban-spec-tools = "23.0.0"
 
-soroban-sdk = "23.0.0-rc.2.1"
+soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "5a99659f1483c926ff87ea45f8823b8c00dc4cbd" }
 stellar-xdr = "23.0.0-rc.2"
 stellar-strkey = "0.0.11"
 
