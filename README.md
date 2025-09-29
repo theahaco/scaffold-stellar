@@ -30,11 +30,12 @@ With Scaffold Stellar, you write smart contracts in Rust and interact with them 
 
 Before you begin, make sure you have the following installed:
 
-| Tool | Description | Install Link |
-|------|-------------|--------------|
-| [Rust & Cargo](https://www.rust-lang.org/tools/install) | For writing and compiling smart contracts | `curl https://sh.rustup.rs -sSf \| sh` |
-| [Node.js & npm](https://nodejs.org/) | For frontend development | Download from official site |
-| [Stellar CLI](https://github.com/stellar/stellar-cli) | for building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli)
+| Tool                                                    | Description                                                   | Install Link                                                  |
+|---------------------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|
+| [Rust & Cargo](https://www.rust-lang.org/tools/install) | For writing and compiling smart contracts                     | `curl https://sh.rustup.rs -sSf \| sh`                        |
+| [Node.js & npm](https://nodejs.org/)                    | For frontend development                                      | Download from official site                                   |
+| [Stellar CLI](https://github.com/stellar/stellar-cli)   | For building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli) |
+| [Docker](https://docs.docker.com/get-started/)          | For running a Stellar node locally                            | Download from official site                                   |
 
 ---
 
@@ -50,19 +51,21 @@ cargo install stellar-scaffold-cli
 
 The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.
 
+> We recommend the use of [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) to install pre-compiled binaries. 
+
 ### 2. Create a New Project
 ```
 stellar scaffold init my-project
 cd my-project
 ```
 
-### 3. Configure Your Environment
+### 3. Configure Your Frontend Environment
 ```
-# Copy and configure environment variables
+# Copy and configure environment variables for the frontend
 cp .env.example .env
 ```
 
-Edit `.env` with your preferred network, secret keys, and other settings.
+Edit `.env` with your preferred network, and other settings.
 
 ### 4. Install Frontend Dependencies
 ```
@@ -118,7 +121,7 @@ my-project/
 
 This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with `Vite`, `React`, and includes basic components for interacting with the contracts.
 
-See the [CLI Documentation](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md) for detailed command information and the [Environments Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md) for configuration details.
+See the [CLI Documentation](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md) for detailed command information and the [Environments Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md) for configuration details.
 
 ---
 
@@ -218,9 +221,9 @@ Your repo contains the following key folders:
 ---
 
 ## Documentation 
-* [CLI Commands](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md)
-* [Environment Setup](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md)
-* [Registry Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/registry.md)
+* [CLI Commands](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md)
+* [Environment Setup](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md)
+* [Registry Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/registry.md)
 
 ---
 ## Additional Developer Resources
@@ -233,7 +236,7 @@ Your repo contains the following key folders:
 ## Contributing
 We love contributions! If you're new, check these out:
 
-[Contributing Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/theahaco/scaffold-stellar/blob/main/CONTRIBUTING.md)
 
 ## License
 

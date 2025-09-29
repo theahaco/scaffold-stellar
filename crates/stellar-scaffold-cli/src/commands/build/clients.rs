@@ -655,6 +655,18 @@ export default new Client.Client({{
         Ok(())
     }
 
+    fn get_package_dir(&self, name: &str) -> Result<std::path::PathBuf, Error> {
+        let workspace_root = self
+            .workspace_root
+            .as_ref()
+            .expect("workspace_root must be set before running");
+        let package_dir = workspace_root.join(format!("packages/{name}"));
+        if !package_dir.exists() {
+            return Err(Error::BadContractName(name.to_string()));
+        }
+        Ok(package_dir)
+    }
+
     async fn process_single_contract(
         &self,
         name: &str,
@@ -682,6 +694,14 @@ export default new Client.Client({{
                 if let Some(current_hash) = hash {
                     if current_hash == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
+                        // If there is not a package at packages/<name>, generate bindings
+                        if self.get_package_dir(name).is_err() {
+                            self.generate_contract_bindings(
+                                name,
+                                &existing_contract_id.to_string(),
+                            )
+                            .await?;
+                        }
                         return Ok(());
                     }
                     upgraded_contract = self
@@ -996,5 +1016,45 @@ async fn fetch_contract_spec(
     match fetched.contract {
         contract_spec::Contract::Wasm { wasm_bytes } => Ok(Spec::new(&wasm_bytes)?.spec),
         contract_spec::Contract::StellarAssetContract => unreachable!(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_get_package_dir() {
+        let temp_dir = TempDir::new().unwrap();
+        let package_path = temp_dir.path().join("packages/existing_package");
+        std::fs::create_dir_all(&package_path).unwrap();
+        let args = Args {
+            env: Some(ScaffoldEnv::Development),
+            workspace_root: Some(temp_dir.path().to_path_buf()),
+            out_dir: None,
+            global_args: None,
+        };
+        let result = args.get_package_dir("existing_package");
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert_eq!(path.file_name().unwrap(), "existing_package");
+    }
+
+    #[test]
+    fn test_get_package_dir_nonexistent() {
+        let args = Args {
+            env: Some(ScaffoldEnv::Development),
+            workspace_root: Some(std::path::PathBuf::from("tests/nonexistent_workspace")),
+            out_dir: None,
+            global_args: None,
+        };
+        let result = args.get_package_dir("nonexistent_package");
+        assert!(result.is_err());
+        if let Err(Error::BadContractName(name)) = result {
+            assert_eq!(name, "nonexistent_package");
+        } else {
+            panic!("Expected BadContractName error");
+        }
     }
 }

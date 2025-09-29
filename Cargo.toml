@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-repository = "https://github.com/ahalabs/scaffold-stellar"
+repository = "https://github.com/theahaco/scaffold-stellar"
 
 [workspace.dependencies]
 stellar-scaffold-macro = { path = "crates/stellar-scaffold-macro" }

@@ -13,7 +13,7 @@ use toml_edit::{value, DocumentMut, Item, Table};
 use crate::{arg_parsing, commands::build};
 use stellar_cli::print::Print;
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
+const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
 
 /// A command to upgrade an existing Soroban workspace to a scaffold project
 #[derive(Parser, Debug, Clone)]

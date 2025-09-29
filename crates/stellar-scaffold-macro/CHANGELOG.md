@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.7](https://github.com/AhaLabs/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.6...stellar-scaffold-macro-v0.8.7) - 2025-06-11
+## [0.8.7](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.6...stellar-scaffold-macro-v0.8.7) - 2025-06-11
 
 ### Other
 
