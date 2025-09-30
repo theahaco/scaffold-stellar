@@ -5,7 +5,7 @@ fn create_two_accounts() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(r#"
 [development]
-network = { rpc-url = "http://moss:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
+network = { rpc-url = "http://localhost:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
 
 accounts = [
     "alice",
@@ -52,7 +52,7 @@ soroban_token_contract.client = false
                 "--network-passphrase",
                 "\"Standalone Network ; February 2017\"",
                 "--rpc-url",
-                "http://moss:8000/soroban/rpc",
+                "http://localhost:8000/soroban/rpc",
             ])
             .assert()
             .success()
