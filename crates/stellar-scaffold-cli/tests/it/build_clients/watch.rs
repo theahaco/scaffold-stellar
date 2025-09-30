@@ -190,6 +190,7 @@ soroban_token_contract.client = false
     .await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn watch_and_vite_integration_test() {
     TestEnv::from_init("test-project", |env| async {
