@@ -43,7 +43,12 @@ impl TestEnv {
     pub fn new(template: &str) -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
         unsafe { std::env::set_var("XDG_CACHE_DIR", temp_dir.join(".cache").to_str().unwrap()) };
-        unsafe { std::env::set_var("XDG_CONFIG_HOME", temp_dir.join(".stellar").to_str().unwrap()) };
+        unsafe {
+            std::env::set_var(
+                "XDG_CONFIG_HOME",
+                temp_dir.join(".stellar").to_str().unwrap(),
+            )
+        };
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
@@ -255,7 +260,10 @@ impl TestEnv {
             "PATH",
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/bin"),
         );
-        stellar.env("XDG_CONFIG_HOME", self.cwd.join(".stellar").to_str().unwrap());
+        stellar.env(
+            "XDG_CONFIG_HOME",
+            self.cwd.join(".stellar").to_str().unwrap(),
+        );
         stellar.current_dir(&self.cwd);
         stellar.arg(cmd);
         stellar
