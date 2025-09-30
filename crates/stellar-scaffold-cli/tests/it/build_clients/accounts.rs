@@ -1,15 +1,16 @@
 use std::fs;
-use stellar_scaffold_test::{AssertExt, TestEnv};
+use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
 #[test]
 fn create_two_accounts() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(r#"
+        env.set_environments_toml(format!(
+            r#"
 [development]
-network = { rpc-url = "http://localhost:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
 
 accounts = [
     "alice",
-    { name = "bob" },
+    {{ name = "bob" }},
 ]
 [development.contracts]
 soroban_hello_world_contract.client = false
@@ -17,7 +18,9 @@ soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
-"#);
+"#,
+            rpc_url(),
+        ));
         for dir in fs::read_dir(&env.cwd).unwrap() {
             println!("Found directory: {:?}", dir);
         }
@@ -52,7 +55,7 @@ soroban_token_contract.client = false
                 "--network-passphrase",
                 "\"Standalone Network ; February 2017\"",
                 "--rpc-url",
-                "http://localhost:8000/soroban/rpc",
+                rpc_url().as_str(),
             ])
             .assert()
             .success()
@@ -64,9 +67,10 @@ soroban_token_contract.client = false
 #[test]
 fn funding_existing_account_toml() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(r#"
+        env.set_environments_toml(format!(
+            r#"
 [development]
-network = { rpc-url = "http://localhost:8000/rpc", network-passphrase = "Standalone Network ; February 2017"}
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
 
 accounts = [
     "alice",
@@ -77,7 +81,9 @@ soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
-"#);
+"#,
+            rpc_url()
+        ));
 
         // Create alice.toml manually, simulating a pre-existing identity
         env.stellar("keys")
@@ -87,7 +93,7 @@ soroban_token_contract.client = false
                 "--network-passphrase",
                 "\"Standalone Network ; February 2017\"",
                 "--rpc-url",
-                "http://localhost:8000/soroban/rpc",
+                rpc_url().as_str(),
             ])
             .assert()
             .success();
