@@ -42,13 +42,7 @@ impl AssertExt for Assert {
 impl TestEnv {
     pub fn new(template: &str) -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
-        unsafe { std::env::set_var("XDG_CACHE_DIR", temp_dir.join(".cache").to_str().unwrap()) };
-        unsafe {
-            std::env::set_var(
-                "XDG_CONFIG_HOME",
-                temp_dir.join(".config").to_str().unwrap(),
-            );
-        };
+        Self::set_options(&temp_dir);
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
@@ -87,6 +81,16 @@ impl TestEnv {
         Self {
             cwd: dest_path,
             temp_dir: temp_dir.into(),
+        }
+    }
+
+    fn set_options(temp_dir: &TempDir) {
+        unsafe {
+            std::env::set_var("XDG_CACHE_DIR", temp_dir.path().join(".cache").to_str().unwrap());
+            std::env::set_var(
+                "XDG_CONFIG_HOME",
+                temp_dir.path().join(".config").to_str().unwrap(),
+            );
         }
     }
 

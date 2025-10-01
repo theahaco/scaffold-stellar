@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, path::{Path, PathBuf}};
 
 use assert_cmd::Command;
 use stellar_cli::{
@@ -152,7 +152,7 @@ soroban_hello_world_contract.client = false
         T: CommandParser<T>,
     {
         let mut cmd = s.to_vec();
-        cmd.insert(0, &format!("--config-dir={}", env.cwd.to_str().unwrap()));
+        cmd.insert(0, &format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap()));
         T::parse_arg_vec(s)
     }
 
@@ -161,7 +161,11 @@ soroban_hello_world_contract.client = false
         registry.current_dir(&self.env.cwd);
         registry.arg(cmd);
         registry.arg("--config-dir");
-        registry.arg(self.env.cwd.to_str().unwrap());
+        registry.arg(config_dir(&self.env.cwd).to_str().unwrap());
         registry
     }
+}
+
+fn config_dir(p: &Path) -> PathBuf {
+    p.join(".config").join("stellar")
 }
