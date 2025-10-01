@@ -46,7 +46,7 @@ impl TestEnv {
         unsafe {
             std::env::set_var(
                 "XDG_CONFIG_HOME",
-                temp_dir.join(".stellar").to_str().unwrap(),
+                temp_dir.join(".config").to_str().unwrap(),
             );
         };
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
@@ -262,7 +262,7 @@ impl TestEnv {
         );
         stellar.env(
             "XDG_CONFIG_HOME",
-            self.cwd.join(".stellar").to_str().unwrap(),
+            self.cwd.join(".config").to_str().unwrap(),
         );
         stellar.current_dir(&self.cwd);
         stellar.arg(cmd);

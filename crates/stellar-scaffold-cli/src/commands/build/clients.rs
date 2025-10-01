@@ -142,8 +142,8 @@ impl Args {
         };
 
         self.add_network_to_env(&current_env.network)?;
-        // Create the '.stellar' directory if it doesn't exist
-        std::fs::create_dir_all(workspace_root.join(".stellar"))
+        // Create the '.config' directory if it doesn't exist
+        std::fs::create_dir_all(workspace_root.join(".config/stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
         self.clone()
             .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
@@ -222,7 +222,7 @@ impl Args {
             self.workspace_root
                 .as_ref()
                 .expect("workspace_root not set")
-                .join(".stellar"),
+                .join(".config/stellar"),
         );
         stellar_cli::config::locator::Args {
             global: false,

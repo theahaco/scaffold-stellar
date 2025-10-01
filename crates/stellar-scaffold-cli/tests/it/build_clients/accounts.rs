@@ -42,7 +42,7 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("identity with the name \'alice\' already exists"));
         assert!(stderr.contains("identity with the name \'bob\' already exists"));
-        for dir in fs::read_dir(&env.cwd.join(".stellar")).unwrap() {
+        for dir in fs::read_dir(&env.cwd.join(".config/stellar")).unwrap() {
             println!("Found directory: {:?}", dir);
         }
 
