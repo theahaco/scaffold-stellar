@@ -1,4 +1,7 @@
-use std::{env, path::{Path, PathBuf}};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use assert_cmd::Command;
 use stellar_cli::{
@@ -152,7 +155,10 @@ soroban_hello_world_contract.client = false
         T: CommandParser<T>,
     {
         let mut cmd = s.to_vec();
-        cmd.insert(0, &format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap()));
+        cmd.insert(
+            0,
+            &format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap()),
+        );
         T::parse_arg_vec(s)
     }
 

@@ -86,7 +86,10 @@ impl TestEnv {
 
     fn set_options(temp_dir: &TempDir) {
         unsafe {
-            std::env::set_var("XDG_CACHE_DIR", temp_dir.path().join(".cache").to_str().unwrap());
+            std::env::set_var(
+                "XDG_CACHE_DIR",
+                temp_dir.path().join(".cache").to_str().unwrap(),
+            );
             std::env::set_var(
                 "XDG_CONFIG_HOME",
                 temp_dir.path().join(".config").to_str().unwrap(),
