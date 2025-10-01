@@ -12,8 +12,6 @@ use stellar_cli::{
 use crate::AssertExt;
 use crate::common::{TestEnv, find_registry_wasm};
 
-const RPC_URL: &str = "http://localhost:8000/soroban/rpc";
-
 #[derive(Clone)]
 pub struct RegistryTest {
     pub env: TestEnv,
@@ -23,12 +21,13 @@ pub struct RegistryTest {
 impl RegistryTest {
     pub async fn new() -> Self {
         let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
+        let rpc_url = crate::rpc_url();
         Self::parse_cmd_internal::<network::add::Cmd>(
             &env,
             &[
                 "localhost",
                 "--rpc-url",
-                RPC_URL,
+                rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
             ],
@@ -46,7 +45,7 @@ impl RegistryTest {
         let registry_address = Self::deploy_registry(&env).await;
         // Set environment variables for testnet configuration
         unsafe {
-            env::set_var("STELLAR_RPC_URL", RPC_URL);
+            env::set_var("STELLAR_RPC_URL", rpc_url);
             env::set_var("STELLAR_ACCOUNT", "alice");
             env::set_var(
                 "STELLAR_NETWORK_PASSPHRASE",
@@ -66,7 +65,7 @@ impl RegistryTest {
         env.set_environments_toml(format!(
             r#"
 [development]
-network = {{ rpc-url = "{RPC_URL}", network-passphrase = "Standalone Network ; February 2017"}}
+network = {{ rpc-url = "{rpc_url}", network-passphrase = "Standalone Network ; February 2017"}}
 accounts = ["alice"]
 [development.contracts]
 soroban_hello_world_contract.client = false
@@ -97,7 +96,7 @@ soroban_hello_world_contract.client = false
                 "--source",
                 "alice",
                 "--rpc-url",
-                RPC_URL,
+                rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
             ],
@@ -119,7 +118,7 @@ soroban_hello_world_contract.client = false
             "--source",
             "alice",
             "--rpc-url",
-            RPC_URL,
+            rpc_url,
             "--network-passphrase",
             "Standalone Network ; February 2017",
             "--",

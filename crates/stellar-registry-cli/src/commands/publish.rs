@@ -191,6 +191,6 @@ mod tests {
             .unwrap()
             .into_result()
             .unwrap();
-        assert_eq!(res.strip_prefix('"'), Some("0.0.3"));
+        assert_eq!(res, "\"0.0.3\"");
     }
 }
