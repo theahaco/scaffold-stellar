@@ -94,7 +94,10 @@ pub async fn invoke_registry(
     view_only: bool,
 ) -> Result<String, invoke::Error> {
     Ok(build_invoke_cmd(slop, config, fee, view_only)?
-        .run_against_rpc_server(Some(&stellar_cli::commands::global::Args::default()), None)
+        .run_against_rpc_server(
+            Some(&stellar_cli::commands::global::Args::default()),
+            Some(config),
+        )
         .await?
         .into_result()
         .expect("Failed to parse JSON"))

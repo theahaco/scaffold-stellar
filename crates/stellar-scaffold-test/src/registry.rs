@@ -157,7 +157,6 @@ soroban_hello_world_contract.client = false
         let mut cmd = s.to_vec();
         let config_dir = format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap());
         cmd.insert(0, &config_dir);
-            &format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap()),
         T::parse_arg_vec(&cmd)
     }
 
