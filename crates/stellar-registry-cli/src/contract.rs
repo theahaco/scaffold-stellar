@@ -70,7 +70,7 @@ pub fn build_invoke_cmd(
         send: if view_only {
             invoke::Send::No
         } else {
-            Default::default()
+            invoke::Send::default()
         },
         ..Default::default()
     })
