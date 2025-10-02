@@ -141,7 +141,7 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
 
 #[must_use]
 pub fn stellar_wasm_out_dir(target_dir: &Path) -> PathBuf {
-    target_dir.join("wasm32v1-none/release")
+    target_dir.join("stellar")
 }
 
 #[must_use]
