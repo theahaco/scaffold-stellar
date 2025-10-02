@@ -26,8 +26,8 @@ fn init(env: &Env) -> (SorobanContractClient<'static>, Address) {
     (client, admin)
 }
 
-fn to_string(s: &str) -> soroban_sdk::String {
-    soroban_sdk::String::from_str(&Env::default(), s)
+fn to_string(env: &Env, s: &str) -> soroban_sdk::String {
+    soroban_sdk::String::from_str(env, s)
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn handle_error_cases() {
     let env = Env::default();
     let (client, address) = &init(&env);
 
-    let name = &to_string("publisher");
+    let name = &to_string(&env, "publisher");
     assert_matches!(
         client.try_fetch_hash(name, &None).unwrap_err(),
         Ok(Error::NoSuchContractPublished)
@@ -56,7 +56,7 @@ fn handle_error_cases() {
 
     assert_matches!(
         client
-            .try_fetch_hash(name, &Some(to_string("0.0.1")))
+            .try_fetch_hash(name, &Some(to_string(&env, "0.0.1")))
             .unwrap_err(),
         Ok(Error::NoSuchVersion)
     );
@@ -73,7 +73,7 @@ fn returns_most_recent_version() {
     let env = Env::default();
     let (client, address) = &init(&env);
 
-    let name = &to_string("publisher");
+    let name = &to_string(&env, "publisher");
     // client.register_name(address, name);
     let bytes = Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
@@ -87,7 +87,7 @@ fn returns_most_recent_version() {
         name,
         address,
         &second_hash.into_val(&env),
-        &to_string("0.0.1"),
+        &to_string(&env, "0.0.1"),
     );
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
@@ -97,7 +97,7 @@ fn returns_most_recent_version() {
             name,
             address,
             &second_hash.into_val(&env),
-            &to_string("0.0.2"),
+            &to_string(&env, "0.0.2"),
         )
         .is_err());
 
@@ -106,7 +106,7 @@ fn returns_most_recent_version() {
         name,
         address,
         &second_hash.into_val(&env),
-        &to_string("0.0.9"),
+        &to_string(&env, "0.0.9"),
     );
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
@@ -115,25 +115,25 @@ fn returns_most_recent_version() {
         name,
         address,
         &second_hash.into_val(&env),
-        &to_string("0.0.10"),
+        &to_string(&env, "0.0.10"),
     );
 
     let version = client.current_version(name);
-    assert_eq!(version, to_string("0.0.10"));
+    assert_eq!(version, to_string(&env, "0.0.10"));
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
 }
 
-fn test_string(s: &str, result: bool) {
-    assert!(
-        canonicalize(&to_string(s)).is_ok() == result,
-        "{s} should be {}valid",
-        if result { "" } else { "in" }
-    );
-}
-
 #[test]
 fn validate_names() {
+    fn test_string(s: &str, result: bool) {
+        assert!(
+            canonicalize(&to_string(&Env::default(), s)).is_ok() == result,
+            "{s} should be {}valid",
+            if result { "" } else { "in" }
+        );
+    }
+
     test_string("publish", true);
     test_string("a_a_b", true);
     test_string("abcdefghabcdefgh", true);
@@ -153,18 +153,21 @@ fn validate_names() {
     test_string("1ab", false);
 
     assert_eq!(
-        canonicalize(&to_string("ls_test")).unwrap(),
-        to_string("ls-test")
+        canonicalize(&to_string(&Env::default(), "ls_test")).unwrap(),
+        to_string(&Env::default(), "ls-test")
     );
     assert_eq!(
-        canonicalize(&to_string("ls-test")).unwrap(),
-        to_string("ls-test")
+        canonicalize(&to_string(&Env::default(), "ls-test")).unwrap(),
+        to_string(&Env::default(), "ls-test")
     );
 
-    assert_eq!(canonicalize(&to_string("Test")).unwrap(), to_string("test"));
     assert_eq!(
-        canonicalize(&to_string("Ls-teSt")).unwrap(),
-        to_string("ls-test")
+        canonicalize(&to_string(&Env::default(), "Test")).unwrap(),
+        to_string(&Env::default(), "test")
+    );
+    assert_eq!(
+        canonicalize(&to_string(&Env::default(), "Ls-teSt")).unwrap(),
+        to_string(&Env::default(), "ls-test")
     );
 }
 
@@ -173,14 +176,14 @@ fn publish_to_kebab_case() {
     let env = Env::default();
     let (client, address) = &init(&env);
 
-    let name = &to_string("hello_world");
+    let name = &to_string(&env, "hello_world");
     // client.register_name(address, name);
     let bytes = Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
     let version = default_version(&env);
     client.publish(name, address, &bytes, &version);
-    let most_recent_version = client.current_version(&to_string("hello_world"));
-    assert_eq!(most_recent_version, to_string("0.0.0"));
+    let most_recent_version = client.current_version(&to_string(&env, "hello_world"));
+    assert_eq!(most_recent_version, to_string(&env, "0.0.0"));
 }
 
 #[test]
@@ -188,11 +191,11 @@ fn validate_version() {
     let env = Env::default();
     let (client, address) = &init(&env);
 
-    let name = &to_string("registry");
+    let name = &to_string(&env, "registry");
     let bytes = &Bytes::from_slice(&env, registry::WASM);
     env.mock_all_auths();
-    let version = &to_string("0.0.0");
-    let new_version = &to_string("0.0.1");
+    let version = &to_string(&env, "0.0.0");
+    let new_version = &to_string(&env, "0.0.1");
     client.publish(name, address, bytes, version);
     let random_hash: BytesN<32> = BytesN::random(&env);
     assert_eq!(
@@ -204,7 +207,7 @@ fn validate_version() {
             name,
             address,
             &random_hash.into_val(&env),
-            &to_string("0.  0.0"),
+            &to_string(&env, "0.  0.0"),
         ),
         Err(Ok(Error::InvalidVersion))
     );
