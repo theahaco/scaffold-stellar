@@ -1,8 +1,9 @@
 use std::fs;
+use stellar_cli::config::locator;
 use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
-#[test]
-fn create_two_accounts() {
-    TestEnv::from("soroban-init-boilerplate", |env| {
+#[tokio::test]
+async fn create_two_accounts() {
+    TestEnv::from_async("soroban-init-boilerplate", async |env| {
         env.set_environments_toml(format!(
             r#"
 [development]
@@ -47,21 +48,29 @@ soroban_token_contract.client = false
         }
 
         // check that they're actually funded
-        let stderr = env
-            .stellar("keys")
-            .args([
-                "fund",
-                "alice",
-                "--network-passphrase",
-                "\"Standalone Network ; February 2017\"",
-                "--rpc-url",
-                rpc_url().as_str(),
-            ])
-            .assert()
-            .success()
-            .stderr_as_str();
-        assert!(stderr.contains("Account AliasOrSecret(\"alice\") funded"));
-    });
+        let cmd = stellar_cli::commands::keys::fund::Cmd {
+            network: stellar_cli::config::network::Args {
+                rpc_url: Some(rpc_url().to_string()),
+                network_passphrase: Some("Standalone Network ; February 2017".to_string()),
+                rpc_headers: vec![],
+                network: None,
+            },
+            address: stellar_cli::commands::keys::public_key::Cmd {
+                hd_path: None,
+                locator: locator::Args {
+                    global: false,
+                    config_dir: Some(env.config_dir()),
+                },
+                name: stellar_cli::config::UnresolvedMuxedAccount::AliasOrSecret(
+                    "alice".to_string(),
+                ),
+            },
+        };
+        cmd.run(&stellar_cli::commands::global::Args::default())
+            .await
+            .unwrap();
+    })
+    .await;
 }
 
 #[test]

@@ -230,6 +230,10 @@ impl TestEnv {
         stellar_scaffold
     }
 
+    pub fn config_dir(&self) -> PathBuf {
+        self.cwd.join(".config").join("stellar")
+    }
+
     pub fn stellar_scaffold_custom_dir(
         &self,
         cmd: &str,
