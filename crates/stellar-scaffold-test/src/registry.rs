@@ -1,8 +1,8 @@
+use assert_cmd::Command;
 use std::{
     env,
     path::{Path, PathBuf},
 };
-use assert_cmd::Command;
 use stellar_cli::{
     CommandParser,
     commands::{self as cli, NetworkRunnable, contract::upload, global, keys, network},
