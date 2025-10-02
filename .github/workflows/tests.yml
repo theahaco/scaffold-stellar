@@ -7,7 +7,7 @@ on:
 jobs:
   test:
     name: test RPC
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-xl
     env:
       STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
       STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
