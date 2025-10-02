@@ -155,6 +155,7 @@ mod tests {
                 "hello",
                 "--version",
                 "0.0.2",
+                "--source=alice",
             ])
             .unwrap()
             .run()
@@ -180,6 +181,7 @@ mod tests {
                 "hello",
                 "--version",
                 "0.0.1",
+                "--source=alice",
             ])
             .unwrap()
             .run()

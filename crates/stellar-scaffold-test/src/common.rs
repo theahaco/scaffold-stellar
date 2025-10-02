@@ -84,7 +84,7 @@ impl TestEnv {
         }
     }
 
-    fn set_options(temp_dir: &TempDir) {
+    pub fn set_options(temp_dir: &TempDir) {
         unsafe {
             std::env::set_var(
                 "XDG_CACHE_DIR",
@@ -100,6 +100,7 @@ impl TestEnv {
     pub fn new_empty() -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
         eprintln!("new test dir created at {}", temp_dir.to_str().unwrap());
+        Self::set_options(&temp_dir);
         Self {
             cwd: temp_dir.path().to_path_buf(),
             temp_dir,

@@ -2,14 +2,12 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-
 use assert_cmd::Command;
 use stellar_cli::{
     CommandParser,
-    commands::{self as cli, NetworkRunnable, contract::upload, global, network},
+    commands::{self as cli, NetworkRunnable, contract::upload, global, keys, network},
 };
 
-use crate::AssertExt;
 use crate::common::{TestEnv, find_registry_wasm};
 
 #[derive(Clone)]
@@ -20,7 +18,7 @@ pub struct RegistryTest {
 
 impl RegistryTest {
     pub async fn new() -> Self {
-        let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
+        let env = TestEnv::new_empty();
         let rpc_url = &crate::rpc_url();
         Self::parse_cmd_internal::<network::add::Cmd>(
             &env,
@@ -42,7 +40,6 @@ impl RegistryTest {
         //let env = TestEnv::new("soroban-init-boilerplate");
 
         // Deploy registry contract
-        let registry_address = Self::deploy_registry(&env).await;
         // Set environment variables for testnet configuration
         unsafe {
             env::set_var("STELLAR_RPC_URL", rpc_url);
@@ -51,8 +48,11 @@ impl RegistryTest {
                 "STELLAR_NETWORK_PASSPHRASE",
                 "Standalone Network ; February 2017",
             );
-            env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
         };
+        let registry_address = Self::deploy_registry(&env).await;
+        unsafe {
+            env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
+        }
 
         Self {
             env,
@@ -62,24 +62,11 @@ impl RegistryTest {
 
     async fn deploy_registry(env: &TestEnv) -> String {
         let rpc_url = &crate::rpc_url();
-        // Set up environment with an account
-        env.set_environments_toml(format!(
-            r#"
-[development]
-network = {{ rpc-url = "{rpc_url}", network-passphrase = "Standalone Network ; February 2017"}}
-accounts = ["alice"]
-[development.contracts]
-soroban_hello_world_contract.client = false
-"#
-        ));
-
-        // Build contracts to generate wasm files
-        let stderr = env
-            .scaffold_build("development", true)
-            .assert()
-            .success()
-            .stderr_as_str();
-        eprintln!("{stderr}");
+        Self::parse_cmd_internal::<keys::generate::Cmd>(env, &["alice", "--fund"])
+            .unwrap()
+            .run(&global::Args::default())
+            .await
+            .unwrap();
 
         eprintln!("📲 Installing registry contract wasm...");
 
