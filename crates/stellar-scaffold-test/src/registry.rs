@@ -8,7 +8,7 @@ use stellar_cli::{
     commands::{self as cli, NetworkRunnable, contract::upload, global, keys, network},
 };
 
-use crate::common::{TestEnv, find_registry_wasm};
+use crate::common::{TestEnv, find_stellar_wasm_dir};
 
 #[derive(Clone)]
 pub struct RegistryTest {
@@ -71,8 +71,8 @@ impl RegistryTest {
         eprintln!("📲 Installing registry contract wasm...");
 
         // Get wasm path
-        let wasm_path = find_registry_wasm().unwrap();
-
+        let wasm_path = RandomizedWasm::new("registry.wasm").randomize(&env.cwd);
+        println!("Wasm path: {:?}", wasm_path);
         // Upload wasm using the Stellar CLI library directly with alice account
         let hash = Self::parse_cmd_internal::<upload::Cmd>(
             env,
@@ -155,18 +155,12 @@ impl RegistryTest {
         registry.arg(config_dir(&self.env.cwd).to_str().unwrap());
         registry
     }
-
-    pub fn target_dir() -> PathBuf {
-        PathBuf::from("../../target/stellar")
-            .canonicalize()
-            .unwrap()
-    }
     pub fn hello_wasm_v1(&self) -> PathBuf {
-        RandomizedWasm::new("hello_v1.wasm").path(&self.env.cwd)
+        RandomizedWasm::new("hello_v1.wasm").randomize(&self.env.cwd)
     }
 
     pub fn hello_wasm_v2(&self) -> PathBuf {
-        RandomizedWasm::new("hello_v2.wasm").path(&self.env.cwd)
+        RandomizedWasm::new("hello_v2.wasm").randomize(&self.env.cwd)
     }
 }
 
@@ -180,9 +174,9 @@ impl RandomizedWasm {
     pub fn new(name: &str) -> Self {
         Self(PathBuf::from(name))
     }
-    pub fn path(&self, temp_dir: &Path) -> PathBuf {
-        let mut wasm_bytes =
-            fs::read(RegistryTest::target_dir().join(&self.0)).expect("Failed to read wasm file");
+    pub fn randomize(&self, temp_dir: &Path) -> PathBuf {
+        let mut wasm_bytes = fs::read(find_stellar_wasm_dir().unwrap().join(&self.0))
+            .expect("Failed to read wasm file");
         wasm_gen::write_custom_section(
             &mut wasm_bytes,
             "test_section",
