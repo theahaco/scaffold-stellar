@@ -21,7 +21,7 @@ pub struct RegistryTest {
 impl RegistryTest {
     pub async fn new() -> Self {
         let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
-        let rpc_url = crate::rpc_url();
+        let rpc_url = &crate::rpc_url();
         Self::parse_cmd_internal::<network::add::Cmd>(
             &env,
             &[
@@ -61,6 +61,7 @@ impl RegistryTest {
     }
 
     async fn deploy_registry(env: &TestEnv) -> String {
+        let rpc_url = &crate::rpc_url();
         // Set up environment with an account
         env.set_environments_toml(format!(
             r#"
@@ -154,11 +155,10 @@ soroban_hello_world_contract.client = false
         T: CommandParser<T>,
     {
         let mut cmd = s.to_vec();
-        cmd.insert(
-            0,
+        let config_dir = format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap());
+        cmd.insert(0, &config_dir);
             &format!("--config-dir={}", config_dir(&env.cwd).to_str().unwrap()),
-        );
-        T::parse_arg_vec(s)
+        T::parse_arg_vec(&cmd)
     }
 
     pub fn registry_cli(&self, cmd: &str) -> Command {
