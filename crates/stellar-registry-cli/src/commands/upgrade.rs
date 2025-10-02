@@ -72,8 +72,6 @@ impl Cmd {
 #[cfg(test)]
 mod tests {
 
-    use std::path::PathBuf;
-
     use stellar_cli::commands::{contract::invoke, global};
 
     use stellar_scaffold_test::RegistryTest;
@@ -83,11 +81,8 @@ mod tests {
     #[tokio::test]
     async fn simple_upgrade() {
         // Create test environment
-        let target_dir = PathBuf::from("../../target/stellar")
-            .canonicalize()
-            .unwrap();
-        let v1 = target_dir.join("hello_v1.wasm");
-        let v2 = target_dir.join("hello_v2.wasm");
+        let v1 = RegistryTest::hello_wasm_v1();
+        let v2 = RegistryTest::hello_wasm_v2();
 
         let registry = RegistryTest::new().await;
         let _test_env = registry.clone().env;
@@ -146,7 +141,7 @@ mod tests {
             .arg("hello")
             .assert()
             .success();
-
+        println!("Published new version of hello contract");
         registry
             .parse_cmd::<upgrade::Cmd>(&[
                 "--contract-name",

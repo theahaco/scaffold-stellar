@@ -72,9 +72,7 @@ mod tests {
         let test_env = registry.clone().env;
 
         // Path to the hello world contract WASM
-        let wasm_path = test_env
-            .cwd
-            .join("target/stellar/soroban_hello_world_contract.wasm");
+        let wasm_path = RegistryTest::hello_wasm_v1();
 
         // First publish the contract
         registry
@@ -97,6 +95,8 @@ mod tests {
             .arg("hello")
             .arg("--version")
             .arg("0.0.2")
+            .arg("--")
+            .arg("--admin=alice")
             .assert()
             .success();
 
@@ -105,6 +105,9 @@ mod tests {
 
         // Run the install command
         cmd.run().await.unwrap();
-        assert!(test_env.cwd.join(".stellar").exists());
+        assert!(test_env
+            .cwd
+            .join(".config/stellar/contract-ids/hello.json")
+            .exists());
     }
 }

@@ -74,20 +74,14 @@ impl Cmd {
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-
-    use std::path::PathBuf;
-
     use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
     async fn simple() {
         // Create test environment
-        let target_dir = PathBuf::from("../../target/stellar")
-            .canonicalize()
-            .unwrap();
-        let v1 = target_dir.join("hello_v1.wasm");
 
         let registry = RegistryTest::new().await;
+        let v1 = RegistryTest::hello_wasm_v1();
         let _test_env = registry.clone().env;
 
         // Path to the hello world contract WASM

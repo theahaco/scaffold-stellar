@@ -155,6 +155,19 @@ impl RegistryTest {
         registry.arg(config_dir(&self.env.cwd).to_str().unwrap());
         registry
     }
+
+    pub fn target_dir() -> PathBuf {
+        PathBuf::from("../../target/stellar")
+            .canonicalize()
+            .unwrap()
+    }
+    pub fn hello_wasm_v1() -> PathBuf {
+        Self::target_dir().join("hello_v1.wasm")
+    }
+
+    pub fn hello_wasm_v2() -> PathBuf {
+        Self::target_dir().join("hello_v2.wasm")
+    }
 }
 
 fn config_dir(p: &Path) -> PathBuf {
