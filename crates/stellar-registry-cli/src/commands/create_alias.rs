@@ -72,7 +72,7 @@ mod tests {
         let test_env = registry.clone().env;
 
         // Path to the hello world contract WASM
-        let wasm_path = RegistryTest::hello_wasm_v1();
+        let wasm_path = registry.hello_wasm_v1();
 
         // First publish the contract
         registry

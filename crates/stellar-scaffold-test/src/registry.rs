@@ -1,6 +1,6 @@
 use assert_cmd::Command;
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
 };
 use stellar_cli::{
@@ -161,15 +161,35 @@ impl RegistryTest {
             .canonicalize()
             .unwrap()
     }
-    pub fn hello_wasm_v1() -> PathBuf {
-        Self::target_dir().join("hello_v1.wasm")
+    pub fn hello_wasm_v1(&self) -> PathBuf {
+        RandomizedWasm::new("hello_v1.wasm").path(&self.env.cwd)
     }
 
-    pub fn hello_wasm_v2() -> PathBuf {
-        Self::target_dir().join("hello_v2.wasm")
+    pub fn hello_wasm_v2(&self) -> PathBuf {
+        RandomizedWasm::new("hello_v2.wasm").path(&self.env.cwd)
     }
 }
 
 fn config_dir(p: &Path) -> PathBuf {
     p.join(".config").join("stellar")
+}
+
+struct RandomizedWasm(PathBuf);
+
+impl RandomizedWasm {
+    pub fn new(name: &str) -> Self {
+        Self(PathBuf::from(name))
+    }
+    pub fn path(&self, temp_dir: &Path) -> PathBuf {
+        let mut wasm_bytes =
+            fs::read(RegistryTest::target_dir().join(&self.0)).expect("Failed to read wasm file");
+        wasm_gen::write_custom_section(
+            &mut wasm_bytes,
+            "test_section",
+            uuid::Uuid::new_v4().as_bytes(),
+        );
+        let out_file = temp_dir.join(&self.0);
+        fs::write(&out_file, wasm_bytes).expect("Failed to write wasm file with custom section");
+        out_file
+    }
 }

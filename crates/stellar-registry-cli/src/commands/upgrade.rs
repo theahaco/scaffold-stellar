@@ -81,10 +81,10 @@ mod tests {
     #[tokio::test]
     async fn simple_upgrade() {
         // Create test environment
-        let v1 = RegistryTest::hello_wasm_v1();
-        let v2 = RegistryTest::hello_wasm_v2();
-
         let registry = RegistryTest::new().await;
+        let v1 = registry.hello_wasm_v1();
+        let v2 = registry.hello_wasm_v2();
+
         let _test_env = registry.clone().env;
 
         // Path to the hello world contract WASM

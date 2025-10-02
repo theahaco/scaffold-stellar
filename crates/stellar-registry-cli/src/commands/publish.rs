@@ -128,7 +128,7 @@ mod tests {
         let registry = RegistryTest::new().await;
 
         // Path to the hello world contract WASM
-        let wasm_path = RegistryTest::hello_wasm_v1();
+        let wasm_path = registry.hello_wasm_v1();
 
         registry
             .registry_cli("publish")
@@ -169,7 +169,7 @@ mod tests {
         registry
             .registry_cli("publish")
             .arg("--wasm")
-            .arg(&RegistryTest::hello_wasm_v2())
+            .arg(&registry.hello_wasm_v2())
             .arg("--binver")
             .arg("0.0.3")
             .arg("--wasm-name")

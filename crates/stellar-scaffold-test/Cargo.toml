@@ -21,3 +21,5 @@ soroban-sdk = { workspace = true }
 stellar-cli = { workspace = true }
 stellar-scaffold-cli = { path = "../stellar-scaffold-cli" }
 stellar-registry-cli = { path = "../stellar-registry-cli" }
+wasm-gen = "0.1.4"
+
