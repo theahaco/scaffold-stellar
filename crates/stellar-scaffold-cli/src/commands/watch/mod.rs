@@ -119,7 +119,7 @@ impl Watcher {
             });
 
             if let Some(path) = watched_file {
-                eprintln!("File changed: {path:?}");
+                eprintln!("File changed: {}", path.display());
                 if let Err(e) = tx.blocking_send(Message::FileChanged) {
                     eprintln!("Error sending through channel: {e:?}");
                 }
