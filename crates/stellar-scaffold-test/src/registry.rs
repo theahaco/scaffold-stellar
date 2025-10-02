@@ -72,7 +72,7 @@ impl RegistryTest {
 
         // Get wasm path
         let wasm_path = RandomizedWasm::new("registry.wasm").randomize(&env.cwd);
-        println!("Wasm path: {:?}", wasm_path);
+        println!("Wasm path: {:?}", wasm_path.display());
         // Upload wasm using the Stellar CLI library directly with alice account
         let hash = Self::parse_cmd_internal::<upload::Cmd>(
             env,
