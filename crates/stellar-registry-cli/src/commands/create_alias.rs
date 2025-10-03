@@ -1,12 +1,9 @@
 use clap::Parser;
 
-use stellar_cli::{
-    commands::contract::{fetch, invoke},
-    config,
-};
+use stellar_cli::{commands::contract::invoke, config};
 use stellar_strkey::Contract;
 
-use crate::contract::NetworkContract;
+use crate::contract::{NetworkContract, REGISTRY_NAME};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -20,11 +17,7 @@ pub struct Cmd {
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Fetch(#[from] fetch::Error),
-    #[error(transparent)]
     Invoke(#[from] invoke::Error),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
     #[error(transparent)]
     Strkey(#[from] stellar_strkey::DecodeError),
     #[error(transparent)]
@@ -40,68 +33,49 @@ impl Cmd {
         let network_passphrase = network.network_passphrase;
 
         let contract = self.get_contract_id().await?;
+        let alias = &self.contract_name;
 
         // Only create alias mapping, don't fetch wasm here
-        self.config.locator.save_contract_id(
-            &network_passphrase,
-            &contract,
-            &self.contract_name,
-        )?;
+        self.config
+            .locator
+            .save_contract_id(&network_passphrase, &contract, alias)?;
 
-        eprintln!(
-            "✅ Successfully registered contract alias '{}'",
-            self.contract_name
-        );
-        eprintln!("Contract ID: {:?}", contract.to_string());
+        eprintln!("✅ Successfully registered contract alias '{alias}' for {contract}");
 
         Ok(())
     }
 
     pub async fn get_contract_id(&self) -> Result<Contract, Error> {
-        if self.contract_name == "registry" {
+        if self.contract_name == REGISTRY_NAME {
             return Ok(self.config.contract_id()?);
         }
         // Prepare the arguments for invoke_registry
-        let slop = vec!["fetch_contract_id", "--contract-name", &self.contract_name];
+        let slop = ["fetch_contract_id", "--contract-name", &self.contract_name];
         // Use this.config directly
         eprintln!("Fetching contract ID via registry...");
-        let raw = self.config.invoke_registry(&slop, None, true).await?;
-
+        let raw = self.config.view_registry(&slop).await?;
         let contract_id = raw.trim_matches('"').to_string();
         Ok(contract_id.parse()?)
     }
 }
 
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "integration-tests")]
+
+    use stellar_scaffold_test::RegistryTest;
+
     #[tokio::test]
     async fn test_run() {
-        use super::*;
-        use std::env;
-        use stellar_cli::config::{locator, network};
-        use stellar_scaffold_test::RegistryTest;
         // Create test environment
         let registry = RegistryTest::new().await;
         let test_env = registry.clone().env;
 
-        // Set environment variables for testnet configuration
-        env::set_var("STELLAR_RPC_URL", "http://localhost:8000/soroban/rpc");
-        env::set_var("STELLAR_ACCOUNT", "alice");
-        env::set_var(
-            "STELLAR_NETWORK_PASSPHRASE",
-            "Standalone Network ; February 2017",
-        );
-        env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry.registry_address);
-
         // Path to the hello world contract WASM
-        let wasm_path = test_env
-            .cwd
-            .join("target/stellar/soroban_hello_world_contract.wasm");
+        let wasm_path = registry.hello_wasm_v1();
 
         // First publish the contract
         registry
-            .clone()
             .registry_cli("publish")
             .arg("--wasm")
             .arg(&wasm_path)
@@ -119,30 +93,21 @@ mod tests {
             .arg("hello")
             .arg("--wasm-name")
             .arg("hello")
-            .arg("version")
+            .arg("--version")
             .arg("0.0.2")
+            .arg("--")
+            .arg("--admin=alice")
             .assert()
             .success();
 
         // Create test command for install
-        let cmd = Cmd {
-            contract_name: "hello".to_owned(),
-            config: config::Args {
-                locator: locator::Args {
-                    global: false,
-                    config_dir: Some(test_env.cwd.to_str().unwrap().into()),
-                },
-                network: network::Args {
-                    rpc_url: Some("http://localhost:8000/soroban/rpc".to_string()),
-                    network_passphrase: Some("Standalone Network ; February 2017".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        };
+        let cmd = registry.parse_cmd::<super::Cmd>(&["hello"]).unwrap();
 
         // Run the install command
         cmd.run().await.unwrap();
-        assert!(test_env.cwd.join(".stellar").exists());
+        assert!(test_env
+            .cwd
+            .join(".config/stellar/contract-ids/hello.json")
+            .exists());
     }
 }

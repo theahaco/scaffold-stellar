@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{AssertExt, TestEnv};
+use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
 
 #[test]
 fn contracts_built() {
@@ -17,13 +17,14 @@ development.accounts = [
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
 soroban_token_contract.client = false
 {}
 "#,
+                rpc_url(),
                 contracts
                     .iter()
                     .map(|c| format!("{c}.client = true"))
@@ -35,7 +36,7 @@ soroban_token_contract.client = false
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
         assert!(stderr.contains("Creating keys for \"alice\"\n"));
-        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains(format!("Using network at {}\n", rpc_url()).as_str()));
 
         for c in contracts {
             assert!(stderr.contains(&format!("Installing \"{c}\" wasm bytecode on-chain")));
@@ -69,24 +70,25 @@ fn contracts_built_by_default() {
         "soroban_increment_contract",
     ];
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
 soroban_token_contract.client = false
 
 "#,
-        );
+            rpc_url()
+        ));
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
         assert!(stderr.contains("Creating keys for \"alice\"\n"));
-        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
 
         for c in contracts {
             assert!(stderr.contains(&format!("Installing \"{c}\" wasm bytecode on-chain")));
@@ -103,14 +105,14 @@ soroban_token_contract.client = false
 #[test]
 fn contract_with_bad_name_prints_useful_error() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -120,7 +122,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         env.scaffold("build")
             .assert()
@@ -132,14 +135,14 @@ soroban_token_contract.client = false
 #[test]
 fn contract_alias_skips_install() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -149,7 +152,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         let output = env
             .stellar_scaffold_env("development", false)
@@ -191,25 +195,26 @@ production.accounts = [
 ]
 
 [production.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [production.contracts]
 soroban_hello_world_contract.id = "{contract_id}"
-"#
+"#,
+            rpc_url()
         ));
 
         // ensure production can identify via contract ID
         env.scaffold_build("production", true).assert().success();
 
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 production.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [production.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [production.contracts]
@@ -218,7 +223,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         let output4 = env
             .scaffold_build("production", true)
@@ -248,14 +254,14 @@ fn contract_redeployed_in_new_directory() {
     let mut env = TestEnv::new("soroban-init-boilerplate");
 
     // Initial setup and build
-    env.set_environments_toml(
+    env.set_environments_toml(format!(
         r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -264,7 +270,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-    );
+        rpc_url()
+    ));
 
     let output = env
         .stellar_scaffold_env("development", true)
@@ -282,14 +289,14 @@ soroban_token_contract.client = false
     env.switch_to_new_directory("soroban-init-boilerplate", "new-dir")
         .expect("should copy files and switch to new dir");
     // Set up the new directory with the same configuration
-    env.set_environments_toml(
+    env.set_environments_toml(format!(
         r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -298,7 +305,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-    );
+        rpc_url()
+    ));
 
     // Run build in the new directory
     let output = env
@@ -325,14 +333,14 @@ soroban_token_contract.client = false
 #[test]
 fn contract_built_with_out_dir() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -342,7 +350,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         let out_dir = env.cwd.join("custom_wasm_output");
 
@@ -355,7 +364,7 @@ soroban_token_contract.client = false
             .stderr_as_str();
 
         assert!(stderr.contains("Creating keys for \"alice\"\n"));
-        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
         assert!(
             stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
         );
@@ -392,15 +401,15 @@ soroban_token_contract.client = false
 fn contracts_with_failures_show_summary() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         // First pass - build wasm and create accounts
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
-    { name = "bob" },
+    {{ name = "alice" }},
+    {{ name = "bob" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -410,21 +419,22 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         // First build to generate accounts and wasm
         env.scaffold("build").assert().success();
 
         // Second pass - try to build clients with incorrect constructor args
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
-    { name = "bob" },
+    {{ name = "alice" }},
+    {{ name = "bob" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -439,7 +449,8 @@ constructor_args = """
 STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb 
 """
 "#,
-        );
+            rpc_url()
+        ));
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
         eprintln!("{stderr}");

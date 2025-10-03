@@ -3,3 +3,4 @@ target/
 .env
 test_snapshots/
 .stellar/
+.vscode/

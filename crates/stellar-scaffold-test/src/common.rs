@@ -42,15 +42,13 @@ impl AssertExt for Assert {
 impl TestEnv {
     pub fn new(template: &str) -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
-        unsafe { std::env::set_var("XDG_CACHE_DIR", temp_dir.join(".cache").to_str().unwrap()) };
+        let cwd = temp_dir.path().join(template);
+        Self::set_options(&temp_dir);
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
 
-        Self {
-            cwd: temp_dir.path().join(template),
-            temp_dir,
-        }
+        Self { temp_dir, cwd }
     }
 
     pub fn new_with_contracts(template: &str, contract_names: &[&str]) -> Self {
@@ -84,13 +82,25 @@ impl TestEnv {
         }
     }
 
+    pub fn set_options(temp_dir: &TempDir) {
+        unsafe {
+            std::env::set_var(
+                "XDG_CACHE_DIR",
+                temp_dir.path().join(".cache").to_str().unwrap(),
+            );
+            std::env::set_var(
+                "XDG_CONFIG_HOME",
+                temp_dir.path().join(".config").to_str().unwrap(),
+            );
+        }
+    }
+
     pub fn new_empty() -> Self {
         let temp_dir = Arc::new(TempDir::new().unwrap());
+        let cwd = temp_dir.path().to_path_buf();
         eprintln!("new test dir created at {}", temp_dir.to_str().unwrap());
-        Self {
-            cwd: temp_dir.path().to_path_buf(),
-            temp_dir,
-        }
+        Self::set_options(&temp_dir);
+        Self { temp_dir, cwd }
     }
 
     pub fn from<F: FnOnce(&TestEnv)>(template: &str, f: F) {
@@ -189,6 +199,10 @@ impl TestEnv {
         stellar_scaffold.arg("build");
         stellar_scaffold.arg(env);
         stellar_scaffold.arg("--build-clients");
+        stellar_scaffold.env(
+            "XDG_CONFIG_HOME",
+            self.cwd.join(".config").to_str().unwrap(),
+        );
 
         if randomize_wasm {
             // Add a random meta key-value pair to make the WASM unique
@@ -216,6 +230,10 @@ impl TestEnv {
         stellar_scaffold
     }
 
+    pub fn config_dir(&self) -> PathBuf {
+        self.cwd.join(".config").join("stellar")
+    }
+
     pub fn stellar_scaffold_custom_dir(
         &self,
         cmd: &str,
@@ -239,6 +257,10 @@ impl TestEnv {
             let mut stellar_scaffold = Command::cargo_bin("stellar-scaffold").unwrap();
             stellar_scaffold.current_dir(&self.cwd);
             stellar_scaffold.env("XDG_CACHE_DIR", self.cwd.join(".cache").to_str().unwrap());
+            stellar_scaffold.env(
+                "XDG_CONFIG_HOME",
+                self.cwd.join(".config").to_str().unwrap(),
+            );
             stellar_scaffold.arg(cmd);
             stellar_scaffold
         }
@@ -253,6 +275,10 @@ impl TestEnv {
         stellar.env(
             "PATH",
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/bin"),
+        );
+        stellar.env(
+            "XDG_CONFIG_HOME",
+            self.cwd.join(".config").to_str().unwrap(),
         );
         stellar.current_dir(&self.cwd);
         stellar.arg(cmd);
@@ -313,10 +339,10 @@ pub fn find_binary(name: &str) -> Option<PathBuf> {
     Some(project_root.join("target").join("bin").join(name))
 }
 
-pub fn find_registry_wasm() -> Option<PathBuf> {
+pub fn find_stellar_wasm_dir() -> Option<PathBuf> {
     let exe_path = env::current_exe().ok()?;
     let project_root = find_project_root(&exe_path)?;
-    Some(project_root.join("target").join("stellar/registry.wasm"))
+    Some(project_root.join("target").join("stellar"))
 }
 
 fn find_project_root(start_path: &Path) -> Option<PathBuf> {

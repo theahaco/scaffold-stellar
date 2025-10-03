@@ -208,17 +208,14 @@ impl Command {
                         if !p.authors.is_empty() {
                             meta_map.insert("authors".to_string(), p.authors.join(", "));
                         }
-                        if p.homepage.is_some() {
-                            meta_map.insert("homepage".to_string(), p.homepage.clone().unwrap());
+                        if let Some(homepage) = p.homepage.clone() {
+                            meta_map.insert("homepage".to_string(), homepage);
                         }
-                        if p.repository.is_some() {
-                            meta_map
-                                .insert("repository".to_string(), p.repository.clone().unwrap());
+                        if let Some(repository) = p.repository.clone() {
+                            meta_map.insert("repository".to_string(), repository);
                         }
                     }
-
                     Self::rec_add_meta(String::new(), &mut meta_map, val);
-
                     // Reserved keys
                     meta_map.remove("rsver");
                     meta_map.remove("rssdkver");
@@ -236,11 +233,7 @@ impl Command {
                 }
             }
         }
-
-        meta_map
-            .iter()
-            .for_each(|(k, v)| cmd.meta.push((k.clone(), v.clone())));
-
+        cmd.meta.extend(meta_map);
         Ok(cmd)
     }
 
