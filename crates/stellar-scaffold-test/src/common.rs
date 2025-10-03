@@ -199,6 +199,10 @@ impl TestEnv {
         stellar_scaffold.arg("build");
         stellar_scaffold.arg(env);
         stellar_scaffold.arg("--build-clients");
+        stellar_scaffold.env(
+            "XDG_CONFIG_HOME",
+            self.cwd.join(".config").to_str().unwrap(),
+        );
 
         if randomize_wasm {
             // Add a random meta key-value pair to make the WASM unique
