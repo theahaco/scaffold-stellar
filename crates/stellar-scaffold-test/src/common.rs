@@ -253,7 +253,10 @@ impl TestEnv {
             let mut stellar_scaffold = Command::cargo_bin("stellar-scaffold").unwrap();
             stellar_scaffold.current_dir(&self.cwd);
             stellar_scaffold.env("XDG_CACHE_DIR", self.cwd.join(".cache").to_str().unwrap());
-            stellar_scaffold.env("XDG_CONFIG_HOME", self.cwd.join(".config").to_str().unwrap());
+            stellar_scaffold.env(
+                "XDG_CONFIG_HOME",
+                self.cwd.join(".config").to_str().unwrap(),
+            );
             stellar_scaffold.arg(cmd);
             stellar_scaffold
         }
