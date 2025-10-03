@@ -1,4 +1,4 @@
-use loam_sdk::soroban_sdk::{self, contracterror};
+use soroban_sdk::{self, contracterror};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
