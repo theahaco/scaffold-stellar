@@ -48,7 +48,7 @@ impl TestEnv {
 
         copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
 
-        Self { cwd, temp_dir }
+        Self { temp_dir, cwd }
     }
 
     pub fn new_with_contracts(template: &str, contract_names: &[&str]) -> Self {
@@ -100,7 +100,7 @@ impl TestEnv {
         let cwd = temp_dir.path().to_path_buf();
         eprintln!("new test dir created at {}", temp_dir.to_str().unwrap());
         Self::set_options(&temp_dir);
-        Self { cwd, temp_dir }
+        Self { temp_dir, cwd }
     }
 
     pub fn from<F: FnOnce(&TestEnv)>(template: &str, f: F) {
