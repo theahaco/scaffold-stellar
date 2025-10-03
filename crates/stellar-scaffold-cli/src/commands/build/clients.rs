@@ -135,7 +135,7 @@ impl Args {
 
         let Some(current_env) = env_toml::Environment::get(
             workspace_root,
-            &self.stellar_scaffold_env(ScaffoldEnv::Production),
+            &self.stellar_scaffold_env(ScaffoldEnv::Development),
         )?
         else {
             return Ok(());
