@@ -1,3 +1,4 @@
+use crate::storage::DataKey;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
@@ -32,7 +33,7 @@ pub struct HashMap;
 
 impl HashMap {
     pub fn add(env: &Env, hash: &BytesN<32>) {
-        env.storage().persistent().set(hash, &());
+        env.storage().persistent().set(&hash, &());
     }
 
     pub fn has(env: &Env, hash: &BytesN<32>) -> bool {
@@ -46,18 +47,17 @@ impl HashMap {
     }
 }
 
-#[contractimpl]
 impl Contract {
     fn registry(env: &Env, name: &String) -> Result<PublishedWasm, Error> {
         env.storage()
             .persistent()
-            .get(&name.clone().to_val())
+            .get(&DataKey::Wasm(name.clone()))
             .ok_or(Error::NoSuchContractPublished)
     }
     pub fn most_recent_version(env: &Env, name: &String) -> Result<String, Error> {
         env.storage()
             .persistent()
-            .get(&name.clone().to_val())
+            .get(&DataKey::Wasm(name.clone()))
             .map(|wasm: PublishedWasm| wasm.current_version)
             .ok_or(Error::NoSuchContractPublished)
     }
@@ -84,7 +84,7 @@ impl Contract {
         let registry = Self::registry(env, name)?;
         env.storage()
             .persistent()
-            .extend_ttl(&name.clone().to_val(), MAX_BUMP, MAX_BUMP);
+            .extend_ttl(&DataKey::Wasm(name.clone()), MAX_BUMP, MAX_BUMP);
         let hash = registry.get_hash(version)?;
         HashMap::bump(env, &hash);
         Ok(hash)
@@ -100,7 +100,7 @@ impl Contract {
         let mut registry = env
             .storage()
             .persistent()
-            .get(&name.clone().to_val())
+            .get(&DataKey::Wasm(name.clone()))
             .unwrap_or_else(|| PublishedWasm {
                 versions: Map::new(env),
                 author,
@@ -110,7 +110,7 @@ impl Contract {
         registry.current_version = version;
         env.storage()
             .persistent()
-            .set(&name.clone().to_val(), &registry);
+            .set(&DataKey::Wasm(name.clone()), &registry);
         Ok(())
     }
 
@@ -154,7 +154,7 @@ impl IsPublishable for Contract {
         wasm_hash: soroban_sdk::BytesN<32>,
         version: String,
     ) -> Result<(), Error> {
-        if HashMap::has(env(), &wasm_hash) {
+        if HashMap::has(env, &wasm_hash) {
             return Err(Error::HashAlreadyPublished);
         }
         HashMap::add(env, &wasm_hash);
@@ -166,7 +166,7 @@ impl IsPublishable for Contract {
             }
         }
         let str = soroban_sdk::String::from_str(env, REGISTRY);
-        if wasm_name == str && Self::admin_from_storage(env).unwrap() != author {
+        if wasm_name == str && Self::admin(env) != author {
             return Err(Error::AdminOnly);
         }
         Self::validate_version(env, &version, &wasm_name)?;

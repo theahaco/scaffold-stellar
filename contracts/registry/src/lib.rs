@@ -11,6 +11,7 @@ pub mod version;
 
 #[cfg(target_family = "wasm")]
 mod alloc;
+mod storage;
 
 pub use error::Error;
 
@@ -22,7 +23,7 @@ impl Administratable for Contract {}
 
 #[contractimpl]
 impl Contract {
-    pub fn __constructor(env: &Env, admin: &Address) {
+    pub fn __constructor(env: &Env, admin: Address) {
         Self::set_admin(env, admin);
     }
 }

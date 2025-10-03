@@ -1,4 +1,5 @@
 #![allow(non_upper_case_globals)]
+use crate::storage::DataKey;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
@@ -24,12 +25,12 @@ pub struct DeployEventData {
     deployer: Address,
     contract_id: Address,
 }
-#[contractimpl]
+
 impl Contract {
     fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
         env.storage()
             .persistent()
-            .get(&contract_name.clone().to_val())
+            .get(&DataKey::Contract(contract_name.clone()))
             .ok_or(Error::NoSuchContractDeployed)
     }
 
@@ -43,7 +44,7 @@ impl Contract {
         let contract_id = Self::get(env, &name)?;
         env.storage()
             .persistent()
-            .extend_ttl(&name.clone().to_val(), MAX_BUMP, MAX_BUMP);
+            .extend_ttl(&DataKey::Contract(name.clone()), MAX_BUMP, MAX_BUMP);
         if let Ok(Ok(author)) = env.try_invoke_contract::<Address, Error>(
             &contract_id,
             &symbol_short!("admin"),
@@ -74,17 +75,13 @@ impl IsDeployable for Contract {
         if env
             .storage()
             .persistent()
-            .has(&contract_name.clone().to_val())
+            .has(&DataKey::Contract(contract_name.clone()))
         {
             return Err(Error::AlreadyDeployed);
         }
         let str = soroban_sdk::String::from_str(env, REGISTRY);
         if contract_name == str {
-            assert_with_error!(
-                env,
-                Self::admin_from_storage(env).unwrap() == admin,
-                Error::AdminOnly
-            );
+            assert_with_error!(env, Self::admin(env) == admin, Error::AdminOnly);
         }
         // signed by admin
         admin.require_auth();
@@ -95,7 +92,7 @@ impl IsDeployable for Contract {
 
         env.storage()
             .persistent()
-            .set(&contract_name.clone().to_val(), &contract_id);
+            .set(&DataKey::Contract(contract_name.clone()), &contract_id);
 
         let version = Self::get_version(env, &wasm_name, version)?;
         // Publish a deploy event
@@ -114,10 +111,7 @@ impl IsDeployable for Contract {
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
         let contract_name = canonicalize(&contract_name)?;
-        env.storage()
-            .persistent()
-            .get(&contract_name.clone().to_val())
-            .ok_or(Error::NoSuchContractDeployed)
+        Self::get(env, &contract_name)
     }
 }
 
