@@ -1,16 +1,16 @@
-use stellar_scaffold_test::{AssertExt, TestEnv};
+use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
 
 #[test]
 fn run_network_from_rpc_and_passphrase() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -20,10 +20,11 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-        );
+            rpc_url()
+        ));
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("Using network at http://localhost:8000/rpc\n"));
+        assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
     });
 }
 
@@ -36,7 +37,7 @@ fn run_named_network() {
                 "add",
                 "lol",
                 "--rpc-url",
-                "http://localhost:8000/soroban/rpc",
+                rpc_url().as_str(),
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
             ])

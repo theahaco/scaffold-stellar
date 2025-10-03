@@ -13,8 +13,10 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - name: Restore cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -42,3 +44,15 @@ jobs:
         run: cargo clippy --all
       - name: Unit Tests
         run: just test
+      - name: Always Save Cache
+        id: cache-save
+        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}

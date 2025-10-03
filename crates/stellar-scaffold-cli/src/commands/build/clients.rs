@@ -8,10 +8,10 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
-use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
+use std::{fmt::Debug, path::PathBuf};
 use stellar_cli::{
     commands as cli,
     commands::contract::info::shared::{
@@ -142,8 +142,8 @@ impl Args {
         };
 
         self.add_network_to_env(&current_env.network)?;
-        // Create the '.stellar' directory if it doesn't exist
-        std::fs::create_dir_all(workspace_root.join(".stellar"))
+        // Create the '.config' directory if it doesn't exist
+        std::fs::create_dir_all(workspace_root.join(".config/stellar"))
             .map_err(stellar_cli::config::locator::Error::Io)?;
         self.clone()
             .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
@@ -217,14 +217,19 @@ impl Args {
         }
     }
 
-    fn get_config_locator(&self) -> stellar_cli::config::locator::Args {
-        let workspace_root = self
-            .workspace_root
+    fn get_config_dir(&self) -> PathBuf {
+        self.workspace_root
             .as_ref()
-            .expect("workspace_root not set");
+            .expect("workspace_root not set")
+            .join(".config")
+            .join("stellar")
+    }
+
+    fn get_config_locator(&self) -> stellar_cli::config::locator::Args {
+        let config_dir = Some(self.get_config_dir());
         stellar_cli::config::locator::Args {
             global: false,
-            config_dir: Some(workspace_root.clone()),
+            config_dir,
         }
     }
 
@@ -324,14 +329,13 @@ export default new Client.Client({{
         // Create a temporary directory for building the new client
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
         let temp_dir_display = temp_dir.display();
-
         cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
             "--output-dir",
             temp_dir.to_str().expect("we do not support non-utf8 paths"),
             "--config-dir",
-            workspace_root
+            self.get_config_dir()
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
@@ -443,6 +447,7 @@ export default new Client.Client({{
             ([candidate], _) => candidate.to_string(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
+        let config = self.get_config_locator();
 
         for account in accounts {
             printer.infoln(format!("Creating keys for {:?}", account.name));
@@ -451,14 +456,14 @@ export default new Client.Client({{
                 self.global_args
                     .clone()
                     .unwrap_or_else(|| stellar_cli::commands::global::Args {
-                        locator: self.clone().get_config_locator(),
+                        locator: config.clone(),
                         ..Default::default()
                     });
 
             let generate_cmd = cli::keys::generate::Cmd {
                 name: account.name.clone().parse()?,
                 fund: true,
-                config_locator: self.get_config_locator(),
+                config_locator: config.clone(),
                 network: Self::get_network_args(network),
                 seed: None,
                 hd_path: None,
@@ -479,8 +484,8 @@ export default new Client.Client({{
                     )?;
 
                     let public_key_cmd = cli::keys::public_key::Cmd {
-                        name: account.name.clone().parse()?,
-                        locator: self.get_config_locator(),
+                        name: account.name.parse()?,
+                        locator: config.clone(),
                         hd_path: None,
                     };
                     let address = public_key_cmd.public_key().await?;
@@ -744,17 +749,13 @@ export default new Client.Client({{
     ) -> Result<String, Error> {
         let printer = self.printer();
         printer.infoln(format!("Installing {name:?} wasm bytecode on-chain..."));
-        let workspace_root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace_root must be set before running");
         let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--config-dir",
-            workspace_root
+            self.get_config_dir()
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
         ])?
@@ -803,17 +804,13 @@ export default new Client.Client({{
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
         let printer = self.printer();
-        let workspace_root = self
-            .workspace_root
-            .as_ref()
-            .expect("workspace_root must be set before running");
         let mut deploy_args = vec![
             "--alias".to_string(),
             name.to_string(),
             "--wasm-hash".to_string(),
             hash.to_string(),
             "--config-dir".to_string(),
-            workspace_root
+            self.get_config_dir()
                 .to_str()
                 .expect("we do not support non-utf8 paths")
                 .to_string(),
@@ -951,6 +948,8 @@ export default new Client.Client({{
         after_deploy_script: &str,
     ) -> Result<(), Error> {
         let printer = self.printer();
+        let config_dir_path = self.get_config_dir();
+        let config_dir = config_dir_path.to_str().unwrap();
         for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {
@@ -959,19 +958,8 @@ export default new Client.Client({{
 
             let (source_account, command_parts) = Self::parse_script_line(line)?;
 
-            let workspace_root = self
-                .workspace_root
-                .as_ref()
-                .expect("workspace_root must be set before running");
             let contract_id_arg = contract_id.to_string();
-            let mut args = vec![
-                "--id",
-                &contract_id_arg,
-                "--config-dir",
-                workspace_root
-                    .to_str()
-                    .expect("we do not support non-utf8 paths"),
-            ];
+            let mut args = vec!["--id", &contract_id_arg, "--config-dir", config_dir];
             if let Some(account) = source_account.as_ref() {
                 args.extend_from_slice(&["--source-account", account]);
             }

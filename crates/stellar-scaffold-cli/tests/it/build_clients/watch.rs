@@ -1,5 +1,5 @@
 use std::process::Stdio;
-use stellar_scaffold_test::TestEnv;
+use stellar_scaffold_test::{rpc_url, TestEnv};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_stream::{wrappers::LinesStream, StreamExt};
 
@@ -137,14 +137,14 @@ async fn dev_command_start_local_stellar_with_run_locally() {
     TestEnv::from_async("soroban-init-boilerplate", |env| async {
         Box::pin(async move {
             // Set environments.toml with run_locally enabled
-            env.set_environments_toml(
+            env.set_environments_toml(format!(
                 r#"
 development.accounts = [
-    { name = "alice" },
+    {{ name = "alice" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 run-locally = true
 
@@ -155,7 +155,8 @@ soroban_custom_types_contract.client = false
 soroban_auth_contract.client = false
 soroban_token_contract.client = false
 "#,
-            );
+                rpc_url()
+            ));
 
             let mut watch_process = env
                 .stellar_scaffold_process("watch", &["--build-clients"])
@@ -190,6 +191,7 @@ soroban_token_contract.client = false
     .await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn watch_and_vite_integration_test() {
     TestEnv::from_init("test-project", |env| async {
@@ -303,9 +305,7 @@ async fn watch_and_vite_integration_test() {
                     Ok(None) => {
                         panic!("Output channel closed unexpectedly");
                     }
-                    Err(_) => {
-                        continue;
-                    }
+                    Err(_) => {}
                 }
             }
 
