@@ -1,6 +1,6 @@
 # stellar-registry-cli
 
-Command line interface for managing smart contract deployments through the Stellar Registry system. This tool enables publishing, deploying, and installing contracts that have been published to the Stellar Registry.
+Command line interface for managing smart contract deployments through the Stellar Registry system. This tool enables publishing and deploying contracts that have been published to the Stellar Registry.
 
 ## Installation
 
@@ -58,16 +58,6 @@ Options:
 
 Note: Use `--` to separate CLI options from constructor function and arguments.
 
-### Install
-
-Install a deployed contract as an alias to be used by `stellar-cli`:
-```bash
-stellar registry install <CONTRACT_NAME>
-```
-
-Options:
-- `CONTRACT_NAME`: Name of the deployed contract to install (required)
-
 ## Configuration
 
 `stellar-cli` provides a way to use a default config for accounts and networks:
@@ -110,11 +100,6 @@ stellar registry deploy \
   --name "My Token" \
   --symbol "MTK" \
   --decimals 7
-```
-
-3. Install the deployed contract:
-```bash
-stellar registry install my-token
 ```
 
 Then can interact with the contract with `stellar-cli`:
