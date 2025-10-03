@@ -150,11 +150,10 @@ impl Cmd {
             let item_name = entry.file_name();
 
             // Skip items that shouldn't be copied
-            if let Some(name_str) = item_name.to_str() {
-                if skip_items.contains(&name_str) {
+            if let Some(name_str) = item_name.to_str()
+                && skip_items.contains(&name_str) {
                     continue;
                 }
-            }
 
             let src = entry.path();
             let dest = self.workspace_path.join(&item_name);

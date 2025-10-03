@@ -735,13 +735,12 @@ export default new Client.Client({{
                 self.deploy_contract(name, &new_hash, &settings).await?
             };
             // Run after_deploy script if in development or test environment
-            if let Some(after_deploy) = settings.after_deploy.as_deref() {
-                if env == "development" || env == "testing" {
+            if let Some(after_deploy) = settings.after_deploy.as_deref()
+                && (env == "development" || env == "testing") {
                     printer.infoln(format!("Running after_deploy script for {name:?}"));
                     self.run_after_deploy_script(name, &contract_id, after_deploy)
                         .await?;
                 }
-            }
             self.save_contract_alias(name, &contract_id, network)?;
             contract_id
         };
