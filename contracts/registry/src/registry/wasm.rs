@@ -154,8 +154,8 @@ impl IsPublishable for Contract {
         wasm_hash: soroban_sdk::BytesN<32>,
         version: String,
     ) -> Result<(), Error> {
-        if HashMap::has(env, &wasm_hash) {
-            return Err(Error::WasmNameAlreadyTaken);
+        if HashMap::has(env(), &wasm_hash) {
+            return Err(Error::HashAlreadyPublished);
         }
         HashMap::add(env, &wasm_hash);
         author.require_auth();

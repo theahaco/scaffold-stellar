@@ -1,17 +1,17 @@
-use stellar_scaffold_test::{find_binary, TestEnv};
+use stellar_scaffold_test::{find_binary, rpc_url, TestEnv};
 
 #[test]
 fn build_command_runs_init() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-{ name = "alice" },
-{ name = "bob" },
+{{ name = "alice" }},
+{{ name = "bob" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -29,7 +29,8 @@ after_deploy = """
 mint --amount 2000000 --to alice
 """
 "#,
-        );
+            rpc_url()
+        ));
 
         let output = env
             .stellar_scaffold_env("development", true)
@@ -45,15 +46,15 @@ mint --amount 2000000 --to alice
             "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
         // ensure setting STELLAR_ACCOUNT works
-        env.set_environments_toml(
+        env.set_environments_toml(format!(
             r#"
 development.accounts = [
-{ name = "alice" },
-{ name = "bob" },
+{{ name = "alice" }},
+{{ name = "bob" }},
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -71,7 +72,8 @@ after_deploy = """
 STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob 
 """
 "#,
-        );
+            rpc_url()
+        ));
         let output = env
             .stellar_scaffold_env("development", true)
             .output()
@@ -102,7 +104,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
     ]
 
     [development.network]
-    rpc-url = "http://localhost:8000/rpc"
+    rpc-url = "{}"
     network-passphrase = "Standalone Network ; February 2017"
 
     [development.contracts]
@@ -116,7 +118,7 @@ fn init_handles_quotations_and_subcommands_in_script() {
     after_deploy = """
     test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
     """
-    "#
+    "#, rpc_url()
         ));
 
         let output = env
@@ -156,7 +158,7 @@ development.accounts = [
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -178,7 +180,7 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bob
 after_deploy = """
 STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob 
 """
-"#
+"#, rpc_url()
         ));
 
         let output = env
@@ -210,7 +212,7 @@ development.accounts = [
 ]
 
 [development.network]
-rpc-url = "http://localhost:8000/rpc"
+rpc-url = "{}"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
@@ -232,7 +234,7 @@ client = true
 after_deploy = """
 test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
 """
-"#));
+"#, rpc_url()));
 
         let output = env
             .stellar_scaffold_env("development", true)
