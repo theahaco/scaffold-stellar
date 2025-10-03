@@ -190,16 +190,20 @@ impl Args {
                     config_dir: None,
                 })?;
                 printer.infoln(format!("Using {name} network"));
-                std::env::set_var("STELLAR_RPC_URL", rpc_url);
-                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase);
+                // TODO: Audit that the environment access only happens in single-threaded code.
+                unsafe { std::env::set_var("STELLAR_RPC_URL", rpc_url) };
+                // TODO: Audit that the environment access only happens in single-threaded code.
+                unsafe { std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase) };
             }
             Network {
                 rpc_url: Some(rpc_url),
                 network_passphrase: Some(passphrase),
                 ..
             } => {
-                std::env::set_var("STELLAR_RPC_URL", rpc_url);
-                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase);
+                // TODO: Audit that the environment access only happens in single-threaded code.
+                unsafe { std::env::set_var("STELLAR_RPC_URL", rpc_url) };
+                // TODO: Audit that the environment access only happens in single-threaded code.
+                unsafe { std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase) };
                 printer.infoln(format!("Using network at {rpc_url}"));
             }
             _ => return Err(Error::MalformedNetwork),
@@ -247,12 +251,14 @@ impl Args {
         &self,
         contract_id: &Contract,
         network: &Network,
+        new_hash: &str,
     ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
-            contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
+            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(*contract_id)),
             out_file: None,
             locator: self.get_config_locator(),
             network: Self::get_network_args(network),
+            wasm_hash: Some(new_hash.to_string()),
         }
         .run_against_rpc_server(self.global_args.as_ref(), None)
         .await;
@@ -503,7 +509,8 @@ export default new Client.Client({{
             }
         }
 
-        std::env::set_var("STELLAR_ACCOUNT", &default_account);
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var("STELLAR_ACCOUNT", &default_account) };
         Ok(())
     }
 
@@ -690,7 +697,7 @@ export default new Client.Client({{
             // Check existing alias - if it exists and matches hash, we can return early
             if let Some(existing_contract_id) = self.get_contract_alias(name)? {
                 let hash = self
-                    .get_contract_hash(&existing_contract_id, network)
+                    .get_contract_hash(&existing_contract_id, network, &new_hash)
                     .await?;
                 if let Some(current_hash) = hash {
                     if current_hash == new_hash {
