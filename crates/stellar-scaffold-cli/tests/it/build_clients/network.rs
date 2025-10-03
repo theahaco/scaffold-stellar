@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv, rpc_url};
 
 #[test]
 fn run_network_from_rpc_and_passphrase() {

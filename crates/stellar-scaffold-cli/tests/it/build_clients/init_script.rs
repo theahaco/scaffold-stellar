@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{find_binary, rpc_url, TestEnv};
+use stellar_scaffold_test::{TestEnv, find_binary, rpc_url};
 
 #[test]
 fn build_command_runs_init() {
@@ -40,8 +40,10 @@ mint --amount 2000000 --to alice
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains(" -- mint --amount 2000000 --to alice"));
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains(" -- mint --amount 2000000 --to alice")
+        );
         assert!(String::from_utf8_lossy(&output.stderr).contains(
             "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
@@ -82,8 +84,10 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("--source-account bob -- mint --amount 2000000 --to bob"));
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("--source-account bob -- mint --amount 2000000 --to bob")
+        );
         assert!(String::from_utf8_lossy(&output.stderr).contains(
             "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));

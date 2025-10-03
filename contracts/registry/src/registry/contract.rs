@@ -2,21 +2,21 @@
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
-        self, assert_with_error, contracttype, env, symbol_short, to_string, Address, BytesN, Env,
-        IntoVal, InvokeError, PersistentMap, String, Symbol,
+        self, Address, BytesN, Env, IntoVal, InvokeError, PersistentMap, String, Symbol,
+        assert_with_error, contracttype, env, symbol_short, to_string,
     },
     vec,
 };
 use loam_subcontract_core::Core;
 
 use crate::{
+    Contract as Contract_,
     error::Error,
     name::canonicalize,
-    util::{hash_string, MAX_BUMP, REGISTRY},
-    Contract as Contract_,
+    util::{MAX_BUMP, REGISTRY, hash_string},
 };
 
-use super::{wasm::W, IsDeployable, IsRedeployable};
+use super::{IsDeployable, IsRedeployable, wasm::W};
 
 #[contracttype]
 pub struct DeployEventData {

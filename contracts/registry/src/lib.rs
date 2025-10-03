@@ -1,7 +1,7 @@
 #![no_std]
-use loam_subcontract_core::{admin::Admin, Core};
+use loam_subcontract_core::{Core, admin::Admin};
 
-use registry::{contract::C as Contract_, wasm::W as Wasm, Deployable, Publishable, Redeployable};
+use registry::{Deployable, Publishable, Redeployable, contract::C as Contract_, wasm::W as Wasm};
 
 pub mod error;
 pub mod name;

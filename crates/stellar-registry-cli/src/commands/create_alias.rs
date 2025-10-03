@@ -105,9 +105,11 @@ mod tests {
 
         // Run the install command
         cmd.run().await.unwrap();
-        assert!(test_env
-            .cwd
-            .join(".config/stellar/contract-ids/hello.json")
-            .exists());
+        assert!(
+            test_env
+                .cwd
+                .join(".config/stellar/contract-ids/hello.json")
+                .exists()
+        );
     }
 }

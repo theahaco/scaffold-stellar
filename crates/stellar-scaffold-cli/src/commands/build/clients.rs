@@ -13,15 +13,14 @@ use std::path::Path;
 use std::process::Command;
 use std::{fmt::Debug, path::PathBuf};
 use stellar_cli::{
-    commands as cli,
-    commands::contract::info::shared::{
-        self as contract_spec, fetch, Args as FetchArgs, Error as FetchError,
-    },
+    CommandParser, commands as cli,
     commands::NetworkRunnable,
+    commands::contract::info::shared::{
+        self as contract_spec, Args as FetchArgs, Error as FetchError, fetch,
+    },
     print::Print,
     utils::contract_hash,
     utils::contract_spec::Spec,
-    CommandParser,
 };
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::ScSpecEntry::FunctionV0;
@@ -58,7 +57,8 @@ pub struct Args {
 pub enum Error {
     #[error(transparent)]
     EnvironmentsToml(#[from] env_toml::Error),
-    #[error("⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url"
+    #[error(
+        "⛔ ️invalid network: must either specify a network name or both network_passphrase and rpc_url"
     )]
     MalformedNetwork,
     #[error(transparent)]
@@ -71,7 +71,8 @@ pub enum Error {
     InvalidPublicKey(#[from] cli::keys::public_key::Error),
     #[error(transparent)]
     AddressParsing(#[from] stellar_cli::config::address::Error),
-    #[error("⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations"
+    #[error(
+        "⛔ ️you need to provide at least one account, to use as the source account for contract deployment and other operations"
     )]
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
@@ -254,7 +255,9 @@ impl Args {
         new_hash: &str,
     ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
-            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(*contract_id)),
+            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(
+                *contract_id,
+            )),
             out_file: None,
             locator: self.get_config_locator(),
             network: Self::get_network_args(network),
