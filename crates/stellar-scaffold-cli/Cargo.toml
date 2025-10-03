@@ -7,7 +7,6 @@ license = "Apache-2.0"
 readme = "README.md"
 version = "0.0.13"
 edition = "2024"
-rust-version = "1.70"
 autobins = false
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-scaffold-cli"
 
