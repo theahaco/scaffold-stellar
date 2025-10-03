@@ -1,7 +1,7 @@
 use std::process::Stdio;
-use stellar_scaffold_test::{rpc_url, TestEnv};
+use stellar_scaffold_test::{TestEnv, rpc_url};
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio_stream::{wrappers::LinesStream, StreamExt};
+use tokio_stream::{StreamExt, wrappers::LinesStream};
 
 #[ignore]
 #[tokio::test]

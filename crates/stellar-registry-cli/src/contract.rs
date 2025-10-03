@@ -2,8 +2,8 @@ use sha2::{Digest, Sha256};
 
 use soroban_rpc as rpc;
 use stellar_cli::{
-    commands::{contract::invoke, NetworkRunnable},
-    config::{self, network::Network, UnresolvedContract},
+    commands::{NetworkRunnable, contract::invoke},
+    config::{self, UnresolvedContract, network::Network},
     xdr::{self, WriteXdr},
 };
 

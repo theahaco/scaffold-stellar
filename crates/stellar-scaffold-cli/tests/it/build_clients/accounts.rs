@@ -1,6 +1,6 @@
 use std::fs;
 use stellar_cli::config::locator;
-use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv, rpc_url};
 #[tokio::test]
 async fn create_two_accounts() {
     TestEnv::from_async("soroban-init-boilerplate", async |env| {

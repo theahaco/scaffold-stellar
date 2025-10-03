@@ -1,4 +1,4 @@
-use loam_sdk::soroban_sdk::{crypto::Hash, env, Bytes, String};
+use loam_sdk::soroban_sdk::{Bytes, String, crypto::Hash, env};
 
 pub fn hash_string(s: &String) -> Hash<32> {
     let env = env();

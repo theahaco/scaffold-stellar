@@ -1,12 +1,12 @@
 use crate::{
-    error::Error, name::canonicalize, SorobanContract__,
-    SorobanContract__Client as SorobanContractClient,
+    SorobanContract__, SorobanContract__Client as SorobanContractClient, error::Error,
+    name::canonicalize,
 };
 use assert_matches::assert_matches;
 use loam_sdk::soroban_sdk::{
-    self, env, set_env,
+    self, Address, Bytes, BytesN, Env, IntoVal, env, set_env,
     testutils::{Address as _, BytesN as _},
-    to_string, Address, Bytes, BytesN, Env, IntoVal,
+    to_string,
 };
 extern crate std;
 
@@ -93,14 +93,16 @@ fn returns_most_recent_version() {
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
 
-    assert!(client
-        .try_publish_hash(
-            name,
-            address,
-            &second_hash.into_val(env),
-            &to_string("0.0.2"),
-        )
-        .is_err());
+    assert!(
+        client
+            .try_publish_hash(
+                name,
+                address,
+                &second_hash.into_val(env),
+                &to_string("0.0.2"),
+            )
+            .is_err()
+    );
 
     let second_hash: BytesN<32> = BytesN::random(env);
     client.publish_hash(

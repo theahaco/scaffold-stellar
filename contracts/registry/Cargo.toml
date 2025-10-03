@@ -4,8 +4,7 @@ description = "A crate for managing and deploying smart contracts on the Soroban
 version = "0.1.1"
 authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
-rust-version = "1.69"
-edition = "2021"
+edition = "2024"
 publish = false
 
 [lib]

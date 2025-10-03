@@ -1,5 +1,5 @@
 use std::error::Error;
-use stellar_cli::{commands as cli, CommandParser};
+use stellar_cli::{CommandParser, commands as cli};
 
 pub async fn start_local_stellar() -> Result<(), Box<dyn Error>> {
     let result = cli::container::StartCmd::parse_arg_vec(&["local"])?

@@ -127,10 +127,10 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
             let s: Vec<&str> = line.split(' ').collect();
             let package_id = format!("{}{}", s[0], s[1]);
             let res = packages.get(&package_id).copied();
-            if let Some(r) = &res {
-                if r == &p {
-                    return None;
-                }
+            if let Some(r) = &res
+                && r == &p
+            {
+                return None;
             }
             res.cloned()
         })

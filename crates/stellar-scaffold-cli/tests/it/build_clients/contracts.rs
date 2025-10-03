@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv, rpc_url};
 
 #[test]
 fn contracts_built() {
@@ -162,8 +162,10 @@ soroban_token_contract.client = false
 
         // ensure it imports
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("Binding \"soroban_hello_world_contract\" contract"));
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("Binding \"soroban_hello_world_contract\" contract")
+        );
 
         let output2 = env
             .stellar_scaffold_env("development", false)
@@ -173,8 +175,10 @@ soroban_token_contract.client = false
         // ensure alias retrieval works
         eprintln!("{:?}", String::from_utf8_lossy(&output2.stderr));
         assert!(output2.status.success());
-        assert!(String::from_utf8_lossy(&output2.stderr)
-            .contains("Contract \"soroban_hello_world_contract\" is up to date"));
+        assert!(
+            String::from_utf8_lossy(&output2.stderr)
+                .contains("Contract \"soroban_hello_world_contract\" is up to date")
+        );
 
         let output3 = env
             .stellar_scaffold_env("development", true)
@@ -233,8 +237,10 @@ soroban_token_contract.client = false
 
         // ensure contract hash change check works, should throw error in production
         assert!(!output4.status.success());
-        assert!(String::from_utf8_lossy(&output4.stderr)
-            .contains("️An ID must be set for a contract in production or staging"));
+        assert!(
+            String::from_utf8_lossy(&output4.stderr)
+                .contains("️An ID must be set for a contract in production or staging")
+        );
     });
 }
 
@@ -320,14 +326,16 @@ soroban_token_contract.client = false
     assert!(stderr.contains("Simulating deploy transaction"));
     assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
     // Check that the contract files are created in the new directory
-    assert!(env
-        .cwd
-        .join("packages/soroban_hello_world_contract")
-        .exists());
-    assert!(env
-        .cwd
-        .join("src/contracts/soroban_hello_world_contract.ts")
-        .exists());
+    assert!(
+        env.cwd
+            .join("packages/soroban_hello_world_contract")
+            .exists()
+    );
+    assert!(
+        env.cwd
+            .join("src/contracts/soroban_hello_world_contract.ts")
+            .exists()
+    );
 }
 
 #[test]
@@ -375,14 +383,16 @@ soroban_token_contract.client = false
         assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
 
         // Check that contract client files are still generated
-        assert!(env
-            .cwd
-            .join("packages/soroban_hello_world_contract")
-            .exists());
-        assert!(env
-            .cwd
-            .join("src/contracts/soroban_hello_world_contract.ts")
-            .exists());
+        assert!(
+            env.cwd
+                .join("packages/soroban_hello_world_contract")
+                .exists()
+        );
+        assert!(
+            env.cwd
+                .join("src/contracts/soroban_hello_world_contract.ts")
+                .exists()
+        );
 
         // Check dist/index.js and dist/index.d.ts exist after npm run build
         let dist_dir = env.cwd.join("packages/soroban_hello_world_contract/dist");
@@ -468,39 +478,47 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb
         assert!(
             stderr.contains("Installing \"soroban_hello_world_contract\" wasm bytecode on-chain")
         );
-        assert!(stderr.contains("Installing \"soroban_increment_contract\" wasm bytecode on-chain"));
+        assert!(
+            stderr.contains("Installing \"soroban_increment_contract\" wasm bytecode on-chain")
+        );
         assert!(
             stderr.contains("Installing \"soroban_custom_types_contract\" wasm bytecode on-chain")
         );
 
         // Check that successful contracts are still deployed
-        assert!(env
-            .cwd
-            .join("packages/soroban_hello_world_contract")
-            .exists());
+        assert!(
+            env.cwd
+                .join("packages/soroban_hello_world_contract")
+                .exists()
+        );
         assert!(env.cwd.join("packages/soroban_increment_contract").exists());
-        assert!(env
-            .cwd
-            .join("packages/soroban_custom_types_contract")
-            .exists());
-        assert!(env
-            .cwd
-            .join("src/contracts/soroban_hello_world_contract.ts")
-            .exists());
-        assert!(env
-            .cwd
-            .join("src/contracts/soroban_increment_contract.ts")
-            .exists());
-        assert!(env
-            .cwd
-            .join("src/contracts/soroban_custom_types_contract.ts")
-            .exists());
+        assert!(
+            env.cwd
+                .join("packages/soroban_custom_types_contract")
+                .exists()
+        );
+        assert!(
+            env.cwd
+                .join("src/contracts/soroban_hello_world_contract.ts")
+                .exists()
+        );
+        assert!(
+            env.cwd
+                .join("src/contracts/soroban_increment_contract.ts")
+                .exists()
+        );
+        assert!(
+            env.cwd
+                .join("src/contracts/soroban_custom_types_contract.ts")
+                .exists()
+        );
 
         // Failed contract should not have generated client files
         assert!(!env.cwd.join("packages/soroban_token_contract").exists());
-        assert!(!env
-            .cwd
-            .join("src/contracts/soroban_token_contract.ts")
-            .exists());
+        assert!(
+            !env.cwd
+                .join("src/contracts/soroban_token_contract.ts")
+                .exists()
+        );
     });
 }

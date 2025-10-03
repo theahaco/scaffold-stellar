@@ -1,7 +1,7 @@
 use loam_sdk::{
     loamstorage,
     soroban_sdk::{
-        self, contracttype, env, to_string, Address, BytesN, Env, Map, PersistentMap, String,
+        self, Address, BytesN, Env, Map, PersistentMap, String, contracttype, env, to_string,
     },
 };
 use loam_subcontract_core::Core as _;
@@ -113,10 +113,10 @@ impl W {
 
     fn validate_version(&self, version: &String, wasm_name: &String) -> Result<(), Error> {
         let version = crate::version::parse(version)?;
-        if let Ok(current_version) = self.most_recent_version(wasm_name) {
-            if version <= crate::version::parse(&current_version)? {
-                return Err(Error::VersionMustBeGreaterThanCurrent);
-            }
+        if let Ok(current_version) = self.most_recent_version(wasm_name)
+            && version <= crate::version::parse(&current_version)?
+        {
+            return Err(Error::VersionMustBeGreaterThanCurrent);
         }
         Ok(())
     }
@@ -152,10 +152,10 @@ impl IsPublishable for W {
         HashMap::add(env(), &wasm_hash);
         author.require_auth();
         let wasm_name = canonicalize(&wasm_name)?;
-        if let Some(current) = self.author(&wasm_name) {
-            if author != current {
-                return Err(Error::WasmNameAlreadyTaken);
-            }
+        if let Some(current) = self.author(&wasm_name)
+            && author != current
+        {
+            return Err(Error::WasmNameAlreadyTaken);
         }
         if wasm_name == to_string(REGISTRY) && crate::Contract::admin_get().unwrap() != author {
             return Err(Error::AdminOnly);

@@ -3,7 +3,7 @@
 
 use core::alloc::{GlobalAlloc, Layout};
 
-pub static mut LOCAL_ALLOCATOR: BumpPointerLocal = BumpPointerLocal::new();
+pub static LOCAL_ALLOCATOR: BumpPointerLocal = BumpPointerLocal::new();
 
 pub struct BumpPointerLocal {
     cursor: *mut u8,

@@ -160,16 +160,15 @@ members = []
 
             if let Some(existing_dep) = workspace_deps.clone().get(&dep) {
                 // Check if we need to update the tag
-                if let cargo_toml::Dependency::Detailed(detail) = existing_dep {
-                    if let Some(existing_tag) = &detail.tag {
-                        if existing_tag != tag {
-                            workspace_deps.insert(
-                                dep.clone(),
-                                cargo_toml::Dependency::Detailed(Box::new(git_dep)),
-                            );
-                            updated_deps.push((dep, existing_tag.clone()));
-                        }
-                    }
+                if let cargo_toml::Dependency::Detailed(detail) = existing_dep
+                    && let Some(existing_tag) = &detail.tag
+                    && existing_tag != tag
+                {
+                    workspace_deps.insert(
+                        dep.clone(),
+                        cargo_toml::Dependency::Detailed(Box::new(git_dep)),
+                    );
+                    updated_deps.push((dep, existing_tag.clone()));
                 }
             } else {
                 workspace_deps.insert(
@@ -353,12 +352,7 @@ members = []
             Ok::<(), std::io::Error>(())
         })
         .await
-        .map_err(|e| {
-            Error::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            ))
-        })?
+        .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?
         .map_err(Error::Io)?;
 
         Ok(())
@@ -390,7 +384,7 @@ members = []
             .content_only(true);
 
         fs_extra::dir::copy(source, dest, &copy_options)
-            .map_err(|e| Error::Io(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|e| Error::Io(std::io::Error::other(e)))?;
 
         Ok(())
     }
