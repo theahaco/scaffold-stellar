@@ -3,5 +3,5 @@ target/
 .env
 test_snapshots/
 .stellar/
-
-.idea
+.vscode/
+.idea/

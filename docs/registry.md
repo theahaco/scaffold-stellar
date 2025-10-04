@@ -13,7 +13,7 @@ The registry system consists of two main components:
 
 - Install the registry CLI:
 ```bash
-cargo install --git https://github.com/ahalabs/scaffold-stellar stellar-registry-cli
+cargo install --git https://github.com/theahaco/scaffold-stellar stellar-registry-cli
 ```
 
 ## Commands

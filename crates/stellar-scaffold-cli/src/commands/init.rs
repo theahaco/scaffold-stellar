@@ -7,7 +7,7 @@ use std::{env, io};
 use super::generate;
 use stellar_cli::{commands::global, print::Print};
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
+const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -54,7 +54,8 @@ impl Cmd {
         });
 
         printer.infoln(format!(
-            "Creating new Stellar project in {absolute_project_path:?}"
+            "Creating new Stellar project in {}",
+            absolute_project_path.display()
         ));
 
         let project_str = absolute_project_path

@@ -32,7 +32,7 @@ function getPlatform() {
 
 export function GithubUrl(): string {
   const [platform, arch] = getPlatform();
-  return `https://github.com/ahalabs/scaffold-stellar/releases/download/stellar-scaffold-cli-v${version}/stellar-scaffold-cli-v${version}-${arch}-${platform}.tar.gz`;
+  return `https://github.com/theahaco/scaffold-stellar/releases/download/stellar-scaffold-cli-v${version}/stellar-scaffold-cli-v${version}-${arch}-${platform}.tar.gz`;
 }
 
 export function getBinary(name: string = NAME): Promise<Binary> {

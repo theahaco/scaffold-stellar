@@ -1,15 +1,15 @@
 [package]
 name = "stellar-scaffold-cli"
 description = "Stellar CLI plugin for building smart contracts with frontend support"
-homepage = "https://github.com/ahalabs/scaffold-stellar"
-authors = ["Aha Labs <hello@ahalabs.dev>"]
+homepage = "https://github.com/theahaco/scaffold-stellar"
+authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.11"
+version = "0.0.13"
 edition = "2021"
 rust-version = "1.70"
 autobins = false
-repository = "https://github.com/ahalabs/scaffold-stellar/tree/main/crates/stellar-scaffold-cli"
+repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-scaffold-cli"
 
 [[bin]]
 name = "stellar-scaffold"
@@ -27,8 +27,8 @@ doctest = false
 
 [dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-stellar-build = { path = "../stellar-build", version = "0.0.2" }
-stellar-cli = { workspace = true }
+stellar-build = { path = "../stellar-build", version = "0.0.3" }
+stellar-cli = { workspace = true, features = ["default"] }
 soroban-rpc = { workspace = true }
 soroban-spec-tools = { workspace = true }
 clap = { version = "4.1.8", features = [
@@ -92,3 +92,6 @@ crate-git-revision = "0.0.6"
 
 [features]
 integration-tests = []
+
+[lints]
+workspace = true

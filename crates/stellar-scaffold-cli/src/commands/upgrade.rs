@@ -13,7 +13,7 @@ use toml_edit::{value, DocumentMut, Item, Table};
 use crate::{arg_parsing, commands::build};
 use stellar_cli::print::Print;
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/AhaLabs/scaffold-stellar-frontend";
+const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
 
 /// A command to upgrade an existing Soroban workspace to a scaffold project
 #[derive(Parser, Debug, Clone)]
@@ -79,8 +79,8 @@ impl Cmd {
         let printer = Print::new(global_args.quiet);
 
         printer.infoln(format!(
-            "Upgrading Soroban workspace to scaffold project in {:?}",
-            self.workspace_path
+            "Upgrading Soroban workspace to scaffold project in {}",
+            self.workspace_path.display()
         ));
 
         // Validate workspace
@@ -103,8 +103,8 @@ impl Cmd {
         self.create_environments_toml(global_args).await?;
 
         printer.checkln(format!(
-            "Workspace successfully upgraded to scaffold project at {:?}",
-            self.workspace_path
+            "Workspace successfully upgraded to scaffold project at {}",
+            self.workspace_path.display()
         ));
 
         Ok(())

@@ -121,7 +121,7 @@ my-project/
 
 This template provides a ready-to-use frontend application with example smart contracts and their TypeScript clients. You can use these as reference while building your own contracts and UI. The frontend is set up with `Vite`, `React`, and includes basic components for interacting with the contracts.
 
-See the [CLI Documentation](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md) for detailed command information and the [Environments Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md) for configuration details.
+See the [CLI Documentation](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md) for detailed command information and the [Environments Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md) for configuration details.
 
 ---
 
@@ -221,9 +221,9 @@ Your repo contains the following key folders:
 ---
 
 ## Documentation 
-* [CLI Commands](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/cli.md)
-* [Environment Setup](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/environments.md)
-* [Registry Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/docs/registry.md)
+* [CLI Commands](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md)
+* [Environment Setup](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md)
+* [Registry Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/registry.md)
 
 ---
 ## Additional Developer Resources
@@ -236,7 +236,7 @@ Your repo contains the following key folders:
 ## Contributing
 We love contributions! If you're new, check these out:
 
-[Contributing Guide](https://github.com/AhaLabs/scaffold-stellar/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/theahaco/scaffold-stellar/blob/main/CONTRIBUTING.md)
 
 ## License
 

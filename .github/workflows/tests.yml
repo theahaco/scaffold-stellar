@@ -34,7 +34,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - uses: actions/cache@v3
+      - name: Restore cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -52,3 +54,16 @@ jobs:
       - run: just setup
       - run: just create
       - run: just test-integration
+      - name: Always Save Cache
+        id: cache-save
+        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
+            target/
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}

@@ -1,15 +1,15 @@
 [package]
 name = "stellar-registry-cli"
 description = "Stellar CLI plugin for publishing and deploying contracts"
-homepage = "https://github.com/ahalabs/scaffold-stellar"
-authors = ["Aha Labs <hello@ahalabs.dev>"]
+homepage = "https://github.com/theahaco/scaffold-stellar"
+authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.10"
+version = "0.0.12"
 edition = "2021"
 rust-version = "1.70"
 autobins = false
-repository = "https://github.com/ahalabs/scaffold-stellar/tree/main/crates/stellar-registry-cli"
+repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-registry-cli"
 
 [[bin]]
 name = "stellar-registry"
@@ -27,13 +27,13 @@ doctest = false
 
 [dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-clap = { version = "4.1.8", features = [
+clap = { workspace = true, features = [
     "derive",
     "env",
     "deprecated",
     "string",
 ] }
-stellar-cli = { workspace = true }
+stellar-cli = { workspace = true, default-features = false, features = [] }
 
 soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
@@ -61,3 +61,6 @@ crate-git-revision = "0.0.6"
 [features]
 default = []
 integration-tests = []
+
+[lints]
+workspace = true

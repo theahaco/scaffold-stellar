@@ -147,7 +147,7 @@ impl IsPublishable for W {
         version: String,
     ) -> Result<(), Error> {
         if HashMap::has(env(), &wasm_hash) {
-            return Err(Error::WasmNameAlreadyTaken);
+            return Err(Error::HashAlreadyPublished);
         }
         HashMap::add(env(), &wasm_hash);
         author.require_auth();
