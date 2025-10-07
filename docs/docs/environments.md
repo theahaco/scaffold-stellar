@@ -10,8 +10,8 @@ Scaffold Stellar uses an `environments.toml` file to manage different deployment
 
 ```toml
 [development]
-network = {
-    name = "standalone",            # use local network
+network = { 
+    name = "local",                 # use local network
     run_locally = true              # start up the local docker container
 }
 accounts = ["account1", "account2"] # Account aliases to create
@@ -33,7 +33,7 @@ Each environment can specify network settings:
 
 ```toml
 network = {
-    name = "<network-name>",           # Optional: Use predefined network (mainnet/testnet/standalone)
+    name = "<network-name>",           # Optional: Use predefined network (mainnet/testnet/local)
     rpc_url = "<url>",                # Optional: Custom RPC endpoint
     network_passphrase = "<phrase>",   # Optional: Network passphrase
     rpc_headers = [["key", "value"]], # Optional: Custom RPC headers
