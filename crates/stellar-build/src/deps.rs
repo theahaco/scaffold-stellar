@@ -142,7 +142,7 @@ pub fn all(manifest_path: &Path) -> Result<Vec<Package>, Error> {
 #[must_use]
 pub fn stellar_wasm_out_dir(target_dir: &Path) -> PathBuf {
     let network = std::env::var("STELLAR_NETWORK").unwrap_or_else(|_| "local".to_owned());
-    target_dir.join(format!("stellar/{network}"))
+    target_dir.join("stellar").join(network)
 }
 
 #[must_use]
