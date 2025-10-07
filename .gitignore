@@ -1,8 +1,0 @@
-target/
-.soroban/
-.env
-test_snapshots/
-.stellar/
-.vscode/
-.idea/
-.DS_Store

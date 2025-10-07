@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkscaffold_stellar=self.webpackChunkscaffold_stellar||[]).push([[121],{8070:l=>{l.exports=JSON.parse('{"tags":[{"label":"Scaffold","permalink":"/blog/tags/scaffold","description":"Scaffold Stellar","count":1},{"label":"Official","permalink":"/blog/tags/official","description":"Official news about Scaffold Stellar","count":1}]}')}}]);
