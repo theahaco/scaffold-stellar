@@ -24,6 +24,25 @@ The init command creates:
 - A frontend application using the [scaffold-stellar-frontend](https://github.com/theahaco/scaffold-stellar-frontend) template
 - Configuration files for both contract and frontend development
 
+## Generate Command
+
+Generate a new contract from examples or wizard. Have a look at their official [documentation](https://docs.openzeppelin.com/stellar-contracts).
+
+```bash
+stellar scaffold generate contract [options]
+```
+
+Options:
+
+- `--from`: Clone contract from `OpenZeppelin` examples
+- `--ls`: List available contract examples
+- `--from-wizard`: Open contract generation wizard in browser
+- `-o <output>` or `--output <output>`: Output directory for the generated contract (defaults to `contracts/<example-name>`)
+
+The generate command:
+
+- Downloads an `OpenZeppelin` contract from https://github.com/OpenZeppelin/stellar-contracts
+
 ## Upgrade Command
 
 Transform an existing Soroban workspace into a full scaffold project:
