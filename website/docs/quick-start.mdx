@@ -10,12 +10,12 @@ This section walks you through setting up Scaffold Stellar from scratch.
 
 Before you begin, make sure you have the following installed:
 
-| Tool                                                    | Description                                                   | Install Link                                                  |
-|---------------------------------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|
-| [Rust & Cargo](https://www.rust-lang.org/tools/install) | For writing and compiling smart contracts                     | `curl https://sh.rustup.rs -sSf \| sh`                        |
-| [Node.js & npm](https://nodejs.org/)                    | For frontend development                                      | Download from official site                                   |
-| [Stellar CLI](https://github.com/stellar/stellar-cli)   | For building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli) |
-| [Docker](https://docs.docker.com/get-started/)          | For running a Stellar node locally                            | Download from official site                                   |
+| Tool | Description | Install Link |
+| --- | --- | --- |
+| [Rust & Cargo](https://www.rust-lang.org/tools/install) | For writing and compiling smart contracts | `curl https://sh.rustup.rs -sSf \| sh` |
+| [Node.js & npm](https://nodejs.org/) | For frontend development | Download from official site |
+| [Stellar CLI](https://github.com/stellar/stellar-cli) | For building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli) |
+| [Docker](https://docs.docker.com/get-started/) | For running a Stellar node locally | Download from official site |
 
 ### 1. Install the Scaffold Stellar CLI
 
@@ -28,12 +28,14 @@ The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.
 > We recommend the use of [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) to install pre-compiled binaries.
 
 ### 2. Create a New Project
+
 ```
 stellar scaffold init my-project
 cd my-project
 ```
 
 ### 3. Configure Your Frontend Environment
+
 ```
 # Copy and configure environment variables for the frontend
 cp .env.example .env
@@ -42,17 +44,22 @@ cp .env.example .env
 Edit `.env` with your preferred network, and other settings.
 
 ### 4. Install Frontend Dependencies
+
 ```
 # Install Frontend dependencies
 npm install
 ```
+
 ### 5. Start Development
+
 ```
 npm run dev
 ```
+
 You should see your React frontend at http://localhost:5173.
 
 ### 6. For testnet/mainnet deployment:
+
 ```
 # First publish your contract to the registry
 stellar registry publish --wasm path/to/contract.wasm --wasm-name my-contract
@@ -76,6 +83,7 @@ stellar registry install my-contract-instance
 ```
 
 ## Project Layout
+
 After scaffolding a project, your folder structure will look like this:
 
 ```
@@ -100,28 +108,32 @@ See the [CLI Documentation](./cli.md) for detailed command information and the [
 ---
 
 ## CLI Tools
+
 Scaffold Stellar provides two main CLI tools:
 
-**stellar-scaffold**
-Initialize and manage dApp projects:
+**stellar-scaffold** Initialize and manage dApp projects:
+
 ```
 stellar scaffold init my-project
 stellar scaffold build
 ```
 
-**stellar-registry**
-Manage contract deployment and versions:
+**stellar-registry** Manage contract deployment and versions:
+
 ```
 stellar registry publish --wasm contract.wasm --wasm-name my-contract    # Publish contract to the registry
 stellar registry deploy --contract-name instance --wasm-name my-contract # Deploy a contract instance
 stellar registry install my-contract-instance                           # Install deployed contracts locally
 ```
+
 > Use `--help` on any command for usage instructions.
 
 ---
+
 ## Smart Contract Deployment
 
 ### 1. Publish Your Contract
+
 ```bash
 # Publish with automatic metadata extraction
 stellar registry publish --wasm target/stellar/my_contract.wasm
@@ -134,6 +146,7 @@ stellar registry publish \
 ```
 
 ### 2. Deploy the Contract
+
 ```bash
 # Deploy without initialization
 stellar registry deploy \
@@ -152,11 +165,13 @@ stellar registry deploy \
 ```
 
 ### 3. Install the Deployed Contract
+
 ```bash
 stellar registry install my-contract-instance
 ```
 
 After installation, you can interact with the contract using `stellar-cli`:
+
 ```bash
 stellar contract invoke --id my-contract-instance -- --help
 ```

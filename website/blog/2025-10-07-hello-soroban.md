@@ -2,7 +2,7 @@
 slug: hello-soroban
 title: Welcome to Scaffold Stellar
 authors: [tupui]
-tags: [scaffold,official]
+tags: [scaffold, official]
 ---
 
 We have a website!
