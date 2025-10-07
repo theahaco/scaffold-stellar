@@ -44,7 +44,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/theahaco/scaffold-stellar/tree/main/website/docs',
+            'https://github.com/theahaco/scaffold-stellar/tree/main/docs/docs',
         },
         blog: {
           showReadingTime: true,
@@ -54,7 +54,7 @@ const config: Config = {
           },
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/theahaco/scaffold-stellar/tree/main/website/blog',
+            'https://github.com/theahaco/scaffold-stellar/tree/main/docs/blog',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
