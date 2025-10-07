@@ -1,8 +1,19 @@
 name: RPC Tests
+
+permissions:
+  contents: read
+
 on:
+  workflow_dispatch:
   push:
     branches: [main, release/**]
   pull_request:
+    paths:
+      - '!website/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   test:
