@@ -4,6 +4,7 @@ use admin_sep::{Administratable, Upgradable};
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 pub mod error;
+pub mod events;
 pub mod name;
 pub mod registry;
 mod util;

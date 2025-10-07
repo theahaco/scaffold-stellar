@@ -85,19 +85,19 @@ impl Contract {
     pub fn set(
         env: &Env,
         name: &String,
-        version: String,
-        binary: BytesN<32>,
+        version: &String,
+        hash: &BytesN<32>,
         author: Address,
     ) -> Result<(), Error> {
-        let mut storage = Storage::new(env);
-        let mut registry = storage.wasm.get(name).unwrap_or_else(|| PublishedWasm {
+        let mut wasm_map = Storage::new(env).wasm;
+        let mut registry = wasm_map.get(name).unwrap_or_else(|| PublishedWasm {
             versions: Map::new(env),
             author,
             current_version: version.clone(),
         });
-        registry.versions.set(version.clone(), binary);
-        registry.current_version = version;
-        storage.wasm.set(&name, &registry);
+        registry.versions.set(version.clone(), hash.clone());
+        registry.current_version = version.clone();
+        wasm_map.set(&name, &registry);
         Ok(())
     }
 
@@ -157,7 +157,14 @@ impl IsPublishable for Contract {
             return Err(Error::AdminOnly);
         }
         Self::validate_version(env, &version, &wasm_name)?;
-        Self::set(env, &wasm_name, version.clone(), wasm_hash, author)?;
+        Self::set(env, &wasm_name, &version, &wasm_hash, author.clone())?;
+        crate::events::Publish {
+            wasm_name,
+            version,
+            author,
+            wasm_hash,
+        }
+        .publish(env);
         Ok(())
     }
 

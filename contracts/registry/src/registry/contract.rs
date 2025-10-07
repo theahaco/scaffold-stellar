@@ -4,8 +4,8 @@ use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
 use soroban_sdk::{
-    self, assert_with_error, contractimpl, contracttype, symbol_short, vec, Address, BytesN, Env,
-    IntoVal, InvokeError, String, Symbol,
+    self, assert_with_error, contractimpl, symbol_short, vec, Address, BytesN, Env, IntoVal,
+    InvokeError, String, Symbol,
 };
 
 use crate::{
@@ -16,15 +16,6 @@ use crate::{
 };
 
 use super::{IsDeployable, IsRedeployable};
-
-#[contracttype]
-pub struct DeployEventData {
-    wasm_name: String,
-    contract_name: String,
-    version: String,
-    deployer: Address,
-    contract_id: Address,
-}
 
 impl Contract {
     fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
@@ -91,16 +82,15 @@ impl IsDeployable for Contract {
 
         let version = Self::get_version(env, &wasm_name, version)?;
         // Publish a deploy event
-        let deploy_data = DeployEventData {
+        crate::events::Deploy {
             wasm_name,
             contract_name,
             version,
             deployer: admin,
             contract_id: contract_id.clone(),
-        };
-        #[allow(deprecated)] // TODO
-        env.events()
-            .publish((symbol_short!("deploy"),), deploy_data);
+        }
+        .publish(env);
+
         Ok(contract_id)
     }
 
