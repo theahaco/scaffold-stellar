@@ -1,6 +1,7 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 use proc_macro::TokenStream;
+use stellar_xdr::curr as xdr;
 use std::env;
 
 use quote::quote;
@@ -42,4 +43,76 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+fn parse_asset(str: &str) -> Result<xdr::Asset, xdr::Error> {
+    if str == "native" {
+        return Ok(xdr::Asset::Native);
+    }
+    let split: Vec<&str> = str.splitn(2, ':').collect();
+    assert!(split.len() == 2, "invalid asset \"{str}\"");
+    let code = split[0];
+    let issuer: xdr::AccountId = split[1].parse()?;
+    let re = regex::Regex::new("^[[:alnum:]]{1,12}$").expect("regex failed");
+    assert!(re.is_match(code), "invalid asset \"{str}\"");
+    let asset_code: xdr::AssetCode = code.parse()?;
+    Ok(match asset_code {
+        xdr::AssetCode::CreditAlphanum4(asset_code) => {
+            xdr::Asset::CreditAlphanum4(xdr::AlphaNum4 { asset_code, issuer })
+        }
+        xdr::AssetCode::CreditAlphanum12(asset_code) => {
+            xdr::Asset::CreditAlphanum12(xdr::AlphaNum12 { asset_code, issuer })
+        }
+    })
+}
+
+fn generate_asset_id(
+    asset: &str,
+) -> Result<stellar_strkey::Contract, xdr::Error> {
+    use sha2::{Digest, Sha256};
+    use xdr::WriteXdr;
+    let asset = parse_asset(asset).unwrap();
+    let network_passphrase = std::env::var("STELLAR_NETWORK_PASSPHRASE").unwrap_or_else(|_| "Standalone Network ; February 2017".to_owned());
+    let network_id = xdr::Hash(Sha256::digest(network_passphrase.as_bytes()).into());
+    let preimage = xdr::HashIdPreimage::ContractId(xdr::HashIdPreimageContractId {
+        network_id,
+        contract_id_preimage: xdr::ContractIdPreimage::Asset(asset.clone()),
+    });
+    let preimage_xdr = preimage.to_xdr(xdr::Limits::none())?;
+    Ok(stellar_strkey::Contract(
+        Sha256::digest(preimage_xdr).into(),
+    ))
+}
+
+/// Generate the code to read the STELLAR_NETWORK environment variable
+/// and call the generate_asset_id function
+fn parse_asset_literal(lit_str: &syn::LitStr) -> TokenStream {
+    let asset_code = lit_str.value();
+    let asset_id = generate_asset_id(&asset_code).unwrap();
+    let asset_id_str = stellar_strkey::Contract(asset_id.0).to_string();
+    quote! {
+        pub(crate) mod #lit_str {
+            use soroban_sdk::Address;
+            let env = soroban_sdk::env();
+            let asset_address = Address::from_str(&env, #asset_id_str);
+            soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
+        }
+    }
+    .into()
+}
+
+
+/// Generates a contract Client for a given asset.
+/// It is expected that the name of an asset, e.g. "native" or "USDC:G1...."
+///
+/// # Panics
+///
+#[proc_macro]
+pub fn stellar_asset(input: TokenStream) -> TokenStream {
+    // Parse the input as a string literal
+    let input_str = syn::parse_macro_input!(input as syn::LitStr);
+    let asset = parse_asset_literal(&input_str);
+
+    // Return the generated code as a TokenStream
+    asset
 }
