@@ -10,7 +10,7 @@ Scaffold Stellar uses an `environments.toml` file to manage different deployment
 
 ```toml
 [development]
-network = { 
+network = {
     name = "local",                 # use local network
     run_locally = true              # start up the local docker container
 }
