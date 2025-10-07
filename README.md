@@ -96,9 +96,6 @@ stellar registry deploy \
   --wasm-name my-contract \
   -- \
   --help
-
-# Install the deployed contract locally for use with stellar-cli
-stellar registry install my-contract-instance
 ```
 
 ## Project Layout
@@ -140,7 +137,6 @@ Manage contract deployment and versions:
 ```
 stellar registry publish --wasm contract.wasm --wasm-name my-contract    # Publish contract to the registry
 stellar registry deploy --contract-name instance --wasm-name my-contract # Deploy a contract instance
-stellar registry install my-contract-instance                           # Install deployed contracts locally
 ```
 > Use `--help` on any command for usage instructions.
 
@@ -177,12 +173,7 @@ stellar registry deploy \
   --decimals 7
 ```
 
-### 3. Install the Deployed Contract
-```bash
-stellar registry install my-contract-instance
-```
-
-After installation, you can interact with the contract using `stellar-cli`:
+After deployment, you can interact with the contract using `stellar-cli`:
 ```bash
 stellar contract invoke --id my-contract-instance -- --help
 ```
@@ -200,7 +191,6 @@ The registry is an on-chain smart contract that lets you:
 The registry separates the concepts of:
 - **WASM publication**: Publishing reusable contract code
 - **Contract deployment**: Creating instances of published contracts
-- **Local installation**: Creating aliases for easy CLI access
 
 >This means your contracts can be upgraded, shared, and used like packages.
 
