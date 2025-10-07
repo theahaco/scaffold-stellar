@@ -1,5 +1,5 @@
 #![allow(non_upper_case_globals)]
-use crate::storage::DataKey;
+use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
@@ -28,9 +28,9 @@ pub struct DeployEventData {
 
 impl Contract {
     fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Contract(contract_name.clone()))
+        Storage::new(env)
+            .contract
+            .get(contract_name)
             .ok_or(Error::NoSuchContractDeployed)
     }
 
@@ -42,9 +42,9 @@ impl Contract {
     ) -> Result<Address, Error> {
         let name = canonicalize(name)?;
         let contract_id = Self::get(env, &name)?;
-        env.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Contract(name.clone()), MAX_BUMP, MAX_BUMP);
+        Storage::new(env)
+            .contract
+            .extend_ttl(&name, MAX_BUMP, MAX_BUMP);
         if let Ok(Ok(author)) = env.try_invoke_contract::<Address, Error>(
             &contract_id,
             &symbol_short!("admin"),
@@ -72,11 +72,8 @@ impl IsDeployable for Contract {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Address, Error> {
         let contract_name = canonicalize(&contract_name)?;
-        if env
-            .storage()
-            .persistent()
-            .has(&DataKey::Contract(contract_name.clone()))
-        {
+        let mut contract_map = Storage::new(env).contract;
+        if contract_map.has(&contract_name) {
             return Err(Error::AlreadyDeployed);
         }
         let str = soroban_sdk::String::from_str(env, REGISTRY);
@@ -90,9 +87,7 @@ impl IsDeployable for Contract {
         let salt: BytesN<32> = hash_string(env, &contract_name).into();
         let contract_id = deploy_and_init(env, salt, hash, init);
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::Contract(contract_name.clone()), &contract_id);
+        contract_map.set(&contract_name, &contract_id);
 
         let version = Self::get_version(env, &wasm_name, version)?;
         // Publish a deploy event

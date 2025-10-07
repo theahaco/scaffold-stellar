@@ -1,6 +1,6 @@
 #![no_std]
 
-use admin_sep::Administratable;
+use admin_sep::{Administratable, Upgradable};
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 pub mod error;
@@ -9,8 +9,6 @@ pub mod registry;
 mod util;
 pub mod version;
 
-#[cfg(target_family = "wasm")]
-mod alloc;
 mod storage;
 
 pub use error::Error;
@@ -20,6 +18,8 @@ pub struct Contract;
 
 #[contractimpl]
 impl Administratable for Contract {}
+#[contractimpl]
+impl Upgradable for Contract {}
 
 #[contractimpl]
 impl Contract {

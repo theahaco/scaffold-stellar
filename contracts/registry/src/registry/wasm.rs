@@ -1,4 +1,4 @@
-use crate::storage::DataKey;
+use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
@@ -33,33 +33,27 @@ pub struct HashMap;
 
 impl HashMap {
     pub fn add(env: &Env, hash: &BytesN<32>) {
-        env.storage().persistent().set(&hash, &());
+        Storage::new(env).hash.set(hash, &());
     }
 
     pub fn has(env: &Env, hash: &BytesN<32>) -> bool {
-        env.storage().persistent().has(hash)
+        Storage::new(env).hash.has(hash)
     }
 
     pub fn bump(env: &Env, hash: &BytesN<32>) {
-        env.storage()
-            .persistent()
-            .extend_ttl(hash, MAX_BUMP, MAX_BUMP);
+        Storage::new(env).hash.extend_ttl(hash, MAX_BUMP, MAX_BUMP);
     }
 }
 
 impl Contract {
     fn registry(env: &Env, name: &String) -> Result<PublishedWasm, Error> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Wasm(name.clone()))
+        Storage::new(env)
+            .wasm
+            .get(name)
             .ok_or(Error::NoSuchContractPublished)
     }
     pub fn most_recent_version(env: &Env, name: &String) -> Result<String, Error> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Wasm(name.clone()))
-            .map(|wasm: PublishedWasm| wasm.current_version)
-            .ok_or(Error::NoSuchContractPublished)
+        Ok(Self::registry(env, name)?.current_version)
     }
 
     pub fn get_version(env: &Env, name: &String, version: Option<String>) -> Result<String, Error> {
@@ -82,9 +76,7 @@ impl Contract {
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
         let registry = Self::registry(env, name)?;
-        env.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Wasm(name.clone()), MAX_BUMP, MAX_BUMP);
+        Storage::new(env).wasm.extend_ttl(name, MAX_BUMP, MAX_BUMP);
         let hash = registry.get_hash(version)?;
         HashMap::bump(env, &hash);
         Ok(hash)
@@ -97,20 +89,15 @@ impl Contract {
         binary: BytesN<32>,
         author: Address,
     ) -> Result<(), Error> {
-        let mut registry = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Wasm(name.clone()))
-            .unwrap_or_else(|| PublishedWasm {
-                versions: Map::new(env),
-                author,
-                current_version: version.clone(),
-            });
+        let mut storage = Storage::new(env);
+        let mut registry = storage.wasm.get(name).unwrap_or_else(|| PublishedWasm {
+            versions: Map::new(env),
+            author,
+            current_version: version.clone(),
+        });
         registry.versions.set(version.clone(), binary);
         registry.current_version = version;
-        env.storage()
-            .persistent()
-            .set(&DataKey::Wasm(name.clone()), &registry);
+        storage.wasm.set(&name, &registry);
         Ok(())
     }
 
