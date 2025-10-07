@@ -27,7 +27,7 @@ This command generates static content into the `build` directory and can be serv
 ## Deployment
 
 ```bash
-GIT_USER=<Your GitHub username> bun run deploy
+USE_SSH=true bun run deploy
 ```
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+We are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
