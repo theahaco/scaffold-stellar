@@ -25,6 +25,7 @@ const config: Config = {
   organizationName: 'theahaco', // Usually your GitHub org/user name.
   projectName: 'scaffold-stellar', // Usually your repo name.
   deploymentBranch: 'gh-pages',  // gh-pages
+  trailingSlash: false,
 
   onBrokenLinks: 'throw',
 
