@@ -9,7 +9,7 @@ on:
     branches: [main, release/**]
   pull_request:
     paths:
-      - '!website/**'
+      - '!docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

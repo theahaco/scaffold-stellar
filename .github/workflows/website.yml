@@ -1,4 +1,4 @@
-name: Linting website
+name: Linting docs
 
 permissions:
   contents: read
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'website/**'
+      - '../../docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -38,11 +38,11 @@ jobs:
             ${{ runner.os }}-bun-lint-
             ${{ runner.os }}-bun-
 
-      - name: Install website dependencies
-        run: cd website && bun install --frozen-lockfile
+      - name: Install docs dependencies
+        run: cd docs && bun install --frozen-lockfile
 
       - name: Check MDX
-        run: cd website && bun linter
+        run: cd docs && bun linter
 
-      - name: Build website
-        run: cd website && bun run build
+      - name: Build docs
+        run: cd docs && bun run build
