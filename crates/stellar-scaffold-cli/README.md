@@ -72,7 +72,7 @@ Projects use `environments.toml` to define network settings, accounts, and contr
 ```toml
 [development]
 network = { 
-    name = "standalone",
+    name = "local",
     run_locally = true
 }
 accounts = ["account1", "account2"]
