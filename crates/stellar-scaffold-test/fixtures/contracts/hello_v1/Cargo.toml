@@ -14,10 +14,8 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f" }
-admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "185888d67df52943b4478537bfe412cc2dc97e89" }
+soroban-sdk = { workspace = true }
+admin-sep = { workspace = true }
 
 [dev-dependencies]
-soroban-sdk = { git = "https://github.com/theahaco/rs-soroban-sdk", rev = "367e4efc2462c841b046aeac0dda8fcee05b790f", features = [
-    "testutils",
-] }
+soroban-sdk = { workspace = true, features = ["testutils"] }
