@@ -50,7 +50,7 @@ impl Contract {
         Storage::new(env)
             .wasm
             .get(name)
-            .ok_or(Error::NoSuchContractPublished)
+            .ok_or(Error::NoSuchWasmPublished)
     }
     pub fn most_recent_version(env: &Env, name: &String) -> Result<String, Error> {
         Ok(Self::registry(env, name)?.current_version)
@@ -59,7 +59,7 @@ impl Contract {
     pub fn get_version(env: &Env, name: &String, version: Option<String>) -> Result<String, Error> {
         version
             .or_else(|| Self::most_recent_version(env, name).ok())
-            .ok_or(Error::NoSuchContractPublished)
+            .ok_or(Error::NoSuchWasmPublished)
     }
 
     pub fn get_hash(
