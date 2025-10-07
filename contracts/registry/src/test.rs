@@ -19,7 +19,7 @@ stellar_registry::import_contract_client!(registry);
 
 // mod registry {
 //     use super::soroban_sdk;
-//     soroban_sdk::contractimport!(file = "../../../../target/stellar/registry.wasm");
+//     soroban_sdk::contractimport!(file = "../../../../target/stellar/local/registry.wasm");
 // }
 
 fn init() -> (SorobanContractClient<'static>, Address) {
