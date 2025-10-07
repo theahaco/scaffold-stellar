@@ -72,7 +72,7 @@ Note: Use `--` to separate CLI options from constructor function and arguments.
 Install a deployed contract as an alias to be used by `stellar-cli`:
 
 ```bash
-stellar registry install <CONTRACT_NAME>
+stellar registry create-alias <CONTRACT_NAME>
 ```
 
 Options:
@@ -126,7 +126,7 @@ stellar registry deploy \
 3. Install the deployed contract locally:
 
 ```bash
-stellar registry install my-token
+stellar registry create-alias my-token
 ```
 
 4. Use the installed contract with `stellar-cli`:

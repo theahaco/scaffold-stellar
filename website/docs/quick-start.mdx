@@ -79,7 +79,7 @@ stellar registry deploy \
   --help
 
 # Install the deployed contract locally for use with stellar-cli
-stellar registry install my-contract-instance
+stellar registry create-alias my-contract-instance
 ```
 
 ## Project Layout
@@ -123,7 +123,7 @@ stellar scaffold build
 ```
 stellar registry publish --wasm contract.wasm --wasm-name my-contract    # Publish contract to the registry
 stellar registry deploy --contract-name instance --wasm-name my-contract # Deploy a contract instance
-stellar registry install my-contract-instance                           # Install deployed contracts locally
+stellar registry create-alias my-contract-instance                       # Install deployed contracts locally
 ```
 
 > Use `--help` on any command for usage instructions.
@@ -167,7 +167,7 @@ stellar registry deploy \
 ### 3. Install the Deployed Contract
 
 ```bash
-stellar registry install my-contract-instance
+stellar registry create-alias my-contract-instance
 ```
 
 After installation, you can interact with the contract using `stellar-cli`:
