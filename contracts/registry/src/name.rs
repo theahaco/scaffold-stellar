@@ -1,4 +1,4 @@
-use loam_sdk::soroban_sdk::String;
+use soroban_sdk::String;
 
 use crate::error::Error;
 
