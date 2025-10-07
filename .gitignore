@@ -5,3 +5,4 @@ test_snapshots/
 .stellar/
 .vscode/
 .idea/
+.DS_Store

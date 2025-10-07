@@ -11,35 +11,32 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Build on Soroban Smart Contract',
+    Svg: require('@site/static/img/soroban-wordmark-temp.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Simple and power Soroban Smart Contract management.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: 'Smart Contract Tooling',
+    Svg: require('@site/static/img/tooling.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Use standard-redefining tools at all levels of the Stellar software stack, making it easier to build, test, and ship dapps.
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Best Practices',
+    Svg: require('@site/static/img/code_hero.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Write beautiful, maintainable and secure code from the get go.
       </>
     ),
-  },
+  }
 ];
 
 function Feature({title, Svg, description}: FeatureItem) {
