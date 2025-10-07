@@ -24,7 +24,7 @@ const config: Config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'theahaco', // Usually your GitHub org/user name.
   projectName: 'scaffold-stellar', // Usually your repo name.
-  deploymentBranch: 'main',  // gh-pages
+  deploymentBranch: 'gh-pages',  // gh-pages
 
   onBrokenLinks: 'throw',
 
