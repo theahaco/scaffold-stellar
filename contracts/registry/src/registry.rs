@@ -78,4 +78,3 @@ pub trait IsRedeployable {
         upgrade_fn: Option<soroban_sdk::Symbol>,
     ) -> Result<soroban_sdk::Address, Error>;
 }
-

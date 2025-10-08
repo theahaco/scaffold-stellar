@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, BytesN, String, contractevent};
+use soroban_sdk::{contractevent, Address, BytesN, String};
 
 // Define the event using the `contractevent` attribute macro.
 #[contractevent(topics = ["deploy"])]
