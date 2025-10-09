@@ -60,7 +60,7 @@ pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
         pub(crate) mod #mod_name {
             use super::*;
             pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                let asset_address = Address::from_str(&env, #contract_id);
+                let asset_address = soroban_sdk::Address::from_str(&env, #contract_id);
                 soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
             }
         }
@@ -126,9 +126,11 @@ mod test {
     fn native_client() {
         let lit: syn::LitStr = syn::parse_quote!("native");
         let expected = quote! {
+            #[allow (non_upper_case_globals)]
             pub(crate) mod native {
+                use super::*;
                 pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
+                    let asset_address = soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
                     soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
                 }
             }
@@ -141,9 +143,11 @@ mod test {
     fn xlm_client() {
         let lit: syn::LitStr = syn::parse_quote!("xlm");
         let expected = quote! {
+            #[allow (non_upper_case_globals)]
             pub(crate) mod xlm {
+                use super::*;
                 pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
+                    let asset_address = soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
                     soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
                 }
             }
@@ -157,9 +161,11 @@ mod test {
         let lit: syn::LitStr =
             syn::parse_quote!("USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN");
         let expected = quote! {
+            #[allow (non_upper_case_globals)]
             pub(crate) mod USDC {
+                use super::*;
                 pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = Address::from_str(&env, "CA2E53VHFZ6YSWQIEIPBXJQGT6VW3VKWWZO555XKRQXYJ63GEBJJGHY7");
+                    let asset_address = soroban_sdk::Address::from_str(&env, "CA2E53VHFZ6YSWQIEIPBXJQGT6VW3VKWWZO555XKRQXYJ63GEBJJGHY7");
                     soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
                 }
             }

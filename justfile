@@ -44,7 +44,7 @@ build-cli-test-contracts:
 test: build
     cargo nextest run -E 'package(stellar-scaffold-cli)' 
     cargo nextest run -E 'package(stellar-registry-cli)'
-    cd contracts/registry && cargo nextest run
+    cargo nextest run
 
 test-integration: build-cli-test-contracts
     cargo nextest run --verbose --package stellar-scaffold-cli --features integration-tests --no-run
