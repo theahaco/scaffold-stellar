@@ -42,7 +42,7 @@ impl Network {
     pub fn from_env() -> Self {
         std::env::var("STELLAR_NETWORK")
             .as_deref()
-            .unwrap_or_else(|_| "local")
+            .unwrap_or("local")
             .parse()
             .unwrap_or_default()
     }

@@ -36,7 +36,7 @@ pub fn generate_asset_id(
     network: &Network,
 ) -> Result<(stellar_strkey::Contract, String), xdr::Error> {
     let (asset, code) = parse_asset(asset).unwrap();
-    let network_id = xdr::Hash(network.id().into());
+    let network_id = xdr::Hash(network.id());
     let preimage = xdr::HashIdPreimage::ContractId(xdr::HashIdPreimageContractId {
         network_id,
         contract_id_preimage: xdr::ContractIdPreimage::Asset(asset.clone()),
@@ -48,8 +48,8 @@ pub fn generate_asset_id(
     ))
 }
 
-/// Generate the code to read the STELLAR_NETWORK environment variable
-/// and call the generate_asset_id function
+/// Generate the code to read the `STELLAR_NETWORK` environment variable
+/// and call the `generate_asset_id` function
 pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
     let (contract_id, code) = generate_asset_id(&lit_str.value(), network).unwrap();
     // let contract_id = format_ident!("\"{contract_id}\"");
