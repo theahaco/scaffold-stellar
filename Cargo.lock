@@ -5957,6 +5957,7 @@ name = "stellar-build"
 version = "0.0.3"
 dependencies = [
  "cargo_metadata",
+ "sha2 0.10.9",
  "thiserror 1.0.69",
  "topological-sort",
 ]
