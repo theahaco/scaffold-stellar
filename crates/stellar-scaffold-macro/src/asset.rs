@@ -56,7 +56,9 @@ pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
     let contract_id = contract_id.to_string();
     let mod_name = format_ident!("{code}");
     quote! {
+        #[allow(non_upper_case_globals)]
         pub(crate) mod #mod_name {
+            use super::*;
             pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
                 let asset_address = Address::from_str(&env, #contract_id);
                 soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
