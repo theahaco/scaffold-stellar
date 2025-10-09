@@ -2,8 +2,8 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use stellar_build::Network;
 use std::env;
+use stellar_build::Network;
 
 mod asset;
 

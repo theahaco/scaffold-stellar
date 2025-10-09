@@ -154,7 +154,8 @@ mod test {
 
     #[test]
     fn usdc_client() {
-        let lit: syn::LitStr = syn::parse_quote!("USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN");
+        let lit: syn::LitStr =
+            syn::parse_quote!("USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN");
         let expected = quote! {
             pub(crate) mod USDC {
                 pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
