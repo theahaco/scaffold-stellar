@@ -52,7 +52,7 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
 /// # Panics
 ///
 #[proc_macro]
-pub fn stellar_asset(input: TokenStream) -> TokenStream {
+pub fn import_asset(input: TokenStream) -> TokenStream {
     // Parse the input as a string literal
     let input_str = syn::parse_macro_input!(input as syn::LitStr);
     asset::parse_literal(&input_str, &Network::passphrase_from_env()).into()
