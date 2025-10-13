@@ -11,7 +11,7 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Build on Soroban Smart Contract',
+    title: 'Build on Stellar Smart Contract',
     Svg: require('@site/static/img/soroban-wordmark-temp.svg').default,
     description: (
       <>
