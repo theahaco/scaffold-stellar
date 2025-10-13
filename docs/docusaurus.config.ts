@@ -86,7 +86,8 @@ const config: Config = {
       },
     ],
     colorMode: {
-      respectPrefersColorScheme: true,
+      defaultMode: 'light',
+      disableSwitch: true,
     },
     navbar: {
       title: 'Scaffold Stellar',
