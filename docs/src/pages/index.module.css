@@ -16,8 +16,125 @@
   }
 }
 
+.installCommand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 2rem 0;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.installCommand:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.commandText {
+  flex: 1;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+  text-align: center;
+}
+
+.commandText code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  border: none;
+  border-radius: 0;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.copyButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.copyButton:active {
+  transform: scale(0.95);
+}
+
+.copyButton.copied {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.copyButton.copied:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
 .buttons {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media screen and (max-width: 996px) {
+  .installCommand {
+    margin: 1.5rem 0;
+    padding: 12px 16px;
+    max-width: 100%;
+  }
+  
+  .commandText {
+    font-size: 14px;
+  }
+  
+  .copyButton {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .installCommand {
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+  }
+  
+  .commandText {
+    font-size: 13px;
+    word-break: break-all;
+  }
+  
+  .copyButton {
+    width: 32px;
+    height: 32px;
+  }
 }
