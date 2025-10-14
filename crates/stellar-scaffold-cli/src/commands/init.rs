@@ -79,7 +79,11 @@ impl Cmd {
         copy(example_path, env_path)?;
 
         // If git is installed, run init and make initial commit
-        self.git_commit(&absolute_project_path);
+        if git_exists() {
+            git_init(&absolute_project_path);
+            git_add(&absolute_project_path, &["-A"]);
+            git_commit(&absolute_project_path, "initial commit");
+        }
 
         // Update the project with the latest OpenZeppelin examples
         self.update_oz_example(
@@ -93,31 +97,6 @@ impl Cmd {
 
         printer.checkln(format!("Project successfully created at {project_str}"));
         Ok(())
-    }
-
-    fn git_commit(&self, absolute_project_path: &PathBuf) {
-        // See if git is installed
-        if Command::new("git").arg("--version").output().is_err() {
-            return;
-        }
-
-        // Run git init
-        let _ = Command::new("git")
-            .arg("init")
-            .current_dir(absolute_project_path)
-            .output();
-
-        // Add all files to staging
-        let _ = Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(absolute_project_path)
-            .output();
-
-        // Make first commit with message
-        let _ = Command::new("git")
-            .args(["commit", "-m", "initial commit"])
-            .current_dir(absolute_project_path)
-            .output();
     }
 
     async fn update_oz_example(
@@ -155,4 +134,29 @@ impl Cmd {
         env::set_current_dir(original_dir)?;
         Ok(())
     }
+}
+
+// Check if git is installed and exists in PATH
+fn git_exists() -> bool {
+    Command::new("git").arg("--version").output().is_err()
+}
+
+// Initialize a new git repository
+fn git_init(path: &PathBuf) {
+    let _ = Command::new("git").arg("init").current_dir(path).output();
+}
+
+// Stage files for commit
+fn git_add(path: &PathBuf, rest: &[&str]) {
+    let mut args = vec!["add"];
+    args.extend_from_slice(rest);
+    let _ = Command::new("git").args(args).current_dir(path).output();
+}
+
+// Commit with message
+fn git_commit(path: &PathBuf, message: &str) {
+    let _ = Command::new("git")
+        .args(["commit", "-m", message])
+        .current_dir(path)
+        .output();
 }
