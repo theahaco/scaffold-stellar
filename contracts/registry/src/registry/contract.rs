@@ -1,4 +1,5 @@
 #![allow(non_upper_case_globals)]
+use crate::name;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
@@ -11,11 +12,11 @@ use soroban_sdk::{
 use crate::{
     error::Error,
     name::canonicalize,
-    util::{hash_string, MAX_BUMP, REGISTRY},
+    util::{hash_string, MAX_BUMP},
     Contract,
 };
 
-use super::{IsDeployable, IsRedeployable};
+use super::{Deployable, Redeployable};
 
 impl Contract {
     fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
@@ -53,7 +54,7 @@ impl Contract {
 }
 
 #[contractimpl]
-impl IsDeployable for Contract {
+impl Deployable for Contract {
     fn deploy(
         env: &Env,
         wasm_name: String,
@@ -67,8 +68,7 @@ impl IsDeployable for Contract {
         if contract_map.has(&contract_name) {
             return Err(Error::AlreadyDeployed);
         }
-        let str = soroban_sdk::String::from_str(env, REGISTRY);
-        if contract_name == str {
+        if contract_name == name::registry(env) {
             assert_with_error!(env, Self::admin(env) == admin, Error::AdminOnly);
         }
         // signed by admin
@@ -115,7 +115,7 @@ fn deploy_and_init(
 }
 
 #[contractimpl]
-impl IsRedeployable for Contract {
+impl Redeployable for Contract {
     fn dev_deploy(
         env: &Env,
         name: soroban_sdk::String,
