@@ -59,9 +59,17 @@ pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
         #[allow(non_upper_case_globals)]
         pub(crate) mod #mod_name {
             use super::*;
-            pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                let asset_address = soroban_sdk::Address::from_str(&env, #contract_id);
-                soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
+            /// Contract id for the Stellar Asset Contract
+            pub fn contract_id(env: &soroban_sdk::Env) -> soroban_sdk::Address {
+                soroban_sdk::Address::from_str(&env, #contract_id)
+            }
+            /// Create a Stellar Asset Client for the asset which provides an admin interface
+            pub fn stellar_asset_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
+                soroban_sdk::token::StellarAssetClient::new(&env, &contract_id(env))
+            }
+            /// Create a Stellar Asset Client for the asset which provides an admin interface
+            pub fn token_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::TokenClient<'a> {
+                soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
             }
         }
     }
@@ -129,9 +137,17 @@ mod test {
             #[allow (non_upper_case_globals)]
             pub(crate) mod native {
                 use super::*;
-                pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
-                    soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
+                /// Contract id for the Stellar Asset Contract
+                pub fn contract_id(env: &soroban_sdk::Env) -> soroban_sdk::Address {
+                    soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC")
+                }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn stellar_asset_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
+                    soroban_sdk::token::StellarAssetClient::new(&env, &contract_id(env))
+                }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn token_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::TokenClient<'a> {
+                    soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
                 }
             }
         };
@@ -146,10 +162,19 @@ mod test {
             #[allow (non_upper_case_globals)]
             pub(crate) mod xlm {
                 use super::*;
-                pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
-                    soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
+                /// Contract id for the Stellar Asset Contract
+                pub fn contract_id(env: &soroban_sdk::Env) -> soroban_sdk::Address {
+                    soroban_sdk::Address::from_str(&env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC")
                 }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn stellar_asset_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
+                    soroban_sdk::token::StellarAssetClient::new(&env, &contract_id(env))
+                }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn token_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::TokenClient<'a> {
+                    soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
+                }
+
             }
         };
         let generated = parse_literal(&lit, &Network::Testnet);
@@ -164,10 +189,19 @@ mod test {
             #[allow (non_upper_case_globals)]
             pub(crate) mod USDC {
                 use super::*;
-                pub fn client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
-                    let asset_address = soroban_sdk::Address::from_str(&env, "CA2E53VHFZ6YSWQIEIPBXJQGT6VW3VKWWZO555XKRQXYJ63GEBJJGHY7");
-                    soroban_sdk::token::StellarAssetClient::new(&env, &asset_address)
+                /// Contract id for the Stellar Asset Contract
+                pub fn contract_id(env: &soroban_sdk::Env) -> soroban_sdk::Address {
+                    soroban_sdk::Address::from_str(&env, "CA2E53VHFZ6YSWQIEIPBXJQGT6VW3VKWWZO555XKRQXYJ63GEBJJGHY7")
                 }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn stellar_asset_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::StellarAssetClient<'a> {
+                    soroban_sdk::token::StellarAssetClient::new(&env, &contract_id(env))
+                }
+                /// Create a Stellar Asset Client for the asset which provides an admin interface
+                pub fn token_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::TokenClient<'a> {
+                    soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
+                }
+
             }
         };
         let generated = parse_literal(&lit, &Network::Testnet);
