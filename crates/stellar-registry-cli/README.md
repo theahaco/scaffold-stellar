@@ -167,5 +167,5 @@ Publishing and deploying are exactly the same as other networks, except now you 
 
 ## See Also
 
-- [Registry Guide](../../docs/docs/registry.md) - Detailed guide on using the registry system
-- [Environment Configuration](../../docs/docs/environments.md) - Configuration details for different networks
+- [Registry Guide](../../website/docs/registry.md) - Detailed guide on using the registry system
+- [Environment Configuration](../../website/docs/environments.md) - Configuration details for different networks
