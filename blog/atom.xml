@@ -9,8 +9,8 @@
     <icon>https://scaffoldstellar.com/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Welcome to Scaffold Stellar]]></title>
-        <id>https://scaffoldstellar.com/blog/hello-soroban</id>
-        <link href="https://scaffoldstellar.com/blog/hello-soroban"/>
+        <id>https://scaffoldstellar.com/blog/hello-stellar</id>
+        <link href="https://scaffoldstellar.com/blog/hello-stellar"/>
         <updated>2025-10-07T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[We have a website!]]></summary>
         <content type="html"><![CDATA[<p>We have a website!</p>
