@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?><?xml-stylesheet type="text/xsl" href="atom.xsl"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://theahaco.github.io/scaffold-stellar/blog</id>
+    <id>https://theahaco.github.io/blog</id>
     <title>Scaffold Stellar Blog</title>
     <updated>2025-10-07T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://theahaco.github.io/scaffold-stellar/blog"/>
+    <link rel="alternate" href="https://theahaco.github.io/blog"/>
     <subtitle>Scaffold Stellar Blog</subtitle>
-    <icon>https://theahaco.github.io/scaffold-stellar/img/favicon.ico</icon>
+    <icon>https://theahaco.github.io/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Welcome to Scaffold Stellar]]></title>
-        <id>https://theahaco.github.io/scaffold-stellar/blog/hello-soroban</id>
-        <link href="https://theahaco.github.io/scaffold-stellar/blog/hello-soroban"/>
+        <id>https://theahaco.github.io/blog/hello-stellar</id>
+        <link href="https://theahaco.github.io/blog/hello-stellar"/>
         <updated>2025-10-07T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[We have a website!]]></summary>
         <content type="html"><![CDATA[<p>We have a website!</p>

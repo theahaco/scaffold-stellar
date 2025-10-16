@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkscaffold_stellar=self.webpackChunkscaffold_stellar||[]).push([[472],{5513:e=>{e.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Welcome to Scaffold Stellar","permalink":"/scaffold-stellar/blog/hello-soroban","unlisted":false,"date":"2025-10-07T00:00:00.000Z"}]}')}}]);

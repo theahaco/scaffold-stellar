@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
     <channel>
         <title>Scaffold Stellar Blog</title>
-        <link>https://theahaco.github.io/scaffold-stellar/blog</link>
+        <link>https://theahaco.github.io/blog</link>
         <description>Scaffold Stellar Blog</description>
         <lastBuildDate>Tue, 07 Oct 2025 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
@@ -10,8 +10,8 @@
         <language>en</language>
         <item>
             <title><![CDATA[Welcome to Scaffold Stellar]]></title>
-            <link>https://theahaco.github.io/scaffold-stellar/blog/hello-soroban</link>
-            <guid>https://theahaco.github.io/scaffold-stellar/blog/hello-soroban</guid>
+            <link>https://theahaco.github.io/blog/hello-stellar</link>
+            <guid>https://theahaco.github.io/blog/hello-stellar</guid>
             <pubDate>Tue, 07 Oct 2025 00:00:00 GMT</pubDate>
             <description><![CDATA[We have a website!]]></description>
             <content:encoded><![CDATA[<p>We have a website!</p>

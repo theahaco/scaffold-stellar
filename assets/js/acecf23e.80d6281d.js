@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkscaffold_stellar=self.webpackChunkscaffold_stellar||[]).push([[903],{1912:l=>{l.exports=JSON.parse('{"blogBasePath":"/scaffold-stellar/blog","blogTitle":"Blog","authorsListPath":"/scaffold-stellar/blog/authors"}')}}]);
