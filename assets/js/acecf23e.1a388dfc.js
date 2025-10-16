@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkscaffold_stellar=globalThis.webpackChunkscaffold_stellar||[]).push([[903],{1912:l=>{l.exports=JSON.parse('{"blogBasePath":"/blog","blogTitle":"Blog","authorsListPath":"/blog/authors"}')}}]);

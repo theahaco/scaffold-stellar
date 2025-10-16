@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkscaffold_stellar=globalThis.webpackChunkscaffold_stellar||[]).push([[472],{5513:l=>{l.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"Welcome to Scaffold Stellar","permalink":"/blog/hello-stellar","unlisted":false,"date":"2025-10-07T00:00:00.000Z"}]}')}}]);

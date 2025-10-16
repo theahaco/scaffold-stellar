@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkscaffold_stellar=globalThis.webpackChunkscaffold_stellar||[]).push([[146],{9328:l=>{l.exports=JSON.parse('{"metadata":{"permalink":"/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":1,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
