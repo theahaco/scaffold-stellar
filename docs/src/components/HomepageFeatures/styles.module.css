@@ -1,11 +1,98 @@
 .features {
   display: flex;
   align-items: center;
-  padding: 2rem 0;
+  padding: 4rem 0;
   width: 100%;
+  background: rgba(51, 101, 160, 0.03);
+  position: relative;
+}
+
+
+.features > * {
+  position: relative;
+  z-index: 2;
+}
+
+[data-theme='dark'] .features {
+  background: rgba(167, 139, 250, 0.05);
 }
 
 .featureSvg {
   height: 200px;
   width: 200px;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.featureSvg:hover {
+  transform: scale(1.05) rotate(5deg);
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+}
+
+[data-theme='dark'] .featureSvg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+[data-theme='dark'] .featureSvg:hover {
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+}
+
+/* Add colorful backgrounds to feature cards */
+.features .col {
+  transition: all 0.3s ease;
+}
+
+.features .col:hover {
+  transform: translateY(-8px);
+}
+
+.features .col:nth-child(1) .text--center {
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  margin: 1rem;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  transition: all 0.3s ease;
+}
+
+.features .col:nth-child(2) .text--center {
+  background: rgba(20, 184, 166, 0.08);
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  margin: 1rem;
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  transition: all 0.3s ease;
+}
+
+.features .col:nth-child(3) .text--center {
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 16px;
+  padding: 2rem 1rem;
+  margin: 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  transition: all 0.3s ease;
+}
+
+.features .col:hover .text--center {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+[data-theme='dark'] .features .col:nth-child(1) .text--center {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.35);
+}
+
+[data-theme='dark'] .features .col:nth-child(2) .text--center {
+  background: rgba(94, 234, 212, 0.12);
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+[data-theme='dark'] .features .col:nth-child(3) .text--center {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+[data-theme='dark'] .features .col:hover .text--center {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }

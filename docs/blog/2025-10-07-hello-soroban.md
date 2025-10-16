@@ -1,5 +1,5 @@
 ---
-slug: hello-soroban
+slug: hello-stellar
 title: Welcome to Scaffold Stellar
 authors: [tupui]
 tags: [scaffold, official]

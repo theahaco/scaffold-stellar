@@ -11,11 +11,11 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Build with Stellar Smart Contract',
-    Svg: require('@site/static/img/soroban-wordmark-temp.svg').default,
+    title: 'Build with Stellar Smart Contracts',
+    Svg: require('@site/static/img/stellar.svg').default,
     description: (
       <>
-        Simple and power Stellar Smart Contract management on the Soroban platform.
+        Simple and power Stellar Smart Contract management.
       </>
     ),
   },

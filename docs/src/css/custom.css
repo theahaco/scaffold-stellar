@@ -13,18 +13,36 @@
   --ifm-color-primary-light: #386fb0;
   --ifm-color-primary-lighter: #3b74b8;
   --ifm-color-primary-lightest: #4c84c6;
-    --ifm-code-font-size: 95%;
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  
+  /* Custom accent colors */
+  --accent-purple: #8b5cf6;
+  --accent-teal: #14b8a6;
+  --accent-orange: #f59e0b;
+  --accent-blue: #3b82f6;
+  
+  /* Hero background */
+  --hero-bg: #3365a0;
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #d9d0dc;
-  --ifm-color-primary-dark: #c5b7ca;
-  --ifm-color-primary-darker: #bbabc1;
-  --ifm-color-primary-darkest: #9d86a5;
-  --ifm-color-primary-light: #ede9ee;
-  --ifm-color-primary-lighter: #f7f5f7;
-  --ifm-color-primary-lightest: #ffffff;
-    --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #a78bfa;
+  --ifm-color-primary-dark: #8b5cf6;
+  --ifm-color-primary-darker: #7c3aed;
+  --ifm-color-primary-darkest: #6d28d9;
+  --ifm-color-primary-light: #c4b5fd;
+  --ifm-color-primary-lighter: #ddd6fe;
+  --ifm-color-primary-lightest: #ede9fe;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  
+  /* Dark mode accent colors */
+  --accent-purple: #a78bfa;
+  --accent-teal: #5eead4;
+  --accent-orange: #fbbf24;
+  --accent-blue: #60a5fa;
+  
+  /* Dark mode hero background */
+  --hero-bg: #1a1a2e;
 }
