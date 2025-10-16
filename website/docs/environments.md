@@ -1,3 +1,7 @@
+---
+sidebar_position: 4
+---
+
 # Environment Configuration
 
 Scaffold Stellar uses an `environments.toml` file to manage different deployment environments and contract configurations.
@@ -6,19 +10,19 @@ Scaffold Stellar uses an `environments.toml` file to manage different deployment
 
 ```toml
 [development]
-network = { 
+network = {
     name = "local",                 # use local network
     run_locally = true              # start up the local docker container
-}  
+}
 accounts = ["account1", "account2"] # Account aliases to create
 
 [staging]
-network = { 
+network = {
     name = "testnet",               # Use Stellar testnet
 }
 
 [production]
-network = { 
+network = {
     name = "mainnet",               # Use Stellar mainnet
 }
 ```
@@ -70,27 +74,34 @@ client = true                      # Generate TypeScript client
 ### Configuration Options
 
 #### `client` (boolean, default: true)
+
 - Controls whether a TypeScript client package is generated for this contract
 - Set to `false` to skip client generation for utility contracts
+
 ```toml
 [development.contracts.my_contract]
 client = false  # Skip TypeScript client generation
 ```
 
 #### `id` (string, optional)
+
 - Specifies a fixed contract ID for the contract
 - Required in production/staging environments
 - Must be a valid Stellar contract ID
+
 ```toml
 [production.contracts.my_contract]
 id = "C..."  # Use specific contract ID
 ```
+
 #### `constructor_args` (string, optional)
+
 - Arguments passed to contract constructor during deployment
 - Executes as part of the deployment transaction
 - Single line of space-separated arguments
 - Can use `STELLAR_ACCOUNT=<alias>` to specify the deployer account
 - Supports command substitution with `$(command)`
+
 ```toml
 [development.contracts.my_contract]
 constructor_args = "--arg1 1000 --account $(stellar keys address admin)"  # Basic args
@@ -103,11 +114,13 @@ constructor_args = "--account1 $(stellar keys address user1) --account2 $(stella
 ```
 
 #### `after_deploy` (string, optional)
+
 - Initialization script to run after contract deployment
 - Only runs in development/testing environments
 - Supports multiple commands on separate lines
 - Can use `STELLAR_ACCOUNT=<alias>` to specify the source account
 - Supports command substitution with `$(command)`
+
 ```toml
 [development.contracts.my_contract]
 after_deploy = """
@@ -165,10 +178,10 @@ client = true
 after_deploy = """
     # Set up admin
     STELLAR_ACCOUNT=admin set_admin_account --account "$(stellar keys address admin)"
-    
+
     # Configure fees
     STELLAR_ACCOUNT=admin set_fee_rate --rate 250
-    
+
     # Add initial listing
     STELLAR_ACCOUNT=seller create_listing --name "Item A" --price 1000
 """
