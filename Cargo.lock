@@ -6085,7 +6085,7 @@ dependencies = [
  "stellar-rpc-client",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.13",
- "stellar-xdr 23.0.0",
+ "stellar-xdr 24.0.0",
  "strsim 0.11.1",
  "symlink",
  "tar",
@@ -6111,7 +6111,7 @@ dependencies = [
  "sha2 0.10.9",
  "stellar-build",
  "stellar-strkey 0.0.13",
- "stellar-xdr 23.0.0",
+ "stellar-xdr 24.0.0",
  "syn 2.0.100",
 ]
 
@@ -6213,6 +6213,21 @@ dependencies = [
  "sha2 0.10.9",
  "stellar-strkey 0.0.13",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "stellar-xdr"
+version = "24.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ceec163a64a9ed03359dab3b73ca556251020edc0103bae7073a38eb1708ab5"
+dependencies = [
+ "cfg_eval",
+ "crate-git-revision",
+ "escape-bytes",
+ "ethnum",
+ "hex",
+ "sha2 0.10.9",
+ "stellar-strkey 0.0.13",
 ]
 
 [[package]]

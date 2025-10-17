@@ -21,7 +21,7 @@ soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
 soroban-spec-tools = "23.1.2"
 
 soroban-sdk = "23.0.2"
-stellar-xdr = "23.0.0"
+stellar-xdr = "24.0.0"
 stellar-strkey = "0.0.13"
 
 cargo_metadata = "0.18.1"
