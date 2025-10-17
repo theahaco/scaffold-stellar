@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+    working-directory: ./website
+
 jobs:
   website-docs:
     runs-on: ubuntu-latest
@@ -20,29 +25,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Get Bun cache directory
-        id: bun-cache-dir
-        run: echo "dir=$(bun pm cache)" >> ${GITHUB_OUTPUT}
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
+      - uses: actions/setup-node@v6
         with:
-          path: |
-            ${{ steps.bun-cache-dir.outputs.dir }}
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-lint-${{ hashFiles('**/bun.lockb', '**/package.json', '**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-lint-
-            ${{ runner.os }}-bun-
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: './website/package-lock.json'
 
-      - name: Install website dependencies
-        run: cd website && bun install --frozen-lockfile
+      - name: Install dependencies
+        run: npm ci
 
       - name: Check MDX
-        run: cd website && bun linter
+        run: npm run linter
 
       - name: Build website
-        run: cd website && bun run build
+        run: npm run build
