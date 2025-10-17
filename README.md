@@ -51,7 +51,7 @@ cargo install stellar-scaffold-cli
 
 The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.
 
-> We recommend the use of [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) to install pre-compiled binaries. 
+> We recommend the use of [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) to install pre-compiled binaries.
 
 ### 2. Create a New Project
 ```
@@ -60,10 +60,6 @@ cd my-project
 ```
 
 ### 3. Configure Your Frontend Environment
-```
-# Copy and configure environment variables for the frontend
-cp .env.example .env
-```
 
 Edit `.env` with your preferred network, and other settings.
 
@@ -89,7 +85,7 @@ stellar registry deploy \
   --wasm-name my-contract \
   -- \
   --param1 value1
-  
+
 # Can access the help docs for constructor parameters
 stellar registry deploy \
   --contract-name my-contract-instance \
@@ -210,7 +206,7 @@ Your repo contains the following key folders:
 
 |Folder	| Purpose |
 |-------|---------|
-|`.cargo/`, `.config/`	| Rust and build settings| 
+|`.cargo/`, `.config/`	| Rust and build settings|
 |`contracts/` |	Example smart contracts|
 |`crates/`|	Internal Rust libraries and helpers|
 |`docs/`|	Documentation files|
@@ -220,10 +216,10 @@ Your repo contains the following key folders:
 
 ---
 
-## Documentation 
-* [CLI Commands](https://github.com/theahaco/scaffold-stellar/blob/main/docs/cli.md)
-* [Environment Setup](https://github.com/theahaco/scaffold-stellar/blob/main/docs/environments.md)
-* [Registry Guide](https://github.com/theahaco/scaffold-stellar/blob/main/docs/registry.md)
+## Documentation
+* [CLI Commands](https://scaffoldstellar.com/docs/cli)
+* [Environment Setup](https://scaffoldstellar.com/docs/environments)
+* [Registry Guide](https://scaffoldstellar.com/docs/registry)
 
 ---
 ## Additional Developer Resources
@@ -252,5 +248,5 @@ Search [DeepWiki](https://deepwiki.org/)
 
 Or just open an issue — we're happy to help!
 
-Happy hacking! 
+Happy hacking!
 ---
