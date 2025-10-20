@@ -204,23 +204,19 @@ impl Builder {
             .get_contract_id(name, &network.network_passphrase)
     }
 
-    fn global_args_ref(&self) -> Option<&stellar_cli::commands::global::Args> {
-        Some(&self.global_args)
-    }
-
     async fn get_contract_hash(
         &self,
         contract_id: &Contract,
         network: &network::Network,
     ) -> Result<Option<String>, Error> {
-        let result = cli::contract::fetch::Cmd {
-            contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
-            out_file: None,
-            locator: self.get_config_locator().clone(),
-            network: to_args(network),
-        }
-        .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
-        .await;
+        let result = self
+            .run_against_rpc_server(cli::contract::fetch::Cmd {
+                contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
+                out_file: None,
+                locator: self.get_config_locator().clone(),
+                network: to_args(network),
+            })
+            .await;
 
         match result {
             Ok(result) => {
@@ -289,7 +285,7 @@ export default new Client.Client({{
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
         let source = self.resolved_source_account().await?.to_string();
-        cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
+        self.run_against_rpc_server(cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--source",
             &source,
             "--contract-id",
@@ -301,8 +297,7 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
-        ])?
-        .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
+        ])?)
         .await?;
 
         // Run `npm i` in the temp directory
@@ -686,8 +681,8 @@ export default new Client.Client({{
                 .expect("we do not support non-utf8 paths"),
         ])?;
         eprintln!("{:#?}", cmd.config.get_network().unwrap());
-        let hash = cmd
-            .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
+        let hash = self
+            .run_against_rpc_server(cmd)
             .await?
             .into_result()
             .expect("no hash returned by 'contract upload'")
@@ -757,8 +752,10 @@ export default new Client.Client({{
             .iter()
             .map(std::string::String::as_str)
             .collect();
-        let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?
-            .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
+        let contract_id = self
+            .run_against_rpc_server(cli::contract::deploy::wasm::Cmd::parse_arg_vec(
+                &deploy_arg_refs,
+            )?)
             .await?
             .into_result()
             .expect("no contract id returned by 'contract deploy'");
@@ -812,8 +809,7 @@ export default new Client.Client({{
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
         }?;
         printer.infoln(format!("Upgrading {name:?} smart contract"));
-        invoke_cmd
-            .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
+        self.run_against_rpc_server(invoke_cmd)
             .await?
             .into_result()
             .expect("no result returned by 'contract invoke'");
@@ -901,8 +897,8 @@ export default new Client.Client({{
                 "  ↳ Executing: stellar contract invoke {}",
                 args.join(" ")
             ));
-            let result = cli::contract::invoke::Cmd::parse_arg_vec(&args)?
-                .run_against_rpc_server(self.global_args_ref(), Some(&self.config()))
+            let result = self
+                .run_against_rpc_server(cli::contract::invoke::Cmd::parse_arg_vec(&args)?)
                 .await?;
             printer.infoln(format!("  ↳ Result: {result:?}"));
         }
@@ -918,6 +914,15 @@ export default new Client.Client({{
             .resolve_muxed_account(self.get_config_locator(), None)
             .await?)
     }
+
+    pub async fn run_against_rpc_server<T: NetworkRunnable>(
+        &self,
+        rpc_runner: T,
+    ) -> Result<T::Result, T::Error> {
+        rpc_runner
+            .run_against_rpc_server(Some(&self.global_args), Some(&self.config()))
+            .await
+    }
 }
 
 impl Args {
@@ -930,7 +935,7 @@ impl Args {
             .workspace_root
             .as_ref()
             .expect("workspace_root must be set before running");
-        let env = self.env.clone().unwrap_or(ScaffoldEnv::Development);
+        let env = self.env.unwrap_or(ScaffoldEnv::Development);
         let global_args = self.global_args.clone().unwrap_or_default();
 
         let Some(current_env) = env_toml::Environment::get(workspace_root, &env)? else {
