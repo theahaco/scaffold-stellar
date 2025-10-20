@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.14](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.13...stellar-scaffold-cli-v0.0.14) - 2025-10-20
+
+### Added
+
+- add network in target wasm path ([#213](https://github.com/theahaco/scaffold-stellar/pull/213))
+
+### Other
+
+- recommend to use --locked when installing binary crates ([#235](https://github.com/theahaco/scaffold-stellar/pull/235))
+- Copy .env and Run git init  ([#216](https://github.com/theahaco/scaffold-stellar/pull/216))
+- *(stellar-registry-cli)* release v0.0.12 ([#208](https://github.com/theahaco/scaffold-stellar/pull/208))
+
 ## [0.0.13](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.12...stellar-scaffold-cli-v0.0.13) - 2025-10-03
 
 ### Fixed
