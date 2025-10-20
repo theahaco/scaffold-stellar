@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
+use std::env;
 use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
@@ -18,6 +19,7 @@ use stellar_cli::{
         self as contract_spec, fetch, Args as FetchArgs, Error as FetchError,
     },
     commands::NetworkRunnable,
+    config::network,
     print::Print,
     utils::contract_hash,
     utils::contract_spec::Spec,
@@ -140,20 +142,14 @@ impl Args {
         else {
             return Ok(());
         };
-
-        self.add_network_to_env(&current_env.network)?;
-        // Create the '.config' directory if it doesn't exist
-        std::fs::create_dir_all(workspace_root.join(".config/stellar"))
-            .map_err(stellar_cli::config::locator::Error::Io)?;
-        self.clone()
-            .handle_accounts(current_env.accounts.as_deref(), &current_env.network)
+        let network = self.to_network(current_env.network.clone())?;
+        self.printer()
+            .infoln(format!("Using network at {}\n", network.rpc_url));
+        env::set_var("STELLAR_RPC_URL", &network.rpc_url);
+        env::set_var("STELLAR_NETWORK_PASSPHRASE", &network.network_passphrase);
+        self.handle_accounts(current_env.accounts.as_deref(), &network)
             .await?;
-        self.clone()
-            .handle_contracts(
-                current_env.contracts.as_ref(),
-                package_names,
-                &current_env.network,
-            )
+        self.handle_contracts(current_env.contracts.as_ref(), package_names, &network)
             .await?;
 
         Ok(())
@@ -163,96 +159,36 @@ impl Args {
         self.env.unwrap_or(default).to_string().to_lowercase()
     }
 
-    /// Parse the network settings from the environments.toml file and set `STELLAR_RPC_URL` and
-    /// `STELLAR_NETWORK_PASSPHRASE`.
-    ///
-    /// We could set `STELLAR_NETWORK` instead, but when importing contracts, we want to hard-code
-    /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
-    /// & passphrase for that named network, and still set the environment variables.
-    fn add_network_to_env(&self, network: &env_toml::Network) -> Result<(), Error> {
-        let printer = self.printer();
-        match &network {
-            Network {
-                name: Some(name), ..
-            } => {
-                let stellar_cli::config::network::Network {
-                    rpc_url,
-                    network_passphrase,
-                    ..
-                } = (stellar_cli::config::network::Args {
-                    network: Some(name.clone()),
-                    rpc_url: None,
-                    network_passphrase: None,
-                    rpc_headers: Vec::new(),
-                })
-                .get(&stellar_cli::config::locator::Args {
-                    global: false,
-                    config_dir: None,
-                })?;
-                printer.infoln(format!("Using {name} network"));
-                std::env::set_var("STELLAR_RPC_URL", rpc_url);
-                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase);
-            }
-            Network {
-                rpc_url: Some(rpc_url),
-                network_passphrase: Some(passphrase),
-                ..
-            } => {
-                std::env::set_var("STELLAR_RPC_URL", rpc_url);
-                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase);
-                printer.infoln(format!("Using network at {rpc_url}"));
-            }
-            _ => return Err(Error::MalformedNetwork),
-        }
-
-        Ok(())
-    }
-
-    fn get_network_args(network: &Network) -> stellar_cli::config::network::Args {
-        stellar_cli::config::network::Args {
-            rpc_url: network.rpc_url.clone(),
-            network_passphrase: network.network_passphrase.clone(),
-            network: network.name.clone(),
-            rpc_headers: network.rpc_headers.clone().unwrap_or_default(),
-        }
-    }
-
-    fn get_config_dir(&self) -> PathBuf {
-        self.workspace_root
-            .as_ref()
-            .expect("workspace_root not set")
-            .join(".config")
-            .join("stellar")
+    fn get_config_dir(&self) -> Result<PathBuf, Error> {
+        Ok(self.get_config_locator().config_dir()?)
     }
 
     fn get_config_locator(&self) -> stellar_cli::config::locator::Args {
-        let config_dir = Some(self.get_config_dir());
-        stellar_cli::config::locator::Args {
-            global: false,
-            config_dir,
-        }
+        self.global_args.clone().unwrap_or_default().locator
     }
 
     fn get_contract_alias(
         &self,
         name: &str,
+        network: &network::Network,
     ) -> Result<Option<Contract>, stellar_cli::config::locator::Error> {
-        let config_dir = self.get_config_locator();
-        let network_passphrase = std::env::var("STELLAR_NETWORK_PASSPHRASE")
-            .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
-        config_dir.get_contract_id(name, &network_passphrase)
+        self.get_config_locator()
+            .get_contract_id(name, &network.network_passphrase)
     }
 
     async fn get_contract_hash(
         &self,
         contract_id: &Contract,
-        network: &Network,
+        network: &network::Network,
     ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
-            contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
+            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(
+                *contract_id,
+            )),
             out_file: None,
             locator: self.get_config_locator(),
-            network: Self::get_network_args(network),
+            network: to_args(network),
+            wasm_hash: None,
         }
         .run_against_rpc_server(self.global_args.as_ref(), None)
         .await;
@@ -276,17 +212,19 @@ impl Args {
         &self,
         name: &str,
         contract_id: &Contract,
-        network: &Network,
+        network: &network::Network,
     ) -> Result<(), stellar_cli::config::locator::Error> {
         let config_dir = self.get_config_locator();
-        let passphrase = network
-            .network_passphrase
-            .clone()
-            .expect("You must set a network passphrase.");
-        config_dir.save_contract_id(&passphrase, contract_id, name)
+        let passphrase = &network.network_passphrase;
+        config_dir.save_contract_id(passphrase, contract_id, name)
     }
 
-    fn create_contract_template(&self, name: &str, contract_id: &str) -> Result<(), Error> {
+    fn create_contract_template(
+        &self,
+        name: &str,
+        contract_id: &str,
+        network: &network::Network,
+    ) -> Result<(), Error> {
         let allow_http = if ["development", "test"]
             .contains(&self.stellar_scaffold_env(ScaffoldEnv::Production).as_str())
         {
@@ -294,14 +232,13 @@ impl Args {
         } else {
             ""
         };
-        let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
-            .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
+        let network_passphrase = &network.network_passphrase;
         let template = format!(
             r"import * as Client from '{name}';
 import {{ rpcUrl }} from './util';
 
 export default new Client.Client({{
-  networkPassphrase: '{network}',
+  networkPassphrase: '{network_passphrase}',
   contractId: '{contract_id}',
   rpcUrl,{allow_http}
   publicKey: undefined,
@@ -317,7 +254,12 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn generate_contract_bindings(&self, name: &str, contract_id: &str) -> Result<(), Error> {
+    async fn generate_contract_bindings(
+        &self,
+        name: &str,
+        contract_id: &str,
+        network: &network::Network,
+    ) -> Result<(), Error> {
         let printer = self.printer();
         printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = self
@@ -329,13 +271,14 @@ export default new Client.Client({{
         // Create a temporary directory for building the new client
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
         let temp_dir_display = temp_dir.display();
+        let config_dir = self.get_config_dir()?;
         cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
             "--output-dir",
             temp_dir.to_str().expect("we do not support non-utf8 paths"),
             "--config-dir",
-            self.get_config_dir()
+            config_dir
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
@@ -421,14 +364,14 @@ export default new Client.Client({{
             }
         }
 
-        self.create_contract_template(name, contract_id)?;
+        self.create_contract_template(name, contract_id, network)?;
         Ok(())
     }
 
     async fn handle_accounts(
         &self,
         accounts: Option<&[env_toml::Account]>,
-        network: &Network,
+        network: &network::Network,
     ) -> Result<(), Error> {
         let printer = self.printer();
         let Some(accounts) = accounts else {
@@ -464,7 +407,7 @@ export default new Client.Client({{
                 name: account.name.clone().parse()?,
                 fund: true,
                 config_locator: config.clone(),
-                network: Self::get_network_args(network),
+                network: to_args(network),
                 seed: None,
                 hd_path: None,
                 as_secret: false,
@@ -476,12 +419,7 @@ export default new Client.Client({{
                 Err(e) if e.to_string().contains("already exists") => {
                     printer.blankln(e);
                     // Check if account exists on chain
-                    let rpc_client = soroban_rpc::Client::new(
-                        network
-                            .rpc_url
-                            .as_ref()
-                            .expect("network contains the RPC url"),
-                    )?;
+                    let rpc_client = soroban_rpc::Client::new(&network.rpc_url)?;
 
                     let public_key_cmd = cli::keys::public_key::Cmd {
                         name: account.name.parse()?,
@@ -493,7 +431,7 @@ export default new Client.Client({{
                     if (rpc_client.get_account(&address.to_string()).await).is_err() {
                         printer.infoln("Account not found on chain, funding...");
                         let fund_cmd = cli::keys::fund::Cmd {
-                            network: Self::get_network_args(network),
+                            network: to_args(network),
                             address: public_key_cmd,
                         };
                         fund_cmd.run(&args).await?;
@@ -539,6 +477,7 @@ export default new Client.Client({{
     async fn handle_production_contracts(
         &self,
         contracts: &IndexMap<Box<str>, env_toml::Contract>,
+        network: &network::Network,
     ) -> Result<(), Error> {
         for (name, contract) in contracts.iter().filter(|(_, settings)| settings.client) {
             if let Some(id) = &contract.id {
@@ -546,7 +485,7 @@ export default new Client.Client({{
                     return Err(Error::InvalidContractID(id.to_string()));
                 }
                 self.clone()
-                    .generate_contract_bindings(name, &id.to_string())
+                    .generate_contract_bindings(name, id, network)
                     .await?;
             } else {
                 return Err(Error::MissingContractID(name.to_string()));
@@ -559,7 +498,7 @@ export default new Client.Client({{
         &self,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
         package_names: Vec<String>,
-        network: &Network,
+        network: &network::Network,
     ) -> Result<(), Error> {
         let printer = self.printer();
         if package_names.is_empty() {
@@ -569,7 +508,7 @@ export default new Client.Client({{
         let env = self.stellar_scaffold_env(ScaffoldEnv::Production);
         if env == "production" || env == "staging" {
             if let Some(contracts) = contracts {
-                self.handle_production_contracts(contracts).await?;
+                self.handle_production_contracts(contracts, network).await?;
             }
             return Ok(());
         }
@@ -645,12 +584,13 @@ export default new Client.Client({{
         &self,
         contracts: Option<&IndexMap<Box<str>, env_toml::Contract>>,
     ) -> Result<(), Error> {
-        if let Some(contracts) = contracts {
-            for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
-                let wasm_path = self.get_wasm_path(name);
-                if !wasm_path.exists() {
-                    return Err(Error::BadContractName(name.to_string()));
-                }
+        let Some(contracts) = contracts else {
+            return Ok(());
+        };
+        for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
+            let wasm_path = self.get_wasm_path(name);
+            if !wasm_path.exists() {
+                return Err(Error::BadContractName(name.to_string()));
             }
         }
         Ok(())
@@ -672,7 +612,7 @@ export default new Client.Client({{
         &self,
         name: &str,
         settings: env_toml::Contract,
-        network: &Network,
+        network: &network::Network,
         env: &str,
     ) -> Result<(), Error> {
         let printer = self.printer();
@@ -688,7 +628,7 @@ export default new Client.Client({{
             let mut upgraded_contract = None;
 
             // Check existing alias - if it exists and matches hash, we can return early
-            if let Some(existing_contract_id) = self.get_contract_alias(name)? {
+            if let Some(existing_contract_id) = self.get_contract_alias(name, network)? {
                 let hash = self
                     .get_contract_hash(&existing_contract_id, network)
                     .await?;
@@ -700,6 +640,7 @@ export default new Client.Client({{
                             self.generate_contract_bindings(
                                 name,
                                 &existing_contract_id.to_string(),
+                                network,
                             )
                             .await?;
                         }
@@ -736,7 +677,7 @@ export default new Client.Client({{
             contract_id
         };
 
-        self.generate_contract_bindings(name, &contract_id.to_string())
+        self.generate_contract_bindings(name, &contract_id.to_string(), network)
             .await?;
 
         Ok(())
@@ -748,22 +689,25 @@ export default new Client.Client({{
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
         let printer = self.printer();
-        printer.infoln(format!("Installing {name:?} wasm bytecode on-chain..."));
-        let hash = cli::contract::upload::Cmd::parse_arg_vec(&[
+        printer.infoln(format!("Uploading {name:?} wasm bytecode on-chain..."));
+        let config_dir = self.get_config_dir()?;
+        let cmd = cli::contract::upload::Cmd::parse_arg_vec(&[
             "--wasm",
             wasm_path
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--config-dir",
-            self.get_config_dir()
+            config_dir
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
-        ])?
-        .run_against_rpc_server(self.global_args.as_ref(), None)
-        .await?
-        .into_result()
-        .expect("no hash returned by 'contract upload'")
-        .to_string();
+        ])?;
+        eprintln!("{:#?}", cmd.config.get_network().unwrap());
+        let hash = cmd
+            .run_against_rpc_server(self.global_args.as_ref(), None)
+            .await?
+            .into_result()
+            .expect("no hash returned by 'contract upload'")
+            .to_string();
         printer.infoln(format!("    ↳ hash: {hash}"));
         Ok(hash)
     }
@@ -810,7 +754,7 @@ export default new Client.Client({{
             "--wasm-hash".to_string(),
             hash.to_string(),
             "--config-dir".to_string(),
-            self.get_config_dir()
+            self.get_config_dir()?
                 .to_str()
                 .expect("we do not support non-utf8 paths")
                 .to_string(),
@@ -848,7 +792,7 @@ export default new Client.Client({{
         existing_contract_id: Contract,
         existing_hash: &str,
         hash: &str,
-        network: &Network,
+        network: &network::Network,
     ) -> Result<Option<Contract>, Error> {
         let printer = self.printer();
         let existing_spec = fetch_contract_spec(existing_hash, network).await?;
@@ -948,7 +892,7 @@ export default new Client.Client({{
         after_deploy_script: &str,
     ) -> Result<(), Error> {
         let printer = self.printer();
-        let config_dir_path = self.get_config_dir();
+        let config_dir_path = self.get_config_dir()?;
         let config_dir = config_dir_path.to_str().unwrap();
         for line in after_deploy_script.lines() {
             let line = line.trim();
@@ -980,16 +924,49 @@ export default new Client.Client({{
         ));
         Ok(())
     }
+    fn to_network(
+        &self,
+        Network {
+            name,
+            rpc_url,
+            network_passphrase,
+            rpc_headers,
+            ..
+        }: env_toml::Network,
+    ) -> Result<network::Network, network::Error> {
+        network::Args {
+            network: name,
+            rpc_url,
+            network_passphrase,
+            rpc_headers: rpc_headers.unwrap_or_default(),
+        }
+        .get(&self.get_config_locator())
+    }
+}
+
+fn to_args(
+    network::Network {
+        rpc_url,
+        rpc_headers,
+        network_passphrase,
+    }: &network::Network,
+) -> network::Args {
+    network::Args {
+        network: None,
+        network_passphrase: Some(network_passphrase.clone()),
+        rpc_headers: rpc_headers.clone(),
+        rpc_url: Some(rpc_url.clone()),
+    }
 }
 
 async fn fetch_contract_spec(
     wasm_hash: &str,
-    network: &Network,
+    network: &network::Network,
 ) -> Result<Vec<ScSpecEntry>, Error> {
     let fetched = fetch(
         &FetchArgs {
             wasm_hash: Some(wasm_hash.to_string()),
-            network: network.into(),
+            network: to_args(network),
             ..Default::default()
         },
         // Quiets the output of the fetch command
