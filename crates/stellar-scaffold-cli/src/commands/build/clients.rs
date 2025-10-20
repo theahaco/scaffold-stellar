@@ -249,10 +249,13 @@ impl Args {
         network: &Network,
     ) -> Result<Option<String>, Error> {
         let result = cli::contract::fetch::Cmd {
-            contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
+            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(
+                *contract_id,
+            )),
             out_file: None,
             locator: self.get_config_locator(),
             network: Self::get_network_args(network),
+            wasm_hash: None,
         }
         .run_against_rpc_server(self.global_args.as_ref(), None)
         .await;
