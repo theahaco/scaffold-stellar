@@ -1,7 +1,8 @@
 use clap::Parser;
 use degit::degit;
-use std::fs::{metadata, read_dir, remove_dir_all};
+use std::fs::{copy, metadata, read_dir, remove_dir_all};
 use std::path::PathBuf;
+use std::process::Command;
 use std::{env, io};
 
 use super::generate;
@@ -72,6 +73,18 @@ impl Cmd {
             )));
         }
 
+        // Copy .env.example to .env
+        let example_path = absolute_project_path.join(".env.example");
+        let env_path = absolute_project_path.join(".env");
+        copy(example_path, env_path)?;
+
+        // If git is installed, run init and make initial commit
+        if git_exists() {
+            git_init(&absolute_project_path);
+            git_add(&absolute_project_path, &["-A"]);
+            git_commit(&absolute_project_path, "initial commit");
+        }
+
         // Update the project with the latest OpenZeppelin examples
         self.update_oz_example(
             &absolute_project_path,
@@ -121,4 +134,29 @@ impl Cmd {
         env::set_current_dir(original_dir)?;
         Ok(())
     }
+}
+
+// Check if git is installed and exists in PATH
+fn git_exists() -> bool {
+    Command::new("git").arg("--version").output().is_err()
+}
+
+// Initialize a new git repository
+fn git_init(path: &PathBuf) {
+    let _ = Command::new("git").arg("init").current_dir(path).output();
+}
+
+// Stage files for commit
+fn git_add(path: &PathBuf, rest: &[&str]) {
+    let mut args = vec!["add"];
+    args.extend_from_slice(rest);
+    let _ = Command::new("git").args(args).current_dir(path).output();
+}
+
+// Commit with message
+fn git_commit(path: &PathBuf, message: &str) {
+    let _ = Command::new("git")
+        .args(["commit", "-m", message])
+        .current_dir(path)
+        .output();
 }

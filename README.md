@@ -150,11 +150,11 @@ stellar registry install my-contract-instance                           # Instal
 ### 1. Publish Your Contract
 ```bash
 # Publish with automatic metadata extraction
-stellar registry publish --wasm target/stellar/my_contract.wasm
+stellar registry publish --wasm target/stellar/local/my_contract.wasm
 
 # Or specify details manually
 stellar registry publish \
-  --wasm target/stellar/my_contract.wasm \
+  --wasm target/stellar/local/my_contract.wasm \
   --wasm-name my-contract \
   --binver "1.0.0"
 ```

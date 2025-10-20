@@ -342,7 +342,7 @@ pub fn find_binary(name: &str) -> Option<PathBuf> {
 pub fn find_stellar_wasm_dir() -> Option<PathBuf> {
     let exe_path = env::current_exe().ok()?;
     let project_root = find_project_root(&exe_path)?;
-    Some(project_root.join("target").join("stellar"))
+    Some(project_root.join("target").join("stellar").join("local"))
 }
 
 fn find_project_root(start_path: &Path) -> Option<PathBuf> {
