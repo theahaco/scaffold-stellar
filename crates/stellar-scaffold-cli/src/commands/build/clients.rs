@@ -3,7 +3,7 @@ use super::env_toml::Network;
 use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
-use crate::commands::build::env_toml;
+use crate::commands::build::env_toml::{self, Environment};
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
@@ -35,6 +35,11 @@ pub enum ScaffoldEnv {
     Testing,
     Staging,
     Production,
+}
+impl ScaffoldEnv {
+    pub fn testing_or_development(&self) -> bool {
+        matches!(self, ScaffoldEnv::Testing | ScaffoldEnv::Development)
+    }
 }
 
 impl std::fmt::Display for ScaffoldEnv {
