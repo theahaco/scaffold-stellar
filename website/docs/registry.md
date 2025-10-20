@@ -1,3 +1,7 @@
+---
+sidebar_position: 5
+---
+
 # Registry Guide
 
 The Stellar Registry is a system for publishing, deploying, and managing smart contracts on the Stellar network. This guide explains how to use the registry CLI tools to manage your contracts.
@@ -12,6 +16,7 @@ The registry system consists of two main components:
 ## Prerequisites
 
 - Install the registry CLI:
+
 ```bash
 cargo install --git https://github.com/theahaco/scaffold-stellar stellar-registry-cli
 ```
@@ -32,6 +37,7 @@ stellar registry publish \
 ```
 
 Options:
+
 - `--wasm`: Path to the compiled WASM file (required)
 - `--author (-a)`: Author address (optional, defaults to the configured source account)
 - `--wasm-name`: Name for the published contract (optional, extracted from contract metadata if not provided)
@@ -52,6 +58,7 @@ stellar registry deploy \
 ```
 
 Options:
+
 - `--contract-name`: The name to give this contract instance (required)
 - `--wasm-name`: The name of the previously published contract to deploy (required)
 - `--version`: Specific version of the published contract to deploy (optional, defaults to most recent version)
@@ -65,10 +72,11 @@ Note: Use `--` to separate CLI options from constructor function and arguments.
 Install a deployed contract as an alias to be used by `stellar-cli`:
 
 ```bash
-stellar registry install <CONTRACT_NAME>
+stellar registry create-alias <CONTRACT_NAME>
 ```
 
 Options:
+
 - `CONTRACT_NAME`: Name of the deployed contract to install (required)
 
 ## Configuration
@@ -84,6 +92,7 @@ The registry CLI respects the following environment variables:
 These variables can also be in a `.env` file in the current working directory.
 
 You can also configure `stellar-cli` defaults:
+
 ```bash
 stellar keys use alice
 stellar network use testnet
@@ -92,6 +101,7 @@ stellar network use testnet
 ## Example Workflow
 
 1. Publish a contract:
+
 ```bash
 stellar registry publish \
   --wasm path/to/token.wasm \
@@ -100,6 +110,7 @@ stellar registry publish \
 ```
 
 2. Deploy the published contract with initialization:
+
 ```bash
 stellar registry deploy \
   --contract-name my-token \
@@ -113,11 +124,13 @@ stellar registry deploy \
 ```
 
 3. Install the deployed contract locally:
+
 ```bash
-stellar registry install my-token
+stellar registry create-alias my-token
 ```
 
 4. Use the installed contract with `stellar-cli`:
+
 ```bash
 stellar contract invoke --id my-token -- --help
 ```
@@ -152,6 +165,7 @@ The registry contract is deployed at different addresses for each network:
 4. **Network configuration**: Verify your network settings match the intended deployment target (testnet vs mainnet).
 
 For more detailed information about the available commands:
+
 ```bash
 stellar registry --help
 stellar registry <command> --help
