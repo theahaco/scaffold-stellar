@@ -1,11 +1,7 @@
 extern crate std;
-use crate::{error::Error, Contract, ContractClient as SorobanContractClient};
+use crate::{error::Error, Contract, ContractArgs, ContractClient as SorobanContractClient};
 
-use soroban_sdk::{
-    self,
-    testutils::{Address as _, MockAuth, MockAuthInvoke},
-    Address, Bytes, BytesN, Env, TryIntoVal, Val, Vec,
-};
+use soroban_sdk::{self, testutils::{Address as _, MockAuth, MockAuthInvoke}, vec, Address, Bytes, BytesN, Env, IntoVal, TryIntoVal, Val, Vec};
 
 pub fn default_version(env: &Env) -> soroban_sdk::String {
     soroban_sdk::String::from_str(&env, "0.0.0")
@@ -27,6 +23,8 @@ pub struct Registry<'a> {
     env: Env,
     client: SorobanContractClient<'a>,
     admin: Address,
+    bytes: Bytes,
+    hash: BytesN<32>,
 }
 
 impl<'a> Registry<'a> {
@@ -35,10 +33,28 @@ impl<'a> Registry<'a> {
         let env = &e.clone();
         let admin = Address::generate(env);
         let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        let bytes =  Bytes::from_slice(env, registry::WASM);
+        let hash = env.deployer().upload_contract_wasm(registry::WASM);
         Registry {
             env: env.clone(),
             client,
             admin,
+           bytes,
+            hash
+        }
+    }
+
+    pub fn new_with_bytes(bytes: &dyn Fn(&Env) -> Bytes, hash:&dyn Fn(&Env) -> BytesN<32>) -> Self {
+        let e = Env::default();
+        let env = &e.clone();
+        let admin = Address::generate(env);
+        let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        Registry {
+            env: env.clone(),
+            client,
+            admin,
+            bytes: bytes(env),
+            hash: hash(env)
         }
     }
 
@@ -87,11 +103,11 @@ impl<'a> Registry<'a> {
     }
 
     pub fn bytes(&self) -> Bytes {
-        Bytes::from_slice(self.env(), registry::WASM)
+        self.bytes.clone()
     }
 
     pub fn hash(&self) -> BytesN<32> {
-        self.env().deployer().upload_contract_wasm(registry::WASM)
+        self.hash.clone()
     }
 
     pub fn mock_initial_publish(&self) {
@@ -100,20 +116,20 @@ impl<'a> Registry<'a> {
         let author = self.admin();
         let version = default_version(env);
         let bytes = self.bytes();
-        self.mock_publish(&name, author, &Some(version), &bytes);
+        self.mock_auth_for_publish(&name, author, &Some(version), &bytes);
     }
 
-    pub fn mock_publish(
+    pub fn mock_auth_for_publish(
         &self,
         wasm_name: &soroban_sdk::String,
         author: &Address,
         version: &Option<soroban_sdk::String>,
         bytes: &Bytes,
     ) {
-        self.mock_method(author, "publish", (wasm_name, author, bytes, version));
+        self.mock_auth_for( author, "publish",(wasm_name, author, bytes, version));
     }
 
-    pub fn mock_method(
+    pub fn mock_auth_for(
         &self,
         signer_address: &Address,
         method: &str,
@@ -129,5 +145,30 @@ impl<'a> Registry<'a> {
                 sub_invokes: &[],
             },
         }]);
+    }
+
+    pub fn mock_auth_and_deploy(&self, author: &Address, wasm_name: &soroban_sdk::String, name: &soroban_sdk::String) -> Address {
+        let env = self.env();
+        let client = self.client();
+
+        self.mock_auth_for(
+            author,
+            "deploy",
+            ContractArgs::deploy(
+                wasm_name,
+                &None,
+                name,
+                author,
+                &Some(vec![env, author.into_val(env)]),
+            ),
+        );
+
+        client.deploy(
+            wasm_name,
+            &None,
+            name,
+            author,
+            &Some(vec![env, author.into_val(env)]),
+        )
     }
 }

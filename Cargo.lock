@@ -2203,6 +2203,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hello_world"
+version = "0.0.0"
+dependencies = [
+ "admin-sep",
+ "soroban-sdk 23.0.2 (git+https://github.com/stellar/rs-soroban-sdk?rev=99134976ee1d31fa1fa5db8a63bd1ea66b8abda8)",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4380,6 +4388,7 @@ version = "0.1.1"
 dependencies = [
  "admin-sep",
  "assert_matches",
+ "hello_world",
  "semver 1.0.26",
  "soroban-sdk 23.0.2 (git+https://github.com/stellar/rs-soroban-sdk?rev=99134976ee1d31fa1fa5db8a63bd1ea66b8abda8)",
  "stellar-registry",

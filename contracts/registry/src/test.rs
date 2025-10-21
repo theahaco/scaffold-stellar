@@ -12,31 +12,34 @@ use soroban_sdk::{
     testutils::{Address as _, BytesN as _},
     vec, Address, BytesN, Env, IntoVal,
 };
+use crate::test::contracts::{hw_bytes, hw_hash};
 
 mod registry;
+mod contracts;
 
 #[test]
-fn wasm_error_cases() {
+fn wasm_hash_published() {
     let registry = &Registry::new();
     let env = registry.env();
     let name = &registry.name();
     let client = registry.client();
+
     assert_eq!(
         client.try_fetch_hash(name, &None).unwrap_err(),
         Ok(Error::NoSuchWasmPublished)
     );
-    assert_eq!(
-        client.try_fetch_hash(name, &None).unwrap_err(),
-        Ok(Error::NoSuchWasmPublished)
-    );
-    registry.mock_publish(
+
+    registry.mock_auth_for_publish(
         name,
         registry.admin(),
         &Some(registry.default_version()),
         &registry.bytes(),
     );
     registry.publish();
+
+
     assert_eq!(client.fetch_hash(name, &None), registry.hash());
+    assert_eq!(client.fetch_hash(name, &Some(default_version(env))), registry.hash());
     assert_eq!(
         client
             .try_fetch_hash(name, &Some(to_string(env, "0.0.1")))
@@ -46,39 +49,25 @@ fn wasm_error_cases() {
 }
 
 #[test]
-fn contract_error_cases() {
-    let registry = &Registry::new();
+fn deploy_hello_world() {
+    let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
     let env = registry.env();
-
     let name = &to_string(env, "contract");
     let client = registry.client();
     let wasm_name = &registry.name();
+
     assert_matches!(
         client.try_fetch_contract_id(name).unwrap_err(),
         Ok(Error::NoSuchContractDeployed)
     );
+
     let author = registry.admin();
     registry.mock_initial_publish();
     registry.publish();
-    registry.mock_method(
-        author,
-        "deploy",
-        ContractArgs::deploy(
-            wasm_name,
-            &None,
-            name,
-            author,
-            &Some(vec![env, author.into_val(env)]),
-        ),
-    );
+    assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
 
-    client.deploy(
-        wasm_name,
-        &None,
-        name,
-        author,
-        &Some(vec![env, author.into_val(env)]),
-    );
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name);
+    let hw_client =  contracts::hw_client(env, &address);
 
     assert_matches!(
         client
@@ -92,6 +81,9 @@ fn contract_error_cases() {
             .unwrap_err(),
         Ok(Error::AlreadyDeployed)
     );
+    let a = to_string(env, "registry");
+    let c = hw_client.hello(&to_string(env, "registry"));
+    assert_eq!(a, c);
 }
 
 #[test]
@@ -110,17 +102,17 @@ fn contract_admin_error_cases() {
         Ok(Error::NoSuchContractDeployed)
     );
     let version = &Some(default_version(env));
-    registry.mock_publish(name, other_address, version, &registry.bytes());
+    registry.mock_auth_for_publish(name, other_address, version, &registry.bytes());
 
     assert_eq!(
         registry.try_publish(other_address).unwrap_err(),
         Error::AdminOnly
     );
     let version = &Some(default_version(env));
-    registry.mock_publish(wasm_name, author, version, &registry.bytes());
+    registry.mock_auth_for_publish(wasm_name, author, version, &registry.bytes());
 
     registry.publish();
-    registry.mock_method(
+    registry.mock_auth_for(
         other_address,
         "deploy",
         ContractArgs::deploy(
@@ -162,7 +154,7 @@ fn returns_most_recent_version() {
     let wasm_hash = registry.hash();
     assert_eq!(fetched_hash, wasm_hash);
     let second_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_method(&address, "publish_hash", (name, address, &second_hash, v1));
+    registry.mock_auth_for(&address, "publish_hash", (name, address, &second_hash, v1));
     client.publish_hash(name, address, &second_hash, v1);
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
@@ -173,12 +165,12 @@ fn returns_most_recent_version() {
     );
 
     let second_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_method(&address, "publish_hash", (name, address, &second_hash, v9));
+    registry.mock_auth_for(&address, "publish_hash", (name, address, &second_hash, v9));
     client.publish_hash(name, address, &second_hash, v9);
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
     let third_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_method(&address, "publish_hash", (name, address, &third_hash, v10));
+    registry.mock_auth_for(&address, "publish_hash", (name, address, &third_hash, v10));
     client.publish_hash(name, address, &third_hash, v10);
 
     let version = client.current_version(name);
@@ -244,7 +236,7 @@ fn publish_to_kebab_case() {
     // client.register_name(address, name);
     let bytes = registry.bytes();
     let version = default_version(&env);
-    registry.mock_publish(name, address, &Some(version.clone()), &bytes);
+    registry.mock_auth_for_publish(name, address, &Some(version.clone()), &bytes);
     client.publish(name, address, &bytes, &version);
     let most_recent_version = client.current_version(&to_string(&env, "hello_world"));
     assert_eq!(most_recent_version, to_string(&env, "0.0.0"));

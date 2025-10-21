@@ -3,7 +3,8 @@ resolver = "2"
 default-members = ["crates/*"]
 members = [
     "crates/*",
-    "contracts/*",
+    "contracts/registry",
+    "contracts/test/*",
     "crates/stellar-scaffold-test/fixtures/contracts/*",
 ]
 
