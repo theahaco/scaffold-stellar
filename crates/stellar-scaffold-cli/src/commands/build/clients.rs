@@ -12,15 +12,13 @@ use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
 use std::{fmt::Debug, path::PathBuf};
-use stellar_cli::config::{sign_with, UnresolvedMuxedAccount};
-use stellar_cli::xdr;
 use stellar_cli::{
     commands as cli,
     commands::contract::info::shared::{
         self as contract_spec, fetch, Args as FetchArgs, Error as FetchError,
     },
     commands::NetworkRunnable,
-    config::network,
+    config::{network, sign_with, UnresolvedMuxedAccount},
     print::Print,
     utils::contract_hash,
     utils::contract_spec::Spec,
@@ -171,10 +169,7 @@ impl Builder {
         stellar_cli::config::Args {
             locator: self.global_args.locator.clone(),
             network: to_args(&self.network),
-            sign_with: sign_with::Args {
-                sign_with_key: Some(self.source_account.to_string()),
-                ..Default::default()
-            },
+            sign_with: sign_with::Args::default(),
             source_account: self.source_account.clone(),
         }
     }
@@ -284,10 +279,7 @@ export default new Client.Client({{
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
-        let source = self.resolved_source_account().await?.to_string();
         self.run_against_rpc_server(cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
-            "--source",
-            &source,
             "--contract-id",
             contract_id,
             "--output-dir",
@@ -297,6 +289,10 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths"),
             "--overwrite",
+            "--rpc-url",
+            &network.rpc_url,
+            "--network-passphrase",
+            &network.network_passphrase,
         ])?)
         .await?;
 
@@ -666,21 +662,14 @@ export default new Client.Client({{
     ) -> Result<String, Error> {
         let printer = self.printer();
         printer.infoln(format!("Uploading {name:?} wasm bytecode on-chain..."));
-        let config_dir = self.get_config_dir()?;
-        let source = self.resolved_source_account().await?.to_string();
-        let cmd = cli::contract::upload::Cmd::parse_arg_vec(&[
-            "--source-account",
-            source.as_str(),
-            "--wasm",
-            wasm_path
-                .to_str()
-                .expect("we do not support non-utf8 paths"),
-            "--config-dir",
-            config_dir
-                .to_str()
-                .expect("we do not support non-utf8 paths"),
-        ])?;
-        eprintln!("{:#?}", cmd.config.get_network().unwrap());
+        let cmd = cli::contract::upload::Cmd {
+            config: self.config(),
+            fee: stellar_cli::fee::Args::default(),
+            wasm: stellar_cli::wasm::Args {
+                wasm: wasm_path.to_path_buf(),
+            },
+            ignore_checks: false,
+        };
         let hash = self
             .run_against_rpc_server(cmd)
             .await?
@@ -707,7 +696,7 @@ export default new Client.Client({{
             .into_iter()
             .partition(|part| part.starts_with("STELLAR_ACCOUNT="));
 
-        let source = source_account.first().map(|account| {
+        let source = source_account.first().map(|account: &String| {
             account
                 .strip_prefix("STELLAR_ACCOUNT=")
                 .unwrap()
@@ -724,7 +713,7 @@ export default new Client.Client({{
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
         let printer = self.printer();
-        let source = self.resolved_source_account().await?;
+        let source = self.source_account.to_string();
         let mut deploy_args = vec![
             format!("--alias={name}"),
             format!("--wasm-hash={hash}"),
@@ -733,18 +722,20 @@ export default new Client.Client({{
                 .to_str()
                 .expect("we do not support non-utf8 paths")
                 .to_string(),
-            format!("--source-account={source}"),
         ];
-
         if let Some(constructor_script) = &settings.constructor_args {
             let (source_account, mut args) = Self::parse_script_line(constructor_script)?;
 
             if let Some(account) = source_account {
                 deploy_args.extend_from_slice(&["--source-account".to_string(), account]);
+            } else {
+                deploy_args.extend_from_slice(&["--source".to_string(), source]);
             }
 
             deploy_args.push("--".to_string());
             deploy_args.append(&mut args);
+        } else {
+            deploy_args.extend_from_slice(&["--source".to_string(), source]);
         }
 
         printer.infoln(format!("Instantiating {name:?} smart contract"));
@@ -788,7 +779,7 @@ export default new Client.Client({{
             .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
 
         let existing_contract_id_str = existing_contract_id.to_string();
-        let source = self.resolved_source_account().await?.to_string();
+        let source = self.source_account.to_string();
         let mut redeploy_args = vec![
             "--source",
             source.as_str(),
@@ -799,7 +790,6 @@ export default new Client.Client({{
             "--new_wasm_hash",
             hash,
         ];
-
         let invoke_cmd = if legacy_upgradeable {
             let upgrade_operator = ArgParser::get_upgrade_args(name).map_err(UpgradeArgsError)?;
             redeploy_args.push("--operator");
@@ -874,7 +864,7 @@ export default new Client.Client({{
         let printer = self.printer();
         let config_dir_path = self.get_config_dir()?;
         let config_dir = config_dir_path.to_str().unwrap();
-        let source = self.resolved_source_account().await?.to_string();
+        let source = self.source_account.to_string();
         for line in after_deploy_script.lines() {
             let line = line.trim();
             if line.is_empty() {
@@ -906,13 +896,6 @@ export default new Client.Client({{
             "After deploy script for {name:?} completed successfully"
         ));
         Ok(())
-    }
-
-    async fn resolved_source_account(&self) -> Result<xdr::MuxedAccount, Error> {
-        Ok(self
-            .source_account
-            .resolve_muxed_account(self.get_config_locator(), None)
-            .await?)
     }
 
     pub async fn run_against_rpc_server<T: NetworkRunnable>(
