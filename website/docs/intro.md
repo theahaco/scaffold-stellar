@@ -29,7 +29,4 @@ With Scaffold Stellar, you write smart contracts in Rust and interact with them 
 
 ## Additional Developer Resources
 
-- Video: [Intro to Scaffold Stellar](https://www.youtube.com/watch?v=559ht4K4pkM)
-- Video: [Which Frontend?](https://www.youtube.com/watch?v=pz7O54Oia_w)
-- Video: [Get Started Building](https://www.youtube.com/watch?v=H-M962aPuTk)
-- Video: [Live Demo of Scaffold Stellar](https://www.youtube.com/watch?v=0syGaIn3ULk) 👈 Start Here
+Check out the [Scaffold Stellar Playlist](https://www.youtube.com/playlist?list=PLmr3tp_7-7Gjj6gn5-bBn-QTMyaWzwOU5) on the Stellar Development Foundation YouTube channel!

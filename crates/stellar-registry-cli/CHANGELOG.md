@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.12...stellar-registry-cli-v0.0.13) - 2025-10-20
+
+### Other
+
+- recommend to use --locked when installing binary crates ([#235](https://github.com/theahaco/scaffold-stellar/pull/235))
+- Add website ([#212](https://github.com/theahaco/scaffold-stellar/pull/212))
+
 ## [0.0.12](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.11...stellar-registry-cli-v0.0.12) - 2025-10-03
 
 ### Added
