@@ -17,7 +17,7 @@ mod registry;
 mod contracts;
 
 #[test]
-fn wasm_hash_published() {
+fn use_publish_method() {
     let registry = &Registry::new();
     let env = registry.env();
     let name = &registry.name();
@@ -37,9 +37,9 @@ fn wasm_hash_published() {
     );
     registry.publish();
 
-
     assert_eq!(client.fetch_hash(name, &None), registry.hash());
     assert_eq!(client.fetch_hash(name, &Some(default_version(env))), registry.hash());
+    assert_eq!(client.current_version(name), default_version(env));
     assert_eq!(
         client
             .try_fetch_hash(name, &Some(to_string(env, "0.0.1")))
@@ -63,7 +63,7 @@ fn wasm_hash_published() {
 }
 
 #[test]
-fn deploy_hello_world() {
+fn hello_world_using_publish() {
     let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
     let env = registry.env();
     let name = &to_string(env, "contract");
@@ -81,7 +81,6 @@ fn deploy_hello_world() {
     assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
 
     let address = registry.mock_auth_and_deploy(author, wasm_name, name);
-    let hw_client =  contracts::hw_client(env, &address);
 
     assert_eq!(
         client
@@ -95,9 +94,38 @@ fn deploy_hello_world() {
             .unwrap_err(),
         Ok(Error::AlreadyDeployed)
     );
-    let a = to_string(env, "registry");
-    let c = hw_client.hello(&to_string(env, "registry"));
-    assert_eq!(a, c);
+
+    let hw_client = contracts::hw_client(env, &address);
+    assert_eq!(to_string(env, "registry"), hw_client.hello(&to_string(env, "registry")));
+}
+
+#[test]
+fn hello_world_using_publish_hash() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    let version = registry.default_version();
+
+    let name = &to_string(env, "contract");
+    let wasm_name =&to_string(env, "wasm");
+
+    let author = &Address::generate(env);
+
+    env.deployer().upload_contract_wasm(hw_bytes(env));
+    registry.mock_auth_for(
+        author,
+        "publish_hash",
+        ContractArgs::publish_hash(wasm_name, author, &hw_hash(env), &version),
+    );
+    client.publish_hash(wasm_name, author, &hw_hash(env), &version);
+
+    assert_eq!(client.fetch_hash(wasm_name, &None), hw_hash(env));
+
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name);
+
+    let hw_client = contracts::hw_client(env, &address);
+    assert_eq!(to_string(env, "registry"), hw_client.hello(&to_string(env, "registry")));
 }
 
 #[test]
