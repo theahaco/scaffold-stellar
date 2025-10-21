@@ -138,9 +138,7 @@ impl Cmd {
         let rebuild_state = Arc::new(Mutex::new(false));
         let metadata = &self.build_cmd.metadata()?;
         let env_toml_dir = metadata.workspace_root.as_std_path();
-        if env_toml::Environment::get(env_toml_dir, &ScaffoldEnv::Development.to_string())?
-            .is_none()
-        {
+        if env_toml::Environment::get(env_toml_dir, &ScaffoldEnv::Development)?.is_none() {
             return Ok(());
         }
         let packages = self

@@ -4,6 +4,8 @@ use std::collections::BTreeMap as Map;
 use std::path::Path;
 use toml::value::Table;
 
+use crate::commands::build::clients::ScaffoldEnv;
+
 pub const ENV_FILE: &str = "environments.toml";
 
 #[derive(thiserror::Error, Debug)]
@@ -138,7 +140,10 @@ fn default_client() -> bool {
 }
 
 impl Environment {
-    pub fn get(workspace_root: &Path, scaffold_env: &str) -> Result<Option<Environment>, Error> {
+    pub fn get(
+        workspace_root: &Path,
+        scaffold_env: &ScaffoldEnv,
+    ) -> Result<Option<Environment>, Error> {
         let env_toml = workspace_root.join(ENV_FILE);
 
         if !env_toml.exists() {
@@ -147,7 +152,7 @@ impl Environment {
 
         let toml_str = std::fs::read_to_string(env_toml)?;
         let mut parsed_toml: Environments = toml::from_str(&toml_str)?;
-        let current_env = parsed_toml.remove(scaffold_env);
+        let current_env = parsed_toml.remove(scaffold_env.to_string().as_str());
         if current_env.is_none() {
             return Err(Error::NoSettingsForCurrentEnv(scaffold_env.to_string()));
         }
