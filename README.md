@@ -46,7 +46,7 @@ This section walks you through setting up Scaffold Stellar from scratch.
 ### 1. Install the Scaffold Stellar CLI
 
 ```
-cargo install stellar-scaffold-cli
+cargo install --locked stellar-scaffold-cli
 ```
 
 The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.

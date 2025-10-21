@@ -11,7 +11,7 @@ import styles from './index.module.css';
 
 function InstallCommand() {
   const [copied, setCopied] = useState(false);
-  const installCommand = 'cargo install stellar-scaffold-cli';
+  const installCommand = 'cargo install --locked stellar-scaffold-cli';
 
   const handleCopy = async () => {
     try {

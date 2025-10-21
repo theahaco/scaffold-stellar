@@ -22,13 +22,13 @@ Stellar Scaffold CLI comes with four main commands:
 
 1. Install the CLI:
 ```bash
-cargo install stellar-scaffold-cli
+cargo install --locked stellar-scaffold-cli
 ```
 
 Or [`cargo-binstall`](github.com/cargo-bins/cargo-binstall):
 
 ```bash
-cargo binstall stellar-scaffold-cli
+cargo binstall --locked stellar-scaffold-cli
 ```
 
 2. Create a new project:
