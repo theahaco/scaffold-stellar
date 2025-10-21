@@ -31,7 +31,7 @@ build_contract p:
 build:
     just stellar-scaffold build
     cargo build --package stellar-registry-cli
-    stellar contract optimize --wasm ./target/stellar/registry.wasm --wasm-out ./target/stellar/registry.wasm
+    stellar contract optimize --wasm ./target/stellar/local/registry.wasm --wasm-out ./target/stellar/local/registry.wasm
 
 # Setup the project to use a pinned version of the CLI
 setup:
@@ -44,7 +44,7 @@ build-cli-test-contracts:
 test: build
     cargo nextest run -E 'package(stellar-scaffold-cli)' 
     cargo nextest run -E 'package(stellar-registry-cli)'
-    cd contracts/registry && cargo nextest run
+    cargo nextest run
 
 test-integration: build-cli-test-contracts
     cargo nextest run --verbose --package stellar-scaffold-cli --features integration-tests --no-run
@@ -55,4 +55,4 @@ test-integration: build-cli-test-contracts
 create: build
     rm -rf .soroban
     -stellar keys generate default --fund
-    # just stellar contract deploy --wasm ./target/stellar/example_status_message.wasm --alias core --source-account default
+    # just stellar contract deploy --wasm ./target/stellar/local/example_status_message.wasm --alias core --source-account default

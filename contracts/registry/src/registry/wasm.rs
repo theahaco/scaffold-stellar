@@ -1,17 +1,13 @@
+use crate::name;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
 use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
-use crate::{
-    error::Error,
-    name::canonicalize,
-    util::{MAX_BUMP, REGISTRY},
-    Contract,
-};
+use crate::{error::Error, name::canonicalize, util::MAX_BUMP, Contract};
 
-use super::IsPublishable;
+use super::Publishable;
 
 #[contracttype(export = false)]
 #[derive(Clone)]
@@ -117,7 +113,7 @@ impl Contract {
 }
 
 #[contractimpl]
-impl IsPublishable for Contract {
+impl Publishable for Contract {
     fn current_version(env: &Env, wasm_name: String) -> Result<String, Error> {
         let wasm_name = canonicalize(&wasm_name)?;
         Self::most_recent_version(env, &wasm_name)
@@ -152,8 +148,8 @@ impl IsPublishable for Contract {
                 return Err(Error::WasmNameAlreadyTaken);
             }
         }
-        let str = soroban_sdk::String::from_str(env, REGISTRY);
-        if wasm_name == str && Self::admin(env) != author {
+
+        if wasm_name == name::registry(env) && Self::admin(env) != author {
             return Err(Error::AdminOnly);
         }
         Self::validate_version(env, &version, &wasm_name)?;

@@ -12,4 +12,4 @@ pub fn hash_string(env: &Env, s: &String) -> Hash<32> {
 
 pub const MAX_BUMP: u32 = 535_679;
 
-pub(crate) const REGISTRY: &str = "registry";
+

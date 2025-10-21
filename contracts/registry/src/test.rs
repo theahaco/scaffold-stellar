@@ -6,7 +6,6 @@ use crate::{
     test::registry::{default_version, to_string, Registry},
     ContractArgs,
 };
-use assert_matches::assert_matches;
 use soroban_sdk::{
     self,
     testutils::{Address as _, BytesN as _},
@@ -23,6 +22,7 @@ fn wasm_hash_published() {
     let env = registry.env();
     let name = &registry.name();
     let client = registry.client();
+    let version = registry.default_version();
 
     assert_eq!(
         client.try_fetch_hash(name, &None).unwrap_err(),
@@ -32,7 +32,7 @@ fn wasm_hash_published() {
     registry.mock_auth_for_publish(
         name,
         registry.admin(),
-        &Some(registry.default_version()),
+        &Some(version.clone()),
         &registry.bytes(),
     );
     registry.publish();
@@ -46,6 +46,20 @@ fn wasm_hash_published() {
             .unwrap_err(),
         Ok(Error::NoSuchVersion)
     );
+
+    let other_address = &Address::generate(env);
+    let random_bytes: BytesN<32> = BytesN::random(&env);
+    registry.mock_auth_for(
+        other_address,
+        "publish_hash",
+        ContractArgs::publish_hash(name, other_address, &random_bytes, &version),
+    );
+    assert_eq!(
+        client
+            .try_publish_hash(name, other_address, &random_bytes, &version)
+            .unwrap_err(),
+        Ok(Error::WasmNameAlreadyTaken)
+    );
 }
 
 #[test]
@@ -56,7 +70,7 @@ fn deploy_hello_world() {
     let client = registry.client();
     let wasm_name = &registry.name();
 
-    assert_matches!(
+    assert_eq!(
         client.try_fetch_contract_id(name).unwrap_err(),
         Ok(Error::NoSuchContractDeployed)
     );
@@ -69,7 +83,7 @@ fn deploy_hello_world() {
     let address = registry.mock_auth_and_deploy(author, wasm_name, name);
     let hw_client =  contracts::hw_client(env, &address);
 
-    assert_matches!(
+    assert_eq!(
         client
             .try_deploy(
                 wasm_name,
@@ -90,14 +104,13 @@ fn deploy_hello_world() {
 fn contract_admin_error_cases() {
     let registry = &Registry::new();
     let env = &registry.env().clone();
-    let _ = Address::generate(env);
     let other_address = &Address::generate(env);
 
     let name = &to_string(env, "registry");
     let wasm_name = &registry.name();
     let author = registry.admin();
     let client = registry.client();
-    assert_matches!(
+    assert_eq!(
         client.try_fetch_contract_id(name).unwrap_err(),
         Ok(Error::NoSuchContractDeployed)
     );
@@ -182,11 +195,16 @@ fn returns_most_recent_version() {
 #[test]
 fn validate_names() {
     fn test_string(s: &str, result: bool) {
-        assert!(
-            canonicalize(&to_string(&Env::default(), s)).is_ok() == result,
-            "{s} should be {}valid",
-            if result { "" } else { "in" }
-        );
+        let raw_result = canonicalize(&to_string(&Env::default(), s));
+        if result {
+            assert!(raw_result.is_ok(), "should be valid: {s}");
+        } else {
+            assert_eq!(
+                raw_result,
+                Err(Error::InvalidName),
+                "should be invalid: {s}"
+            );
+        }
     }
 
     test_string("publish", true);

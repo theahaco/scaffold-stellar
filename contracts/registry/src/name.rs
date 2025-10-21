@@ -1,8 +1,13 @@
-use soroban_sdk::String;
+use soroban_sdk::{Env, String};
 
 use crate::error::Error;
 
 const MAX_NAME_LENGTH: usize = 64;
+
+pub(crate) const REGISTRY: &str = "registry";
+pub fn registry(env: &Env) -> String {
+    String::from_str(env, REGISTRY)
+}
 
 pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     let env = s.env();

@@ -1,9 +1,11 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 use proc_macro::TokenStream;
-use std::env;
-
 use quote::quote;
+use std::env;
+use stellar_build::Network;
+
+mod asset;
 
 pub(crate) fn manifest() -> std::path::PathBuf {
     std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("failed to find cargo manifest"))
@@ -42,4 +44,16 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+/// Generates a contract Client for a given asset.
+/// It is expected that the name of an asset, e.g. "native" or "USDC:G1...."
+///
+/// # Panics
+///
+#[proc_macro]
+pub fn import_asset(input: TokenStream) -> TokenStream {
+    // Parse the input as a string literal
+    let input_str = syn::parse_macro_input!(input as syn::LitStr);
+    asset::parse_literal(&input_str, &Network::passphrase_from_env()).into()
 }

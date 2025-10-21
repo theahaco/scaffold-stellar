@@ -15,4 +15,5 @@ crate-type = ["rlib"]
 [dependencies]
 cargo_metadata = { workspace = true }
 thiserror = { workspace = true }
+sha2 = { workspace = true }
 topological-sort = "0.2.2"

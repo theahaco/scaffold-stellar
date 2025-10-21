@@ -5,7 +5,7 @@ use crate::error::Error;
 pub mod contract;
 pub mod wasm;
 #[contracttrait]
-pub trait IsPublishable {
+pub trait Publishable {
     /// Fetch the hash of a Wasm binary from the registry
     fn fetch_hash(
         env: &Env,
@@ -39,7 +39,7 @@ pub trait IsPublishable {
 }
 
 #[contracttrait]
-pub trait IsDeployable {
+pub trait Deployable {
     /// Deploys a new published contract returning the deployed contract's id.
     /// If no salt provided it will use the current sequence number.
     fn deploy(
@@ -59,7 +59,7 @@ pub trait IsDeployable {
 }
 
 #[contracttrait]
-pub trait IsRedeployable {
+pub trait Redeployable {
     /// Skips the publish step to deploy a contract directly, keeping the name
     fn dev_deploy(
         env: &Env,
