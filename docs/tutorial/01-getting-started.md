@@ -348,11 +348,11 @@ All you have to do is the fun part, focus on building your application instead o
 
 That covered a lot, but let's summarize how simple it actually was:
 
-1. We ran `stellar scaffold init my-project` to generate a project from a starter template
+1. We ran `stellar scaffold init guessing-game-tutorial` to generate a project from a starter template
 2. We ran `npm install` to get our dependencies
 3. We ran `npm start` to build and deploy the contracts to our local network, then run the application
 
-That's it! Scaffold Stellar does all the heavy lifting letting you jump right in to the fun parts of developing your contract and applications. 🎉
+That's it! Scaffold Stellar does all the heavy lifting, letting you jump right in to the fun parts of developing your contract and applications. 🎉
 
 
 ## What's Next?
