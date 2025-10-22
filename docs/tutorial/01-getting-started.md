@@ -28,7 +28,7 @@ npm -v # should print "10.9.3" or higher
 
 ### Docker
 
-We'll run a local Stellar network inside a Docker container, so head to the [Get Docker page](https://docs.docker.com/get-started/get-docker/) and follow the instructions installing Docker Desktop for your operating system. Once it's installed, open it up. It needs to be running in the background but then Scaffold Stellar will handle the rest.
+We'll run a local Stellar network inside a Docker container, so head to the [Get Docker page](https://docs.docker.com/get-started/get-docker/) and follow the instructions for installing Docker Desktop for your operating system. Once it's installed, open it up. It needs to be running in the background but then Scaffold Stellar will handle the rest.
 
 ### Scaffold Stellar
 
