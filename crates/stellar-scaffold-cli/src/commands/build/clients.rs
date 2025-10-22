@@ -209,11 +209,11 @@ impl Builder {
                 *contract_id,
             )),
             out_file: None,
-            locator: self.get_config_locator(),
-            network: Self::get_network_args(network),
+            locator: self.get_config_locator().clone(),
+            network: to_args(network),
             wasm_hash: None,
         }
-        .run_against_rpc_server(self.global_args.as_ref(), None)
+        .run_against_rpc_server(Some(&self.global_args), None)
         .await;
 
         match result {
