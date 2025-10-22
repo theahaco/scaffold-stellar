@@ -338,9 +338,9 @@ async fn watch_and_vite_integration_test() {
 
             // Try to request the actual JavaScript modules that would cause import errors
             let js_module_paths = [
-                "{CONTRACTS_DIR}/fungible_token_interface_example.ts",
-                "{CONTRACTS_DIR}/nft_enumerable_example.ts",
-                "{CONTRACTS_DIR}/stellar_hello_world_contract.ts",
+                format!("{CONTRACTS_DIR}/fungible_token_interface_example.ts"),
+                format!("{CONTRACTS_DIR}/nft_enumerable_example.ts"),
+                format!("{CONTRACTS_DIR}/stellar_hello_world_contract.ts"),
             ];
 
             for module_path in js_module_paths {
