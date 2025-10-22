@@ -62,6 +62,6 @@ soroban_token_contract.client = false
         );
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("Using lol network\n"));
+        assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
     });
 }
