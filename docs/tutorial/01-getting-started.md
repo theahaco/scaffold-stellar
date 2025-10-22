@@ -107,14 +107,14 @@ So how do all these pieces work together? Here's what Scaffold Stellar handles f
 
 1. Our `npm start` command runs `stellar scaffold watch --build-clients`
 2. Our `.env` file set an environment variable to say we're in our _development_ environment (`STELLAR_SCAFFOLD_ENV=development`)
-3. Scaffold Stellar looked to `environments.toml` for the development environment's configuration so it:
-    - Started up a local Stellar network
-    - Created an account on the network
-    - Built the contracts
-    - Deployed them to the network
-    - Generated their clients for the frontend
+3. Scaffold Stellar looked to `environments.toml` for the development environment's configuration, which told it to:
+    - Start up a local Stellar network
+    - Create an account on the network
+    - Build the contracts
+    - Deploy them to the network
+    - Generate their clients for the frontend
 
-That's a lot of heavy lifting! Normally you'd have to do all this yourself, but Scaffold Stellar does it for you. And it's deterministic, meaning you can always reproduce the same results from the same environment configuration.
+That's a lot of heavy lifting! Normally you'd have to do all this yourself, perhaps in a procedural script, but Scaffold Stellar does it for you. And it's deterministic, meaning you can always reproduce the same results from the same environment configuration. You set configuration values, specifying the desired starting state for your app, and Scaffold Stellar does all the work to get your app into that state.
 
 And we're just getting started! We haven't even looked at the application yet.
 
