@@ -41,6 +41,11 @@ impl ScaffoldEnv {
     }
 }
 
+/// Directory where npm workspace packages are generated
+pub const PACKAGES_DIR: &str = "packages";
+/// Directory where contract clients are generated
+pub const CONTRACTS_DIR: &str = "app/src/contracts";
+
 impl std::fmt::Display for ScaffoldEnv {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", format!("{self:?}").to_lowercase())
@@ -263,7 +268,9 @@ export default new Client.Client({{
 }});
 "
         );
-        let path = self.workspace_root.join(format!("src/contracts/{name}.ts"));
+        let path = self
+            .workspace_root
+            .join(format!("{CONTRACTS_DIR}/{name}.ts"));
         std::fs::write(path, template)?;
         Ok(())
     }
@@ -273,10 +280,10 @@ export default new Client.Client({{
         let printer = self.printer();
         printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = &self.workspace_root;
-        let final_output_dir = workspace_root.join(format!("packages/{name}"));
+        let final_output_dir = workspace_root.join(format!("{PACKAGES_DIR}/{name}"));
 
         // Create a temporary directory for building the new client
-        let temp_dir = workspace_root.join(format!("target/packages/{name}"));
+        let temp_dir = workspace_root.join(format!("target/{PACKAGES_DIR}/{name}"));
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
         self.run_against_rpc_server(cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
@@ -574,7 +581,7 @@ export default new Client.Client({{
     }
 
     fn get_package_dir(&self, name: &str) -> Result<std::path::PathBuf, Error> {
-        let package_dir = self.workspace_root.join(format!("packages/{name}"));
+        let package_dir = self.workspace_root.join(format!("{PACKAGES_DIR}/{name}"));
         if !package_dir.exists() {
             return Err(Error::BadContractName(name.to_string()));
         }

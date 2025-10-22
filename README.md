@@ -104,14 +104,16 @@ After scaffolding a project, your folder structure will look like this:
 my-project/
 ├── contracts/            # Rust smart contracts (compiled to WASM)
 ├── packages/             # Auto-generated TypeScript contract clients
-├── src/                  # React frontend code
-│   ├── components/       # Reusable UI pieces
-│   ├── contracts/        # Contract interaction logic
-│   ├── App.tsx           # Main app component
-│   └── main.tsx          # Entry point
+├── app/                  # Frontend application
+|   ├── package.json      # Frontend packages
+│   └── src/              # React source code
+│       ├── components/   # Reusable UI pieces
+│       ├── contracts/    # Contract interaction logic
+│       ├── App.tsx       # Main app component
+│       └── main.tsx      # Entry point
 ├── environments.toml     # Configuration per environment (dev/test/prod)
 ├── .env                  # Local environment variables
-├── package.json          # Frontend packages
+├── package.json          # Workspace packages
 ├── target/               # Build outputs
 ```
 

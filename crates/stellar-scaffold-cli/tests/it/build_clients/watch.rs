@@ -1,4 +1,5 @@
 use std::process::Stdio;
+use stellar_scaffold_cli::commands::build::clients::CONTRACTS_DIR;
 use stellar_scaffold_test::{rpc_url, TestEnv};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_stream::{wrappers::LinesStream, StreamExt};
@@ -337,9 +338,9 @@ async fn watch_and_vite_integration_test() {
 
             // Try to request the actual JavaScript modules that would cause import errors
             let js_module_paths = [
-                "/src/contracts/fungible_token_interface_example.ts",
-                "/src/contracts/nft_enumerable_example.ts",
-                "/src/contracts/stellar_hello_world_contract.ts",
+                "{CONTRACTS_DIR}/fungible_token_interface_example.ts",
+                "{CONTRACTS_DIR}/nft_enumerable_example.ts",
+                "{CONTRACTS_DIR}/stellar_hello_world_contract.ts",
             ];
 
             for module_path in js_module_paths {
@@ -399,7 +400,7 @@ mod test;
             let mut new_vite_errors = Vec::new();
 
             let client = reqwest::Client::new();
-            let hello_world_client_path = "/src/contracts/stellar_hello_world_contract.ts";
+            let hello_world_client_path = "{CONTRACTS_DIR}/stellar_hello_world_contract.ts";
 
             // Monitor for 60 seconds for the rebuild process
             let rebuild_timeout = tokio::time::Duration::from_secs(60);
