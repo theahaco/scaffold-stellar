@@ -324,11 +324,11 @@ soroban_token_contract.client = false
     // Check that the contract files are created in the new directory
     assert!(env
         .cwd
-        .join("{PACKAGES_DIR}/soroban_hello_world_contract")
+        .join(format!("{PACKAGES_DIR}/soroban_hello_world_contract"))
         .exists());
     assert!(env
         .cwd
-        .join("{CONTRACTS_DIR}/soroban_hello_world_contract.ts")
+        .join(format!("{CONTRACTS_DIR}/soroban_hello_world_contract.ts"))
         .exists());
 }
 
@@ -379,17 +379,17 @@ soroban_token_contract.client = false
         // Check that contract client files are still generated
         assert!(env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_hello_world_contract")
+            .join(format!("{PACKAGES_DIR}/soroban_hello_world_contract"))
             .exists());
         assert!(env
             .cwd
-            .join("{CONTRACTS_DIR}/soroban_hello_world_contract.ts")
+            .join(format!("{CONTRACTS_DIR}/soroban_hello_world_contract.ts"))
             .exists());
 
         // Check dist/index.js and dist/index.d.ts exist after npm run build
         let dist_dir = env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_hello_world_contract/dist");
+            .join(format!("{PACKAGES_DIR}/soroban_hello_world_contract/dist"));
         assert!(
             dist_dir.join("index.js").exists(),
             "index.js missing for soroban_hello_world_contract"
@@ -480,37 +480,37 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb
         // Check that successful contracts are still deployed
         assert!(env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_hello_world_contract")
+            .join(format!("{PACKAGES_DIR}/soroban_hello_world_contract"))
             .exists());
         assert!(env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_increment_contract")
+            .join(format!("{PACKAGES_DIR}/soroban_increment_contract"))
             .exists());
         assert!(env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_custom_types_contract")
+            .join(format!("{PACKAGES_DIR}/soroban_custom_types_contract"))
             .exists());
         assert!(env
             .cwd
-            .join("{CONTRACTS_DIR}/soroban_hello_world_contract.ts")
+            .join(format!("{CONTRACTS_DIR}/soroban_hello_world_contract.ts"))
             .exists());
         assert!(env
             .cwd
-            .join("{CONTRACTS_DIR}/soroban_increment_contract.ts")
+            .join(format!("{CONTRACTS_DIR}/soroban_increment_contract.ts"))
             .exists());
         assert!(env
             .cwd
-            .join("{CONTRACTS_DIR}/soroban_custom_types_contract.ts")
+            .join(format!("{CONTRACTS_DIR}/soroban_custom_types_contract.ts"))
             .exists());
 
         // Failed contract should not have generated client files
         assert!(!env
             .cwd
-            .join("{PACKAGES_DIR}/soroban_token_contract")
+            .join(format!("{PACKAGES_DIR}/soroban_token_contract"))
             .exists());
         assert!(!env
             .cwd
-            .join("{CONTRACTS_DIR}/soroban_token_contract.ts")
+            .join(format!("{CONTRACTS_DIR}/soroban_token_contract.ts"))
             .exists());
     });
 }

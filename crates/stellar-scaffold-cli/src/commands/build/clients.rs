@@ -250,6 +250,7 @@ impl Builder {
         contract_id: &str,
         network: &network::Network,
     ) -> Result<(), Error> {
+        let printer = self.printer();
         let allow_http = if self.stellar_scaffold_env().testing_or_development() {
             "\n  allowHttp: true,"
         } else {
@@ -271,6 +272,11 @@ export default new Client.Client({{
         let path = self
             .workspace_root
             .join(format!("{CONTRACTS_DIR}/{name}.ts"));
+
+        printer.checkln(format!(
+            "Creating client instance in {}",
+            path.to_string_lossy()
+        ));
         std::fs::write(path, template)?;
         Ok(())
     }
