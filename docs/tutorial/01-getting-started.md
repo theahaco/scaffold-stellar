@@ -120,7 +120,7 @@ And we're just getting started! We haven't even looked at the application yet.
 
 ## 🚀 Open the App
 
-Our `npm start` command should have finished building our contracts by now so we can open the app in your browser. It should be running at Vite's default port, [http://localhost:5173](), and you should see the home page:
+The `npm start` command should have finished building the contracts by now so you can open the app in your browser. It should be running at Vite's default port, [http://localhost:5173](), and you should see the home page:
 
 ```
 Welcome to your app!
