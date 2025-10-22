@@ -203,7 +203,7 @@ Let's `impl`ement our contract's functionality.
     }
 ```
 
-A contract's `constructor` runs when it is deployed. In this case, we're saying who has access to the admin functions. We don't want anyone to be able to reset our number, do we?!
+A contract's `constructor` runs when it is deployed. In this case, we're saying who has access to the admin functions. We don't want just anyone to be able to reset our number, do we?!
 
 ```rust
     /// Update the number. Only callable by admin.
