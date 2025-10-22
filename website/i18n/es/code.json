@@ -325,5 +325,41 @@
   "theme.tags.tagsPageTitle": {
     "message": "Etiquetas",
     "description": "The title of the tag list page"
+  },
+  "homepage.mainMessage": {
+    "message": "Scaffold - El ciclo de vida de aplicaciones Stellar simplificado",
+    "description": "The homepage message"
+  },
+  "homepage.tagline": {
+    "message": "El ciclo de vida de aplicaciones Stellar simplificado",
+    "description": "The homepage tagline"
+  },
+  "homepage.features.stellar.title": {
+    "message": "Construye con Contratos Inteligentes Stellar",
+    "description": "Title for the first feature card"
+  },
+  "homepage.features.tooling.title": {
+    "message": "Herramientas de Contratos Inteligentes",
+    "description": "Title for the second feature card"
+  },
+  "homepage.features.practices.title": {
+    "message": "Mejores Prácticas",
+    "description": "Title for the third feature card"
+  },
+  "homepage.quickstart": {
+    "message": "Inicio Rápido",
+    "description": "Button text for quickstart link"
+  },
+  "homepage.features.stellar.description": {
+    "message": "Gestión simple y potente de Contratos Inteligentes Stellar.",
+    "description": "Description for the first feature card"
+  },
+  "homepage.features.tooling.description": {
+    "message": "Usa herramientas que redefinen estándares en todos los niveles de la pila de software Stellar, facilitando la construcción, prueba y despliegue de dapps.",
+    "description": "Description for the second feature card"
+  },
+  "homepage.features.practices.description": {
+    "message": "Escribe código hermoso, mantenible y seguro desde el principio.",
+    "description": "Description for the third feature card"
   }
 }
