@@ -1,6 +1,8 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
+import {translate} from '@docusaurus/Translate';
+import Translate from '@docusaurus/Translate';
 import styles from './styles.module.css';
 
 type FeatureItem = {
@@ -11,30 +13,42 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Build with Stellar Smart Contracts',
+    title: translate({
+      id: 'homepage.features.stellar.title',
+      message: 'Build with Stellar Smart Contracts',
+      description: 'Title for the first feature card',
+    }),
     Svg: require('@site/static/img/stellar.svg').default,
     description: (
-      <>
+      <Translate id="homepage.features.stellar.description">
         Simple and power Stellar Smart Contract management.
-      </>
+      </Translate>
     ),
   },
   {
-    title: 'Smart Contract Tooling',
+    title: translate({
+      id: 'homepage.features.tooling.title',
+      message: 'Smart Contract Tooling',
+      description: 'Title for the second feature card',
+    }),
     Svg: require('@site/static/img/tooling.svg').default,
     description: (
-      <>
+      <Translate id="homepage.features.tooling.description">
         Use standard-redefining tools at all levels of the Stellar software stack, making it easier to build, test, and ship dapps.
-      </>
+      </Translate>
     ),
   },
   {
-    title: 'Best Practices',
+    title: translate({
+      id: 'homepage.features.practices.title',
+      message: 'Best Practices',
+      description: 'Title for the third feature card',
+    }),
     Svg: require('@site/static/img/code_hero.svg').default,
     description: (
-      <>
+      <Translate id="homepage.features.practices.description">
         Write beautiful, maintainable and secure code from the get go.
-      </>
+      </Translate>
     ),
   }
 ];

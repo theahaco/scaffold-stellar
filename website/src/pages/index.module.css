@@ -40,7 +40,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin: 2rem 0;
+  margin: 2rem auto;
   padding: 16px 20px;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(20px);
@@ -51,9 +51,9 @@
               0 0 0 1px rgba(255, 255, 255, 0.2),
               inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  width: max-content;
+  min-width: 300px;
+  max-width: 90vw;
   position: relative;
   overflow: hidden;
 }
@@ -98,10 +98,12 @@
 .commandText {
   flex: 1;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
-  font-size: 16px;
+  font-size: clamp(12px, 2.5vw, 16px);
   font-weight: 500;
   color: #ffffff;
   text-align: center;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .commandText code {
@@ -168,14 +170,14 @@
 }
 
 @media screen and (max-width: 996px) {
-  .installCommand {
-    margin: 1.5rem 0;
-    padding: 12px 16px;
-    max-width: 100%;
+  .heroBanner {
+    padding: 2rem;
   }
   
-  .commandText {
-    font-size: 14px;
+  .installCommand {
+    margin: 1.5rem auto;
+    padding: 12px 16px;
+    min-width: 280px;
   }
   
   .copyButton {
@@ -184,16 +186,12 @@
   }
 }
 
-@media screen and (max-width: 576px) {
+@media screen and (max-width: 480px) {
   .installCommand {
-    flex-direction: column;
+    margin: 1rem auto;
+    padding: 10px 12px;
+    min-width: 260px;
     gap: 8px;
-    padding: 16px;
-  }
-  
-  .commandText {
-    font-size: 13px;
-    word-break: break-all;
   }
   
   .copyButton {
