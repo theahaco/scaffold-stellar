@@ -24,7 +24,7 @@ pub fn find_args_and_signers(
         return Ok((ScVal::Void, vec![]));
     }
     slop.insert(0, "__constructor".to_string().into());
-    let res = arg_parsing::build_host_function_parameters(
+    let res = arg_parsing::build_constructor_parameters(
         contract_id,
         &slop,
         spec_entries,

@@ -203,6 +203,7 @@ impl TestEnv {
             "XDG_CONFIG_HOME",
             self.cwd.join(".config").to_str().unwrap(),
         );
+        stellar_scaffold.env("RUST_LOG", "trace");
 
         if randomize_wasm {
             // Add a random meta key-value pair to make the WASM unique
@@ -264,10 +265,6 @@ impl TestEnv {
             stellar_scaffold.arg(cmd);
             stellar_scaffold
         }
-    }
-
-    pub fn stellar_scaffold_env(&self, env: &str, randomize_wasm: bool) -> Command {
-        self.scaffold_build(env, randomize_wasm)
     }
 
     pub fn stellar(&self, cmd: &str) -> Command {

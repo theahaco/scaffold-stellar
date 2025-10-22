@@ -80,7 +80,7 @@ impl Command {
         workspace_root: &Path,
         env: &ScaffoldEnv,
     ) -> Result<(), Error> {
-        if let Some(current_env) = env_toml::Environment::get(workspace_root, &env.to_string())? {
+        if let Some(current_env) = env_toml::Environment::get(workspace_root, env)? {
             if current_env.network.run_locally {
                 docker::start_local_stellar().await.map_err(|e| {
                     eprintln!("Failed to start Stellar Docker container: {e:?}");
