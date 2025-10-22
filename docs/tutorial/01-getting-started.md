@@ -154,7 +154,7 @@ Once your wallet balance has some XLM, you should see the "GuessTheNumber" compo
 
 ## 🔎 Understand the Contract Code
 
-Now navigate to our contract explorer. Click the "</> Debugger" button in the header. These are our conctract developer tools. They'll let you explorer the contracts available to your application, view documentation, and even run methods to help debug them right from your app!
+Now navigate to our contract explorer. Click the "</> Debugger" button in the header. These are our contract developer tools. They'll let you explore the contracts available to your application, view documentation, and even run methods to help debug them right from your app!
 
 Select the `guess_the_number` contract and you should see its Contract ID from the local network deployment. You'll also see the contract's documentation for methods like:
 
