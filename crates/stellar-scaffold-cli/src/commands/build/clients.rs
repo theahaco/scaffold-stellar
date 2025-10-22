@@ -204,14 +204,17 @@ impl Builder {
         contract_id: &Contract,
         network: &network::Network,
     ) -> Result<Option<String>, Error> {
-        let result = self
-            .run_against_rpc_server(cli::contract::fetch::Cmd {
-                contract_id: stellar_cli::config::UnresolvedContract::Resolved(*contract_id),
-                out_file: None,
-                locator: self.get_config_locator().clone(),
-                network: to_args(network),
-            })
-            .await;
+        let result = cli::contract::fetch::Cmd {
+            contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(
+                *contract_id,
+            )),
+            out_file: None,
+            locator: self.get_config_locator().clone(),
+            network: to_args(network),
+            wasm_hash: None,
+        }
+        .run_against_rpc_server(Some(&self.global_args), None)
+        .await;
 
         match result {
             Ok(result) => {
