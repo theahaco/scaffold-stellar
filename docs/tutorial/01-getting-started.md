@@ -179,7 +179,7 @@ pub struct GuessTheNumber;
 
 The `#[...]` syntax in Rust is called an [attribute](https://doc.rust-lang.org/reference/attributes.html). It's a way to label code for the compiler to handle it with special instructions. *Inner* attributes (with the `#!`) apply to the scope they're within (meaning `!#[no_std]` applies to the whole file/module), and *Outer* attributes (just the `#`) apply to the next line.
 
-Here defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. Then we'll use the pre-defined [traits](https://doc.rust-lang.org/book/ch10-02-traits.html) we just explained to add more functionality to our contract without actually having to write it ourselves.
+Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract.
 
 ```rust
 const THE_NUMBER: Symbol = symbol_short!("n");
