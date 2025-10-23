@@ -179,6 +179,8 @@ pub struct GuessTheNumber;
 
 The `#[...]` syntax in Rust is called an [attribute](https://doc.rust-lang.org/reference/attributes.html). It's a way to label code for the compiler to handle it with special instructions. *Inner* attributes (with the `#!`) apply to the scope they're within (meaning `!#[no_std]` applies to the whole file/module), and *Outer* attributes (just the `#`) apply to the next line.
 
+In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/reference/procedural-macros.html#attribute-macros), which is a special function called by the compiler that generates code at compile time.
+
 Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract.
 
 ```rust
