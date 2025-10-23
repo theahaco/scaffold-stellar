@@ -181,7 +181,7 @@ The `#[...]` syntax in Rust is called an [attribute](https://doc.rust-lang.org/r
 
 In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/reference/procedural-macros.html#attribute-macros), which is a special function called by the compiler that generates code at compile time.
 
-Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract.
+Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods.  In this case the structs holds no values but we will still define methods on it.
 
 ```rust
 const THE_NUMBER: Symbol = symbol_short!("n");
