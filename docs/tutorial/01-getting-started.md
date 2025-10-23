@@ -98,7 +98,7 @@ There are a few more files than the ones listed here, but let's highlight some i
 - `contracts/`: holds each smart contract as a separate package in our project's Rust workspace. We only need one for this project, but it's nice to know that we can use the same structure for more complex projects that require multiple contracts. The other example contracts in this folder come from our friends at [OpenZeppelin](https://wizard.openzeppelin.com/stellar).
 - `packages/`: holds each smart contract's client and types as a separate package for the project's NPM workspace. These are built by Scaffold Stellar and we should not manually edit them. They'll be used by the frontend.
 - `.env`: is where we store environment variables that we'll be used by Scaffold Stellar commands.
-- `environments.toml`: This is the Scaffold Stellar secret sauce! This file is where we deterministically configure:
+- `environments.toml`: This is the Scaffold Stellar secret sauce! This file is where we configure:
   - our project's various _environments_, ...
   - which _networks_ are used by each environment, ...
   - all in service of which _contracts_ our project depends on in each of those environments.
