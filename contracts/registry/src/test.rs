@@ -338,7 +338,12 @@ fn validate_version() {
     );
     let too_long = &to_string(&env, "0".repeat(200).as_str());
     assert_eq!(
-        client.try_publish_hash(name, address, &random_hash,  too_long),
+        client.try_publish_hash(name, address, &random_hash, too_long),
+        Err(Ok(Error::InvalidVersion))
+    );
+    let empty = &to_string(&env, "");
+    assert_eq!(
+        client.try_publish_hash(name, address, &random_hash, empty),
         Err(Ok(Error::InvalidVersion))
     );
     client.publish_hash(name, address, &random_hash, new_version);
