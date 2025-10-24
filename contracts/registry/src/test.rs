@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2};
+use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3};
 use crate::{
     error::Error,
     name::canonicalize,
@@ -497,7 +497,8 @@ fn hello_world_deploy_v2() {
         alice,
         alice_contract,
         &hw_bytes_v3(env),
-        &None,
+        &hw_hash_v3(env),
+        &address,
     );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client_v3(env, &address);

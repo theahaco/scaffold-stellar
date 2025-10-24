@@ -41,6 +41,9 @@ pub fn hw_bytes_v2(env: &Env) -> Bytes {
     Bytes::from_slice(env, HW_WASM_V2)
 }
 
+pub fn hw_hash_v3(env: &Env) -> BytesN<32> {
+    env.deployer().upload_contract_wasm(HW_WASM_V3)
+}
 pub fn hw_client_v3<'a>(env: &Env, address: &Address) -> hello_world_v3::Client<'a> {
     hello_world_v3::Client::new(env, address)
 }
