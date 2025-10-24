@@ -1,16 +1,20 @@
 extern crate std;
 
+use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2};
 use crate::{
     error::Error,
     name::canonicalize,
     test::registry::{default_version, to_string, Registry},
     ContractArgs,
 };
-use soroban_sdk::{self, testutils::{Address as _, BytesN as _}, vec, Address, BytesN, Env, IntoVal, Symbol};
-use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2};
+use soroban_sdk::{
+    self,
+    testutils::{Address as _, BytesN as _},
+    vec, Address, BytesN, Env, IntoVal, Symbol,
+};
 
-mod registry;
 mod contracts;
+mod registry;
 
 #[test]
 fn use_publish_method() {
@@ -34,7 +38,10 @@ fn use_publish_method() {
     registry.publish();
 
     assert_eq!(client.fetch_hash(name, &None), registry.hash());
-    assert_eq!(client.fetch_hash(name, &Some(default_version(env))), registry.hash());
+    assert_eq!(
+        client.fetch_hash(name, &Some(default_version(env))),
+        registry.hash()
+    );
     assert_eq!(client.current_version(name), default_version(env));
     assert_eq!(
         client
@@ -92,7 +99,10 @@ fn hello_world_using_publish() {
     );
 
     let hw_client = contracts::hw_client(env, &address);
-    assert_eq!(to_string(env, "registry"), hw_client.hello(&to_string(env, "registry")));
+    assert_eq!(
+        to_string(env, "registry"),
+        hw_client.hello(&to_string(env, "registry"))
+    );
 }
 
 #[test]
@@ -104,7 +114,7 @@ fn hello_world_using_publish_hash() {
     let version = registry.default_version();
 
     let name = &to_string(env, "contract");
-    let wasm_name =&to_string(env, "wasm");
+    let wasm_name = &to_string(env, "wasm");
 
     let author = &Address::generate(env);
 
@@ -121,7 +131,10 @@ fn hello_world_using_publish_hash() {
     let address = registry.mock_auth_and_deploy(author, wasm_name, name);
 
     let hw_client = contracts::hw_client(env, &address);
-    assert_eq!(to_string(env, "registry"), hw_client.hello(&to_string(env, "registry")));
+    assert_eq!(
+        to_string(env, "registry"),
+        hw_client.hello(&to_string(env, "registry"))
+    );
 }
 
 #[test]
@@ -222,9 +235,7 @@ fn returns_most_recent_version() {
     let res = client.fetch_hash(name, &Some(v1));
     assert_eq!(res, second_hash);
     assert_eq!(
-        client
-            .try_fetch_hash(name, &Some(v2))
-            .unwrap_err(),
+        client.try_fetch_hash(name, &Some(v2)).unwrap_err(),
         Ok(Error::NoSuchVersion)
     );
     let res = client.fetch_hash(name, &Some(v9));
@@ -331,7 +342,6 @@ fn validate_version() {
     );
 }
 
-
 #[test]
 fn hello_world_deploy_v2() {
     let registry = &Registry::new();
@@ -358,51 +368,81 @@ fn hello_world_deploy_v2() {
     // Step 2: alice tries to publish hello_v1 with the same version and bytes, it fails
     registry.mock_auth_for_publish(hello_wasm, alice, sv0, &hw_bytes(env));
     assert_eq!(
-        registry_client.try_publish(hello_wasm, alice, &hw_bytes(env), v0, ),
+        registry_client.try_publish(hello_wasm, alice, &hw_bytes(env), v0,),
         Err(Ok(Error::HashAlreadyPublished))
     );
 
     // Step 3: alice tries to publish hello_v1 with the same version and different bytes, it fails
     registry.mock_auth_for_publish(hello_wasm, alice, sv0, &hw_bytes_v2(env));
     assert_eq!(
-        registry_client.try_publish(hello_wasm, alice, &hw_bytes_v2(env), v0, ),
+        registry_client.try_publish(hello_wasm, alice, &hw_bytes_v2(env), v0,),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
 
     // Step 4: bob tries to publish hello_v1 with a different version and different bytes, it fails
     registry.mock_auth_for_publish(hello_wasm, bob, sv1, &hw_bytes_v2(env));
     assert_eq!(
-        registry_client.try_publish(hello_wasm, bob, &hw_bytes_v2(env), v1, ),
+        registry_client.try_publish(hello_wasm, bob, &hw_bytes_v2(env), v1,),
         Err(Ok(Error::WasmNameAlreadyTaken))
     );
 
     // Step 5: alice publishes new bytes (hello_v2)
     registry.mock_auth_for_publish(hello_wasm, alice, sv1, &hw_bytes_v2(env));
     registry_client.publish(hello_wasm, alice, &hw_bytes_v2(env), v1);
-    assert_eq!(registry_client.fetch_hash(hello_wasm, &None), hw_hash_v2(env));
+    assert_eq!(
+        registry_client.fetch_hash(hello_wasm, &None),
+        hw_hash_v2(env)
+    );
 
     // Step 6: bob deploys his contract using v1 bytes
-    let res = registry.mock_auth_and_try_deploy(bob, &None, hello_wasm, bob_contract, &Some(vec![env, bob.into_val(env)]));
+    let res = registry.mock_auth_and_try_deploy(
+        bob,
+        &None,
+        hello_wasm,
+        bob_contract,
+        &Some(vec![env, bob.into_val(env)]),
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client_v2(env, &address);
     assert_eq!(hw_client.hello(), to_string(env, "hi, I'm a v2!"));
 
     // Step 7: alice deploys her contract using v0 bytes
-    let res = registry.mock_auth_and_try_deploy(alice, sv0, hello_wasm, alice_contract, &Some(vec![env, alice.into_val(env)]));
+    let res = registry.mock_auth_and_try_deploy(
+        alice,
+        sv0,
+        hello_wasm,
+        alice_contract,
+        &Some(vec![env, alice.into_val(env)]),
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
-    assert_eq!(to_string(env, "alice"), hw_client.hello(&to_string(env, "alice")));
+    assert_eq!(
+        to_string(env, "alice"),
+        hw_client.hello(&to_string(env, "alice"))
+    );
     assert_eq!(*alice, hw_client.admin());
 
     // Step 8: bob tries to deploy a contract using alice name
     assert_eq!(
-        registry.mock_auth_and_try_deploy(bob, sv0, hello_wasm, alice_contract, &Some(vec![env, bob.into_val(env)])),
+        registry.mock_auth_and_try_deploy(
+            bob,
+            sv0,
+            hello_wasm,
+            alice_contract,
+            &Some(vec![env, bob.into_val(env)])
+        ),
         Err(Ok(Error::AlreadyDeployed))
     );
 
     // Step 9: bob tries to deploy a contract using a registry name
     assert_eq!(
-        registry.mock_auth_and_try_deploy(bob, sv0, hello_wasm, &to_string(env, "registry"), &Some(vec![env, bob.into_val(env)])),
+        registry.mock_auth_and_try_deploy(
+            bob,
+            sv0,
+            hello_wasm,
+            &to_string(env, "registry"),
+            &Some(vec![env, bob.into_val(env)])
+        ),
         Err(Ok(Error::AdminOnly))
     );
 
@@ -423,19 +463,36 @@ fn hello_world_deploy_v2() {
     let res = registry.mock_auth_and_try_upgrade(alice, alice_contract, hello_wasm, sv0, &None);
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
-    assert_eq!(to_string(env, "alice"), hw_client.hello(&to_string(env, "alice")));
+    assert_eq!(
+        to_string(env, "alice"),
+        hw_client.hello(&to_string(env, "alice"))
+    );
 
     // Step 13: alice upgrades to v2 using dev_deploy
-    let res = registry.mock_auth_and_try_upgrade_dev_deploy(alice, alice_contract, &hw_bytes_v3(env), &None  );
+    let res = registry.mock_auth_and_try_upgrade_dev_deploy(
+        alice,
+        alice_contract,
+        &hw_bytes_v3(env),
+        &None,
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client_v3(env, &address);
     assert_eq!(to_string(env, "hi, I'm a secret v3!"), hw_client.hello());
 
     // Step 14: alice rolls back to v0 using a custom upgrade method (and contract has no admin method)
     // TODO: auth custom upgrade method
-    let res = registry.mock_auth_and_try_upgrade(alice, alice_contract, hello_wasm, sv0, &Some(Symbol::new(env, "custom_upgrade")));
+    let res = registry.mock_auth_and_try_upgrade(
+        alice,
+        alice_contract,
+        hello_wasm,
+        sv0,
+        &Some(Symbol::new(env, "custom_upgrade")),
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
-    assert_eq!(to_string(env, "alice"), hw_client.hello(&to_string(env, "alice")));
+    assert_eq!(
+        to_string(env, "alice"),
+        hw_client.hello(&to_string(env, "alice"))
+    );
     assert_eq!(*alice, hw_client.admin());
 }

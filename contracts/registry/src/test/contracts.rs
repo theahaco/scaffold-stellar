@@ -1,4 +1,3 @@
-
 extern crate std;
 
 use soroban_sdk::{self, Address, Bytes, BytesN, Env};

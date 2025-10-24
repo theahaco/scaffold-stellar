@@ -46,8 +46,7 @@ impl Contract {
         }
         let fn_name = upgrade_fn.unwrap_or_else(|| symbol_short!("upgrade"));
         let val = wasm_hash.into_val(env);
-        let r = env
-            .try_invoke_contract::<(), InvokeError>(&contract_id, &fn_name, vec![&env, val]);
+        let r = env.try_invoke_contract::<(), InvokeError>(&contract_id, &fn_name, vec![&env, val]);
         let _ = r.map_err(|_| Error::UpgradeInvokeFailed)?;
         Ok(contract_id)
     }
