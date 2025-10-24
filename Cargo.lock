@@ -2211,6 +2211,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "hello_world_v2"
+version = "0.0.0"
+dependencies = [
+ "admin-sep",
+ "soroban-sdk 23.0.2 (git+https://github.com/stellar/rs-soroban-sdk?rev=99134976ee1d31fa1fa5db8a63bd1ea66b8abda8)",
+]
+
+[[package]]
+name = "hello_world_v3"
+version = "0.0.0"
+dependencies = [
+ "admin-sep",
+ "soroban-sdk 23.0.2 (git+https://github.com/stellar/rs-soroban-sdk?rev=99134976ee1d31fa1fa5db8a63bd1ea66b8abda8)",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"

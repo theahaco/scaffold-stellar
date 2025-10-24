@@ -132,9 +132,9 @@ impl Publishable for Contract {
 
     fn publish_hash(
         env: &Env,
-        wasm_name: soroban_sdk::String,
-        author: soroban_sdk::Address,
-        wasm_hash: soroban_sdk::BytesN<32>,
+        wasm_name: String,
+        author: Address,
+        wasm_hash: BytesN<32>,
         version: String,
     ) -> Result<(), Error> {
         if HashMap::has(env, &wasm_hash) {

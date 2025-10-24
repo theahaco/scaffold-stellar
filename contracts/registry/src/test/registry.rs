@@ -1,7 +1,7 @@
 extern crate std;
 use crate::{error::Error, Contract, ContractArgs, ContractClient as SorobanContractClient};
 
-use soroban_sdk::{self, testutils::{Address as _, MockAuth, MockAuthInvoke}, vec, Address, Bytes, BytesN, Env, IntoVal, TryIntoVal, Val, Vec};
+use soroban_sdk::{self, testutils::{Address as _, MockAuth, MockAuthInvoke}, vec, Address, Bytes, BytesN, ConversionError, Env, IntoVal, InvokeError, String, Symbol, TryIntoVal, Val, Vec};
 
 pub fn default_version(env: &Env) -> soroban_sdk::String {
     soroban_sdk::String::from_str(&env, "0.0.0")
@@ -39,7 +39,7 @@ impl<'a> Registry<'a> {
             env: env.clone(),
             client,
             admin,
-           bytes,
+            bytes,
             hash
         }
     }
@@ -169,6 +169,81 @@ impl<'a> Registry<'a> {
             name,
             author,
             &Some(vec![env, author.into_val(env)]),
+        )
+    }
+
+    pub fn mock_auth_and_try_deploy(&self, author: &Address, version: &Option<String>, wasm_name: &soroban_sdk::String, name: &soroban_sdk::String, args: &Option<soroban_sdk::Vec<soroban_sdk::Val>>) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
+        let client = self.client();
+
+        self.mock_auth_for(
+            author,
+            "deploy",
+            ContractArgs::deploy(
+                wasm_name,
+                version,
+                name,
+                author,
+                args,
+            ),
+        );
+
+        client.try_deploy(
+            wasm_name,
+            version,
+            name,
+            author,
+            args,
+        )
+    }
+
+    pub fn mock_auth_and_try_upgrade(&self, _author: &Address, contract_name: &soroban_sdk::String, wasm_name: &soroban_sdk::String, version: &Option<String>, upgrade_fn: &Option<Symbol>) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
+        let client = self.client();
+
+        let env = self.env();
+        // TODO
+        env.mock_all_auths();
+
+        // self.mock_auth_for(
+        //     author,
+        //     "upgrade_contract",
+        //     ContractArgs::upgrade_contract(
+        //         contract_name,
+        //         wasm_name,
+        //         version,
+        //         upgrade_fn,
+        //     )
+        // );
+
+        client.try_upgrade_contract(
+            contract_name,
+            wasm_name,
+            version,
+            upgrade_fn,
+        )
+    }
+
+    pub fn mock_auth_and_try_upgrade_dev_deploy(&self, _author: &Address, contract_name: &soroban_sdk::String, wasm: &soroban_sdk::Bytes, upgrade_fn: &Option<Symbol>) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
+        let client = self.client();
+
+        let env = self.env();
+        // TODO
+        env.mock_all_auths();
+        
+        // self.mock_auth_for(
+        //     author,
+        //     "upgrade_contract",
+        //     ContractArgs::upgrade_contract(
+        //         contract_name,
+        //         wasm_name,
+        //         version,
+        //         upgrade_fn,
+        //     )
+        // );
+
+        client.try_dev_deploy(
+            contract_name,
+            wasm,
+            upgrade_fn,
         )
     }
 }
