@@ -93,7 +93,7 @@ impl Contract {
         });
         registry.versions.set(version.clone(), hash.clone());
         registry.current_version = version.clone();
-        wasm_map.set(&name, &registry);
+        wasm_map.set(name, &registry);
         Ok(())
     }
 
@@ -156,9 +156,9 @@ impl Publishable for Contract {
         Self::set(env, &wasm_name, &version, &wasm_hash, author.clone())?;
         crate::events::Publish {
             wasm_name,
+            wasm_hash,
             version,
             author,
-            wasm_hash,
         }
         .publish(env);
         Ok(())
