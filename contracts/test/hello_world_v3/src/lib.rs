@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{Address, Env, String, Symbol, contract, contractimpl, symbol_short};
+use soroban_sdk::{Address, Env, String, contract, contractimpl};
 
 #[contract]
 pub struct Contract;
@@ -24,5 +24,3 @@ impl Contract {
 fn admin_from_storage(env: &Env) -> Option<Address> {
     env.storage().instance().get(admin_sep::STORAGE_KEY)
 }
-
-pub const STORAGE_KEY: &Symbol = &symbol_short!("ADMIN");

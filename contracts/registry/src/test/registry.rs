@@ -206,28 +206,40 @@ impl<'a> Registry<'a> {
 
     pub fn mock_auth_and_try_upgrade(
         &self,
-        _author: &Address,
+        author: &Address,
         contract_name: &soroban_sdk::String,
         wasm_name: &soroban_sdk::String,
         version: &Option<String>,
-        upgrade_fn: &Option<Symbol>,
+        upgrade_fn: &Option<&str>,
+        old_contract: &Address,
+        wasm_hash: &BytesN<32>,
     ) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
         let client = self.client();
 
         let env = self.env();
-        // TODO
-        env.mock_all_auths();
 
-        // self.mock_auth_for(
-        //     author,
-        //     "upgrade_contract",
-        //     ContractArgs::upgrade_contract(
-        //         contract_name,
-        //         wasm_name,
-        //         version,
-        //         upgrade_fn,
-        //     )
-        // );
+        let fn_name = upgrade_fn.unwrap_or("upgrade");
+        let upgrade_fn = &upgrade_fn.map(|x| Symbol::new(env, x));
+
+        let upgrade_contract_args =
+            ContractArgs::upgrade_contract(contract_name, wasm_name, version, upgrade_fn);
+
+        let upgrade_args = ContractArgs::upgrade(wasm_hash);
+
+        env.mock_auths(&[MockAuth {
+            address: author,
+            invoke: &MockAuthInvoke {
+                contract: &self.client.address,
+                fn_name: "upgrade_contract",
+                args: unsafe { upgrade_contract_args.try_into_val(env).unwrap_unchecked() },
+                sub_invokes: &[MockAuthInvoke {
+                    contract: old_contract,
+                    fn_name,
+                    args: unsafe { upgrade_args.try_into_val(env).unwrap_unchecked() },
+                    sub_invokes: &[],
+                }],
+            },
+        }]);
 
         client.try_upgrade_contract(contract_name, wasm_name, version, upgrade_fn)
     }

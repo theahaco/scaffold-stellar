@@ -7,10 +7,11 @@ use crate::{
     test::registry::{default_version, to_string, Registry},
     ContractArgs,
 };
+use soroban_sdk::InvokeError::Abort;
 use soroban_sdk::{
     self,
     testutils::{Address as _, BytesN as _},
-    vec, Address, BytesN, Env, IntoVal, Symbol,
+    vec, Address, BytesN, Env, IntoVal,
 };
 
 mod contracts;
@@ -446,21 +447,44 @@ fn hello_world_deploy_v2() {
         Err(Ok(Error::AdminOnly))
     );
 
-    // TODO: update code to sign only necessary parts
-    // // Step 10: bob tries to upgrade alice's contract
-    // assert_eq!(
-    //     registry.mock_auth_and_try_upgrade(bob, alice_contract, hello_wasm, sv1, &None),
-    //     Err(Err(Abort)) // Abort due to bob being unauthorized to upgrade alice's contract
-    // );
+    // Step 10: bob tries to upgrade alice's contract
+    assert_eq!(
+        registry.mock_auth_and_try_upgrade(
+            bob,
+            alice_contract,
+            hello_wasm,
+            sv1,
+            &None,
+            &address,
+            &registry_client.fetch_hash(hello_wasm, &None)
+        ),
+        Err(Err(Abort)) // Abort due to bob being unauthorized to upgrade alice's contract
+    );
 
     // Step 11: alice tries to upgrade to the latest version
-    let res = registry.mock_auth_and_try_upgrade(alice, alice_contract, hello_wasm, &None, &None);
+    let res = registry.mock_auth_and_try_upgrade(
+        alice,
+        alice_contract,
+        hello_wasm,
+        &None,
+        &None,
+        &address,
+        &registry_client.fetch_hash(hello_wasm, &None),
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client_v2(env, &address);
     assert_eq!(hw_client.hello(), to_string(env, "hi, I'm a v2!"));
 
     // Step 12: alice rolls back to v0
-    let res = registry.mock_auth_and_try_upgrade(alice, alice_contract, hello_wasm, sv0, &None);
+    let res = registry.mock_auth_and_try_upgrade(
+        alice,
+        alice_contract,
+        hello_wasm,
+        sv0,
+        &None,
+        &address,
+        &registry_client.fetch_hash(hello_wasm, sv0),
+    );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
     assert_eq!(
@@ -486,7 +510,9 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         sv0,
-        &Some(Symbol::new(env, "custom_upgrade")),
+        &Some("custom_upgrade"),
+        &address,
+        &registry_client.fetch_hash(hello_wasm, sv0),
     );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
