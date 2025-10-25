@@ -4,6 +4,7 @@ use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml::{self, Environment};
+use crate::commands::npm_cmd;
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
@@ -301,7 +302,7 @@ export default new Client.Client({{
 
         // Run `npm i` in the temp directory
         printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
-        let output = std::process::Command::new("npm")
+        let output = std::process::Command::new(npm_cmd())
             .current_dir(&temp_dir)
             .arg("install")
             .arg("--loglevel=error") // Reduce noise from warnings
@@ -323,7 +324,7 @@ export default new Client.Client({{
         printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
 
         printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
-        let output = std::process::Command::new("npm")
+        let output = std::process::Command::new(npm_cmd())
             .current_dir(&temp_dir)
             .arg("run")
             .arg("build")
@@ -359,7 +360,7 @@ export default new Client.Client({{
             std::fs::rename(&temp_dir, &final_output_dir)?;
             printer.checkln(format!("Client {name:?} created successfully"));
             // Run npm install in the final output directory to ensure proper linking
-            let output = std::process::Command::new("npm")
+            let output = std::process::Command::new(npm_cmd())
                 .current_dir(&final_output_dir)
                 .arg("install")
                 .arg("--loglevel=error")
