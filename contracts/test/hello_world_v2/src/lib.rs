@@ -1,24 +1,13 @@
 #![no_std]
-
 use admin_sep::{Administratable, Upgradable};
-use soroban_sdk::{contract, contractimpl, Address, Env};
-
-pub mod error;
-pub mod events;
-pub mod name;
-pub mod registry;
-mod util;
-pub mod version;
-
-mod storage;
-
-pub use error::Error;
+use soroban_sdk::{Address, Env, String, contract, contractimpl};
 
 #[contract]
 pub struct Contract;
 
 #[contractimpl]
 impl Administratable for Contract {}
+
 #[contractimpl]
 impl Upgradable for Contract {}
 
@@ -27,7 +16,7 @@ impl Contract {
     pub fn __constructor(env: &Env, admin: Address) {
         Self::set_admin(env, admin);
     }
+    pub fn hello(env: &Env) -> String {
+        String::from_str(env, "hi, I'm a v2!")
+    }
 }
-
-#[cfg(test)]
-mod test;

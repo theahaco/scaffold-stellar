@@ -3,7 +3,8 @@ resolver = "2"
 default-members = ["crates/*"]
 members = [
     "crates/*",
-    "contracts/*",
+    "contracts/registry",
+    "contracts/test/*",
     "crates/stellar-scaffold-test/fixtures/contracts/*",
 ]
 
@@ -14,13 +15,12 @@ repository = "https://github.com/theahaco/scaffold-stellar"
 stellar-scaffold-macro = { path = "crates/stellar-scaffold-macro" }
 stellar-registry = { path = "crates/stellar-registry" }
 
-loam-sdk = { git = "https://github.com/loambuild/loam", rev = "096da30cedd371651906cfbed034b955c7b50ab4" }
-loam-subcontract-core = { git = "https://github.com/loambuild/loam", rev = "096da30cedd371651906cfbed034b955c7b50ab4" }
 stellar-cli = { version = "23.1.4", package = "soroban-cli", default-features = false  }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
 soroban-spec-tools = "23.1.2"
 
-soroban-sdk = "23.0.2"
+soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0" }
 stellar-xdr = "23.0.0"
 stellar-strkey = "0.0.13"
 

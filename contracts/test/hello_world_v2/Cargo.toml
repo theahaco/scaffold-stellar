@@ -1,8 +1,9 @@
 [package]
-name = "hello_v2"
+name = "hello_world_v2"
 version = "0.0.0"
 edition = "2024"
 publish = false
+
 
 [package.metadata.stellar]
 # Set contract metadata for authors, homepage, and version based on the Cargo.toml package values
