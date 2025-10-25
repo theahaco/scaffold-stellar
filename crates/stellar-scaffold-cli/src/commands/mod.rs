@@ -104,7 +104,6 @@ pub enum Error {
     Watch(#[from] watch::Error),
 }
 
-
 pub fn npm_cmd() -> &'static str {
     if cfg!(target_os = "windows") {
         "npm.cmd"
