@@ -14,7 +14,6 @@ mod hello_world_v3 {
     soroban_sdk::contractimport!(file = "../../target/stellar/local/hello_world_v3.wasm");
 }
 
-
 pub fn hw_hash(env: &Env) -> BytesN<32> {
     env.deployer().upload_contract_wasm(hello_world::WASM)
 }
