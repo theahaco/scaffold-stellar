@@ -43,11 +43,35 @@ We'll run a local Stellar network inside a Docker container, so head to the [Get
 
 ### Scaffold Stellar
 
-Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI.
+Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI. We suggest using cargo-binstall to install it, which is a tool for installing Rust binaries. 
+
+If you don't have it installed, you can do so with:
+
+#### Macos or Linux:
+
+```bash
+curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+```
+#### Windows:
+
+```powershell
+Set-ExecutionPolicy Unrestricted -Scope Process; iex (iwr "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.ps1").Content
+```
+
+### Then install Scaffold Stellar with:
+
+```bash
+cargo binstall -y stellar-scaffold-cli
+```
+
+Or if you prefer, you can install it directly with Cargo which will compile it from source:
 
 ```bash
 cargo install --locked stellar-scaffold-cli
 ```
+
+Preferred installation is binstall 
+
 
 <a id="init"></a>
 ## 🏗️ Initialize Your Project
@@ -199,7 +223,7 @@ In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/ref
 Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods.  In this case the structs holds no values but we will still define methods on it.
 
 ```rust
-const THE_NUMBER: Symbol = symbol_short!("n");
+const THE_NUMBER: &Symbol = &symbol_short!("n");
 pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 ```
 
