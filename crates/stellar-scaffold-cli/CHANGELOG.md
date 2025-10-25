@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.14...stellar-scaffold-cli-v0.0.15) - 2025-10-25
+
+### Added
+
+- [**breaking**] no longer force users to use local config and add Builder type to remove need for using ENV internall ([#238](https://github.com/theahaco/scaffold-stellar/pull/238))
+
+### Fixed
+
+- update stellar-cli; remove unneeded features for smaller binaries ([#237](https://github.com/theahaco/scaffold-stellar/pull/237))
+
 ## [0.0.14](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.13...stellar-scaffold-cli-v0.0.14) - 2025-10-20
 
 ### Added
