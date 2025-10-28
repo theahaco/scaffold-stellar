@@ -3,6 +3,8 @@ import {useState} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import {translate} from '@docusaurus/Translate';
+import Translate from '@docusaurus/Translate';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
@@ -57,13 +59,17 @@ function HomepageHeader() {
         <Heading as="h1" className="hero__title">
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className="hero__subtitle">
+          <Translate id="homepage.tagline">
+            {siteConfig.tagline}
+          </Translate>
+        </p>
         <InstallCommand />
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
             to="/docs/quick-start">
-            Quickstart &rarr;
+            <Translate id="homepage.quickstart">Quickstart</Translate> &rarr;
           </Link>
         </div>
       </div>
@@ -76,7 +82,11 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title={`${siteConfig.title}`}
-      description="Scaffold - The Stellar app lifecycle streamlined">
+      description={translate({
+        id: "homepage.mainMessage",
+        message: "Scaffold - The Stellar app lifecycle streamlined",
+        description: "The homepage message",
+      })}>
       <HomepageHeader />
       <main>
         <HomepageFeatures />
