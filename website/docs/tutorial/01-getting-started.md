@@ -4,10 +4,17 @@ sidebar_label: Getting Started
 
 # Getting Started with Scaffold Stellar
 
-This part of the tutorial will guide you through setting up your development environment and get you up and running with a local Stellar network, deployed contracts, and fully functioning frontend application all with a few commands from Scaffold Stellar. We'll also break down the project structure and explain the example contract code.
+This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application.
 
-You should have a basic understanding of using the command line and of general programming concepts. Stellar Contracts are written in Rust, although we'll walk through the code together so don't worry if this is your first time with the language. We'll link out to [The Rust Programming Language book](https://doc.rust-lang.org/stable/book/) to explain concepts if you want to dive deeper.
+We'll cover:
 
+1. [Setting up a development environment](#setup)
+2. [Initializing a new project](#init)
+3. [Exploring the scaffolded project structure](#structure)
+4. [Understanding code in an example contract](#code)
+5. [Running the application](#dapp)
+
+<a id="setup"></a>
 ## 🛠️ Setup Your Development Environment
 
 First, follow the [Setup Instructions](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup) here to install the necessary tools for Stellar contract development, specifically these sections:
@@ -36,13 +43,38 @@ We'll run a local Stellar network inside a Docker container, so head to the [Get
 
 ### Scaffold Stellar
 
-Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI.
+Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI. We suggest using cargo-binstall to install it, which is a tool for installing Rust binaries.
+
+If you don't have it installed, you can do so with:
+
+<details>
+    <summary>Macos or Linux</summary>
+    ```bash
+    curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    ```
+</details>
+
+<details>
+    <summary>Windows</summary>
+```powershell
+Set-ExecutionPolicy Unrestricted -Scope Process; iex (iwr "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.ps1").Content
+```
+</details>
+
+Then install Scaffold Stellar with:
+
+```bash
+cargo binstall -y stellar-scaffold-cli
+```
+
+Or if you prefer, you can install it directly with Cargo which will compile it from source:
 
 ```bash
 cargo install --locked stellar-scaffold-cli
 ```
 
-## 🏗️ Create the Scaffold
+<a id="init"></a>
+## 🏗️ Initialize Your Project
 
 Our smart contract will be a Guess The Number game. You (the admin) can deploy the contract, randomly select a number between 1 and 10, and seed the contract with a prize. Users can make guesses and win the prize if they're correct!
 
@@ -72,7 +104,8 @@ This command does two things:
 
 The first time you compile these smart contracts can take a while. While it does its thing, let's have a look around.
 
-## 🗂️ Some important files
+<a id="structure"></a>
+## 🗂️ Exploring the Project Structure
 
 Open the project in your editor. You will see a generated project structure including these files and folders:
 
@@ -122,9 +155,10 @@ That's a lot of heavy lifting! Normally you'd have to do all this yourself, perh
 
 And we're just getting started! We haven't even looked at the application yet.
 
+<a id="dapp"></a>
 ## 🚀 Open the App
 
-The `npm start` command should have finished building the contracts by now so you can open the app in your browser. It should be running at Vite's default port, [http://localhost:5173](), and you should see the home page:
+The `npm start` command should have finished building the contracts by now so you can open the app in your browser. It should be running at Vite's default port, [http://localhost:5173](http://localhost:5173), and you should see the home page:
 
 ```
 Welcome to your app!
@@ -156,6 +190,7 @@ Now click the dApp's "Connect" button and follow the prompts to let the applicat
 
 Once your wallet balance has some XLM, you should see the "GuessTheNumber" component update with a text box. Go ahead and enter some guesses. Right out of the gate we have nice UI to invoke methods on the contract.
 
+<a id="code"></a>
 ## 🔎 Understand the Contract Code
 
 Now navigate to our contract explorer. Click the "&lt;/&gt; Debugger" button in the header. These are our contract developer tools. They'll let you explore the contracts available to your application, view documentation, and even run methods to help debug them right from your app!
@@ -302,6 +337,7 @@ After deployment, our `__constructor` method is run which initializes our contra
 
 This is final piece of the puzzle. Now that the contract is deployed on chain, we can use it to generate an RPC client and TypeScript bindings used in our frontend code.
 
+<a id="app-code"></a>
 ## 🔎 Understand the Application Code
 
 The app's home page uses the `<GuessTheNumber />` component, so we can start by looking at that file in `src/components/GuessTheNumber.tsx`:
