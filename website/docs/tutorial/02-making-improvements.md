@@ -1,3 +1,7 @@
+---
+sidebar_label: Making Improvements
+---
+
 # Making Some Basic Improvements
 
 In our initial version, we had a problem: the `guess` function would crash if no number was set yet. Let's fix this by improving how our contract initializes and by creating reusable code for number generation.

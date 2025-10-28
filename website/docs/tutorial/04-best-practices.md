@@ -1,3 +1,7 @@
+---
+sidebar_label: Best Practices
+---
+
 # Best Practices For Production Contracts
 
 Our guessing game works, but it's not quite ready for production. Let's add professional-grade error handling, security measures, and some clever techniques to make the stored number less obvious to observers.

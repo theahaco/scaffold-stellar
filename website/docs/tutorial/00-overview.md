@@ -1,4 +1,7 @@
-# Scaffold Stellar Tutorial
+---
+sidebar_label: Overview
+---
+# Tutorial Overview
 
 This tutorial will help you learn how to use [Scaffold Stellar](https://github.com/theahaco/scaffold-stellar) to build and manage smart contracts on the Stellar blockchain and a decentralized application (dApp) to interact with them. Scaffold Stellar is a developer toolkit that provides CLI tools, contract templates, and a starter React UI to get your idea out of your head and on to the network as fast as possible.
 
