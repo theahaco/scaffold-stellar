@@ -1,7 +1,3 @@
----
-sidebar_position: 4
----
-
 # Environment Configuration
 
 Scaffold Stellar uses an `environments.toml` file to manage different deployment environments and contract configurations.

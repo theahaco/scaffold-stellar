@@ -2,7 +2,9 @@
 
 This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application. You should have a basic understanding of the command line and of general programming concepts, but we'll walk through all the code together so don't worry if you're new to Stellar, Rust, or dApp development.
 
-:::tip If you just want to get up and running quickly, check out the [Quick Start](/docs/quick-start.mdx) guide. :::
+:::tip
+If you just want to get up and running quickly, check out the [Quick Start](./quick-start.mdx) guide.
+:::
 
 We'll cover:
 
@@ -41,7 +43,7 @@ We'll run a local Stellar network inside a Docker container, so head to the [Get
 
 ### Scaffold Stellar
 
-Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI. We suggest using cargo-binstall to install it, which is a tool for installing Rust binaries.
+Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI. We suggest using cargo-binstall to install it, which is a tool for installing Rust binaries. 
 
 If you don't have it installed, you can do so with:
 
@@ -50,7 +52,6 @@ If you don't have it installed, you can do so with:
 ```bash
 curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 ```
-
 #### Windows:
 
 ```powershell
@@ -69,7 +70,8 @@ Or if you prefer, you can install it directly with Cargo which will compile it f
 cargo install --locked stellar-scaffold-cli
 ```
 
-Preferred installation is binstall
+Preferred installation is binstall 
+
 
 <a id="init"></a>
 ## 🏗️ Initialize Your Project
@@ -143,11 +145,11 @@ So how do all these pieces work together? Here's what Scaffold Stellar handles f
 1. Our `npm start` command runs `stellar scaffold watch --build-clients`
 2. Our `.env` file set an environment variable to say we're in our _development_ environment (`STELLAR_SCAFFOLD_ENV=development`)
 3. Scaffold Stellar looked to `environments.toml` for the development environment's configuration, which told it to:
-   - Start up a local Stellar network
-   - Create an account on the network
-   - Build the contracts
-   - Deploy them to the network
-   - Generate their clients for the frontend
+    - Start up a local Stellar network
+    - Create an account on the network
+    - Build the contracts
+    - Deploy them to the network
+    - Generate their clients for the frontend
 
 That's a lot of heavy lifting! Normally you'd have to do all this yourself, perhaps in a procedural script, but Scaffold Stellar does it for you. And it's deterministic, meaning you can always reproduce the same results from the same environment configuration. You set configuration values, specifying the desired starting state for your app, and Scaffold Stellar does all the work to get your app into that state.
 
@@ -214,11 +216,11 @@ We can still use explicitly imported features, though, and that's what the next 
 pub struct GuessTheNumber;
 ```
 
-The `#[...]` syntax in Rust is called an [attribute](https://doc.rust-lang.org/reference/attributes.html). It's a way to label code for the compiler to handle it with special instructions. _Inner_ attributes (with the `#!`) apply to the scope they're within (meaning `!#[no_std]` applies to the whole file/module), and _Outer_ attributes (just the `#`) apply to the next line.
+The `#[...]` syntax in Rust is called an [attribute](https://doc.rust-lang.org/reference/attributes.html). It's a way to label code for the compiler to handle it with special instructions. *Inner* attributes (with the `#!`) apply to the scope they're within (meaning `!#[no_std]` applies to the whole file/module), and *Outer* attributes (just the `#`) apply to the next line.
 
 In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/reference/procedural-macros.html#attribute-macros), which is a special function called by the compiler that generates code at compile time.
 
-Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods. In this case the structs holds no values but we will still define methods on it.
+Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods.  In this case the structs holds no values but we will still define methods on it.
 
 ```rust
 const THE_NUMBER: &Symbol = &symbol_short!("n");
@@ -358,22 +360,22 @@ export const GuessTheNumber = () => {
 We're storing some state for tracking the input's value and whether the guess was successful or not. And we're also using our custom `useWallet` hook to connect to the user's wallet and get their address. This is how we know whether or not you connected to Freighter.
 
 ```ts
-const submitGuess = async () => {
-  if (!theGuess) return;
-  const { result } = await game.guess({ a_number: BigInt(theGuess) });
-  setGuessedIt(result);
-};
+  const submitGuess = async () => {
+    if (!theGuess) return;
+    const { result } = await game.guess({ a_number: BigInt(theGuess) });
+    setGuessedIt(result);
+  };
 ```
 
 Next, we create a function to handle the user's submission. Hey! Look at that! It's one of our contract's methods right in our TypeScript code: `game.guess()`. Let's follow that import and look at `src/contracts/guess_the_number.ts`.
 
 ```ts
-import * as Client from "guess_the_number";
-import { rpcUrl } from "./util";
+import * as Client from 'guess_the_number';
+import { rpcUrl } from './util';
 
 export default new Client.Client({
-  networkPassphrase: "Standalone Network ; February 2017",
-  contractId: "CBPAPSB7SXM3MNJVLXPSD6BRQ2ZN33OQVYWO45332TOP4PQLMCHJV4QN",
+  networkPassphrase: 'Standalone Network ; February 2017',
+  contractId: 'CBPAPSB7SXM3MNJVLXPSD6BRQ2ZN33OQVYWO45332TOP4PQLMCHJV4QN',
   rpcUrl,
   allowHttp: true,
   publicKey: undefined,
@@ -393,6 +395,7 @@ That covered a lot, but let's summarize how simple it actually was:
 3. We ran `npm start` to build and deploy the contracts to our local network, then run the application
 
 That's it! Scaffold Stellar does all the heavy lifting, letting you jump right in to the fun parts of developing your contract and applications. 🎉
+
 
 ## What's Next?
 
