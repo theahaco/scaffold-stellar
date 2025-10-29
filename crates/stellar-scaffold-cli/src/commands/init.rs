@@ -97,9 +97,9 @@ impl Cmd {
         Ok(())
     }
 
-    /// Updates the project with an OpenZeppelin example contract
+    /// Updates the project with an Open Zeppelin example contract
     ///
-    /// This method attempts to generate a contract from OpenZeppelin
+    /// This method attempts to generate a contract from Open Zeppelin
     /// and prints a warning if it can't be found or generated.
     async fn update_oz_example(
         &self,
@@ -141,20 +141,17 @@ impl Cmd {
         match result {
             Ok(()) => {
                 printer.infoln(format!(
-                    "Successfully added OpenZeppelin example contract: {}",
-                    contract_path
+                    "Successfully added OpenZeppelin example contract: {contract_path}"
                 ));
             }
             Err(generate::contract::Error::ExampleNotFound(_)) => {
                 printer.infoln(format!(
-                    "Skipping OpenZeppelin example contract: {} (not found)",
-                    contract_path
+                    "Skipped missing OpenZeppelin example contract: {contract_path}"
                 ));
             }
             Err(e) => {
                 printer.warnln(format!(
-                    "Failed to generate example contract: {}\n{}",
-                    contract_path, e
+                    "Failed to generate example contract: {contract_path}\n{e}"
                 ));
             }
         }
