@@ -86,12 +86,6 @@ impl Cmd {
         }
 
         // Update the project with the latest OpenZeppelin examples
-        self.update_oz_example(
-            &absolute_project_path,
-            "fungible-token-interface",
-            global_args,
-        )
-        .await?;
         self.update_oz_example(&absolute_project_path, "nft-enumerable", global_args)
             .await?;
 
