@@ -86,25 +86,28 @@ impl Cmd {
         }
 
         // Update the project with the latest OpenZeppelin examples
-        self.update_oz_example(
-            &absolute_project_path,
-            "fungible-token-interface",
-            global_args,
-        )
-        .await?;
-        self.update_oz_example(&absolute_project_path, "nft-enumerable", global_args)
-            .await?;
+        let example_contracts = ["nft-enumerable", "fungible-allowlist-example"];
+
+        for contract in example_contracts {
+            self.update_oz_example(&absolute_project_path, contract, global_args)
+                .await?;
+        }
 
         printer.checkln(format!("Project successfully created at {project_str}"));
         Ok(())
     }
 
+    /// Updates the project with an Open Zeppelin example contract
+    ///
+    /// This method attempts to generate a contract from Open Zeppelin
+    /// and prints a warning if it can't be found or generated.
     async fn update_oz_example(
         &self,
         absolute_project_path: &PathBuf,
-        contract_path: &'static str,
+        contract_path: &str,
         global_args: &global::Args,
     ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
         let original_dir = env::current_dir()?;
         env::set_current_dir(absolute_project_path)?;
 
@@ -118,7 +121,7 @@ impl Cmd {
         let mut quiet_global_args = global_args.clone();
         quiet_global_args.quiet = true;
 
-        generate::contract::Cmd {
+        let result = generate::contract::Cmd {
             from: Some(contract_path.to_owned()),
             ls: false,
             from_wizard: false,
@@ -130,8 +133,29 @@ impl Cmd {
             ),
         }
         .run(&quiet_global_args)
-        .await?;
-        env::set_current_dir(original_dir)?;
+        .await;
+
+        // Restore directory before handling result
+        let _ = env::set_current_dir(original_dir);
+
+        match result {
+            Ok(()) => {
+                printer.infoln(format!(
+                    "Successfully added OpenZeppelin example contract: {contract_path}"
+                ));
+            }
+            Err(generate::contract::Error::ExampleNotFound(_)) => {
+                printer.infoln(format!(
+                    "Skipped missing OpenZeppelin example contract: {contract_path}"
+                ));
+            }
+            Err(e) => {
+                printer.warnln(format!(
+                    "Failed to generate example contract: {contract_path}\n{e}"
+                ));
+            }
+        }
+
         Ok(())
     }
 }
