@@ -85,8 +85,8 @@ impl Cmd {
             git_commit(&absolute_project_path, "initial commit");
         }
 
-        // Update the project with the latest OpenZeppelin examples
-        let example_contracts = ["nft-enumerable", "fungible-allowlist-example"];
+        // Update the project's OpenZeppelin examples with the latest editions
+        let example_contracts = ["nft-enumerable", "fungible-allowlist"];
 
         for contract in example_contracts {
             self.update_oz_example(&absolute_project_path, contract, global_args)
