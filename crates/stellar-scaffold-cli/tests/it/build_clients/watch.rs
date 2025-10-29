@@ -1,4 +1,5 @@
 use std::process::Stdio;
+use stellar_scaffold_cli::commands::npm_cmd;
 use stellar_scaffold_test::{rpc_url, TestEnv};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_stream::{wrappers::LinesStream, StreamExt};
