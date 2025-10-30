@@ -293,7 +293,7 @@ $ npm start
 
 Click over to `&lt;/&gt; Debugger` if you're not there already and select the `guess_the_number` contract. You'll see that `reset` is listed here, but `set_random_number` is not.
 
-Our `reset` method is available to be called by code _outside_ our contract because we opted in to it being a public method with the `pub`. Our `set_random_number` is private by default, it's not even visible to the outside world. It's not listed in the Contract Explorer. It's not listed in the CLI help either:
+Our `reset` method is available to be called by code _outside_ our contract because we opted in to it being a public method with the `pub` keyword. Our `set_random_number` is private by default, it's not visible to the outside world. It's not listed in the Contract Explorer. It's not listed in the CLI help either:
 
 ```bash
 $ stellar contract invoke --id guess_the_number --source me --network local -- help
