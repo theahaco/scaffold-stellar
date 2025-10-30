@@ -1,4 +1,4 @@
-# Adding in Transactions
+# Adding in Payments
 
 Now comes the exciting part: adding some economic incentives to our guessing game! We'll implement a system where users pay to play and winners take the entire pot. This is where blockchain development gets really interesting. And honestly, it's probably why you're here in the first place, right?
 
@@ -23,18 +23,18 @@ Here's how our game economics will work:
 
 This creates real stakes and makes the game much more engaging!
 
-## Step 1: 🪙 Add Token Handling
+## Step 1: 🪙 Add Asset Import
 
-First, we need to import Stellar's token functionality. Add the following to your imports at the top of `lib.rs`:
+First, we need the `import_asset` macro from Stellar Registry. Add the following to your imports at the top of `lib.rs`:
 
-```rust
-#![no_std]
-use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol};
-use stellar_registry::import_asset;
-import_asset!(xlm);
+```diff
+ #![no_std]
+ use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol};
++use stellar_registry::import_asset;
++import_asset!(xlm);
 ```
 
-It contains types and methods for token contracts, like checking balances and making transfers.
+Stellar Registry integrates with Scaffold Stellar, giving names & versions to contracts & contract Wasms. It also provides helpers like `import_asset` to make it easier to work with [Stellar Asset Contracts](https://developers.stellar.org/docs/tokens/stellar-asset-contract).
 
 ## Step 2: 💰 Add Funds to the Contract
 
@@ -52,9 +52,9 @@ Whenever the admin resets the number, we need to transfer some funds to the cont
     }
 ```
 
-This creates a client to interact with the XLM contract, gets the admin's address from storage, and then runs a transfer.
+This creates a client to interact with the XLM contract via cross-contract calls. It gets the admin's address from storage, and then runs a transfer. If the transfer fails, perhaps because the admin does not have sufficient balance, the whole transaction gets rolled back. If this is the call to `__constructor` during the initial deploy, then the deploy will fail.
 
-_🏗️✨ TODO: explain Registry and calls via client, also stroops_
+You may have noticed that the number there looks really big! Seven zeroes after that `10`. When transferring assets in smart contracts, you must use their smallest-divisible unit. For XLM, this means adding seven zeroes. (The smallest unit of XLM is called a [stroop](https://developers.stellar.org/docs/learn/glossary#stroop).)
 
 ## Step 3: 🙋 Update the Guess Function
 
@@ -64,20 +64,29 @@ This is the big one! Let's make guessing cost money and pay out winners:
 /// Guess a number between 1 and 10
 /// Costs a fee and pays out the entire pot if correct
 pub fn guess(env: &Env, guesser: Address, a_number: u64) -> bool {
-  // Verify the guesser is actually the one calling this function
-  guesser.require_auth();
+  let xlm_client = xlm::token_client(env);
+  let contract_address = env.current_contract_address();
+  let guessed_it = a_number == Self::number(env);
 
-  if guessed_it = a_number == env.storage().instance().get::<_, u64>(&THE_NUMBER).unwrap() {
-    let tx = x.transfer(
-      self.current_contract_address(),
-      guesser,
-      x.balance(self.current_contract_address()),
-    );
-    if tx.is_err {
-      panic!("transfer failed!");
-    }
+  if guessed_it {
+      let balance = xlm_client.balance(&contract_address);
+      if balance == 0 {
+          panic!("Pot already won! New game not yet started.")
+      }
+
+      // pay full pot to `guesser`, whether they sent the transaction or not
+      let tx = xlm_client.transfer(
+        self.current_contract_address(),
+        guesser,
+        x.balance(self.current_contract_address()),
+      );
+      if tx.is_err {
+        panic!("transfer failed!");
+      }
   } else {
-    let tx = x.transfer(guesser, self.current_contract_address(), 1_000_000_0);
+    // Before transferring their funds, make sure guesser is actually the one calling this function
+    guesser.require_auth();
+    let tx = xlm_client.transfer(guesser, self.current_contract_address(), 1_000_000_0);
     if tx.is_err {
       panic!("transfer failed!");
     }
@@ -85,6 +94,41 @@ pub fn guess(env: &Env, guesser: Address, a_number: u64) -> bool {
 
   guessed_it
 }
+```
+
+## Step 4: Update the frontend
+
+TODO: this section is a stub.
+
+In  `src/components/GuessTheNumber.tsx`, add this at the top:
+
+```ts
+import { wallet } from "../util/wallet"
+```
+
+Then change this:
+
+```ts
+const submitGuess = async () => {
+  if (!theGuess) return;
+  const { result } = await game.guess({ a_number: BigInt(theGuess) });
+  setGuessedIt(result);
+};
+```
+
+...to this:
+
+```ts
+const submitGuess = async () => {
+  if (!theGuess) return;
+  const tx = await game.guess(
+    { guesser: address, a_number: BigInt(theGuess) },
+    // @ts-expect-error js-stellar-sdk has bad typings; publicKey is, in fact, allowed
+    { publicKey: address }
+  );
+  const { result } = await tx.signAndSend({ signTransaction: wallet.signTransaction.bind(game) })
+  setGuessedIt(result);
+};
 ```
 
 ## Step 7: Your Complete Updated Contract
