@@ -239,33 +239,37 @@ impl GuessTheNumber {
 Let's `impl`ement our contract's functionality.
 
 ```rust
-    pub fn __constructor(env: &Env, admin: &Address) {
-        Self::set_admin(env, admin);
-    }
+pub fn __constructor(env: &Env, admin: &Address) {
+    Self::set_admin(env, admin);
+}
 ```
 
 A contract's `constructor` runs when it is deployed. In this case, we're saying who has access to the admin functions. We don't want just anyone to be able to reset our number, do we?!
 
 ```rust
-    /// Update the number. Only callable by admin.
-    pub fn reset(env: &Env) {
-        Self::require_admin(env);
-        let new_number: u64 = env.prng().gen_range(1..=10);
-        env.storage().instance().set(&THE_NUMBER, &new_number);
-    }
+/// Update the number. Only callable by admin.
+pub fn reset(env: &Env) {
+    Self::require_admin(env);
+    let new_number: u64 = env.prng().gen_range(1..=10);
+    env.storage().instance().set(&THE_NUMBER, &new_number);
+}
 ```
 
 And here is the reset function. Note that we use `require_admin()` here so only you can run this function. It generates a random number between 1 and 10 and uses our key to store it.
 
 ```rust
-    /// Guess a number between 1 and 10
-    pub fn guess(env: &Env, a_number: u64) -> bool {
-        a_number == env.storage().instance().get::<_, u64>(&THE_NUMBER).unwrap()
-    }
+/// Guess a number from 1 to 10
+pub fn guess(env: &Env, a_number: u64) -> bool {
+    a_number
+        == env
+            .storage()
+            .instance()
+            .get::<_, u64>(&THE_NUMBER)
+            .expect("no number set")
 }
 ```
 
-Finally, we add the `guess` function which accepts a number as the guess and compares it to the stored number, returning the result. Notice we're using our defined key (that small Symbol) to find stored data that may or may not be there. That's why we need [`unwrap()`](https://doc.rust-lang.org/rust-by-example/error/option_unwrap.html), but we'll talk more about `Option` values later in the tutorial.
+Finally, we add the `guess` function which accepts a number as the guess and compares it to the stored number, returning the result. Notice we're using our defined key (that small Symbol) to find stored data that may or may not be there. The thing returned from `get` is a Rust [Option](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html#the-option-enum-and-its-advantages-over-null-values), which is Rust's improvement over the `null` type. An `Option` can be `Some` or `None`. We use [`expect()`](https://doc.rust-lang.org/std/option/enum.Option.html#method.expect) to return the value contained in the `Some` or to panic with the "no number set" message if `None`. We'll talk more about `Option` values later in the tutorial.
 
 ```rust
 mod test;
@@ -287,55 +291,6 @@ The docstring for our `guess` function says to guess a number "between 1 and 10"
 Save the file and watch your terminal output. The contracts get rebuilt, redeployed, and clients for them get regenerated for your frontend. Then Vite hot-reloads your app and you should see the change in the contract explorer in your browser.
 
 Tada!
-
-### 👀 Looking Deeper at the Output
-
-Sharp eyed readers might have noticed interesting lines in the build output. Let's take a look:
-
-```
-[0] ℹ️ Starting local network
-```
-
-This is the Docker container running Stellar locally. You can manage it with `stellar container` commands, but Scaffold Stellar should handle everything for you. We recommend using the local network for development because it's simpler than working with [the other networks](https://developers.stellar.org/docs/learn/fundamentals/networks), but we'll make use of them in later parts of the tutorial.
-
-```
-ℹ️ Build Summary:
-[0]   Wasm File: target/stellar/local/guess_the_number.wasm
-[0]   Wasm Hash: 2cda774ed515acb3af208478e64841d6253d52366f22156c5e7a550ee7b06cbe
-[0]   Exported Functions: 5 found
-[0]     • _
-[0]     • __constructor
-[0]     • guess
-[0]     • reset
-[0]     • upgrade
-[0] ✅ Build Complete
-```
-
-You'll see a build summary for each of our contracts as they compile to Wasm, the code that will actually run on the blockchain. There's a few other functions in our contract that weren't exported here. That's because they're private. We'll implement our own in the next part of the tutorial and explain why they're useful.
-
-```
-[0] ℹ️ Creating keys for "me"
-[0] ✅ Key saved with alias me in "/Users/zach/code/guessing-game-tutorial/.config/stellar/identity/me.toml"
-[0] ✅ Account me funded on "Standalone Network ; February 2017"
-```
-
-Scaffold Stellar creates an account for you to use on the local network and funds it so you can actually deploy your contracts. You can manage these accounts with the `stellar keys` command.
-
-```
-[0] ✅ Deployed!
-[0] ℹ️     ↳ contract_id: CBPAPSB7SXM3MNJVLXPSD6BRQ2ZN33OQVYWO45332TOP4PQLMCHJV4QN
-[0] ℹ️ Running after_deploy script for "guess_the_number"
-```
-
-After deployment, our `__constructor` method is run which initializes our contract. This is a perfect time to setup anything your contract needs to run. We also ran an `after_deploy` script to call our contract's `reset` method and generate a random number for us to guess. These are all configured in the `environments.toml` file and we'll dive into that in the next part of the tutorial.
-
-```
-[0] ℹ️ Binding "guess_the_number" contract
-...
-[0] ✅ Client "guess_the_number" created successfully
-```
-
-This is final piece of the puzzle. Now that the contract is deployed on chain, we can use it to generate an RPC client and TypeScript bindings used in our frontend code.
 
 <a id="app-code"></a>
 ## 🔎 Understand the Application Code
