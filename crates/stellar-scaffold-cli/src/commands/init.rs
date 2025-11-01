@@ -100,19 +100,24 @@ impl Cmd {
             .current_dir(&absolute_project_path)
             .output()?;
         if !npm_install_command.status.success() {
-            printer.warnln("Failed to install dependencies");
+            printer.warnln(
+                "Failed to install dependencies, run 'npm install' in the project directory",
+            );
         }
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
         // Use clap to parse build command with defaults, then configure programmatically
-        let mut build_command = build::Command::parse_from(&["build", "--build-clients"]);
+        let mut build_command = build::Command::parse_from(["build", "--build-clients"]);
         build_command.build.manifest_path = Some(absolute_project_path.join("Cargo.toml"));
         build_command.build_clients_args.env = Some(build::clients::ScaffoldEnv::Development);
         build_command.build_clients_args.workspace_root = Some(absolute_project_path.clone());
-        build_command.build_clients_args.global_args = Some(global_args.clone());
+        let mut build_args = global_args.clone();
+        if !(global_args.verbose && global_args.very_verbose) {
+            build_args.quiet = true;
+        }
 
-        if let Err(e) = build_command.run(global_args).await {
+        if let Err(e) = build_command.run(&build_args).await {
             printer.warnln(format!("Failed to build contract clients: {e}"));
         }
 
@@ -120,6 +125,9 @@ impl Cmd {
         printer.checkln(format!("Project successfully created at {project_str}"));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
+        if !npm_install_command.status.success() {
+            printer.blankln("\tnpm install");
+        }
         printer.blankln("\tnpm start\n");
         printer.blankln(" Happy hacking! 🚀");
         Ok(())
