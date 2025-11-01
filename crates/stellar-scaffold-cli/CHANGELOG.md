@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.15...stellar-scaffold-cli-v0.0.16) - 2025-11-01
+
+### Added
+
+- add install and build steps to init ([#268](https://github.com/theahaco/scaffold-stellar/pull/268))
+
+### Other
+
+- Fix name of second OZ contract ([#262](https://github.com/theahaco/scaffold-stellar/pull/262))
+
 ## [0.0.15](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.14...stellar-scaffold-cli-v0.0.15) - 2025-10-29
 
 ### Added
