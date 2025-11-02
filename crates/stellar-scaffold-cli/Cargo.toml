@@ -66,7 +66,7 @@ symlink = "0.1.0"
 toml = { version = "0.8.12", features = ["parse", "preserve_order"] }
 rand = "0.8.5"
 wasm-gen = { version = "0.1.4" }
-notify = "6.1.1"
+notify = "8.2.0"
 stellar-strkey = { workspace = true }
 stellar-xdr = { workspace = true }
 rust-embed = { version = "8.2.0", features = ["debug-embed"] }
