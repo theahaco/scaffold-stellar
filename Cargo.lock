@@ -5762,7 +5762,7 @@ dependencies = [
  "heck 0.5.0",
  "hex",
  "ignore",
- "indexmap 1.9.3",
+ "indexmap 2.9.0",
  "itertools 0.12.1",
  "mockito",
  "notify",
