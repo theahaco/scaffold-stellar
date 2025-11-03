@@ -1,7 +1,7 @@
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::env_toml::{Account, Contract, Environment, Network};
 use clap::Parser;
-use degit::degit;
+use degit_rs::degit;
 use indexmap::IndexMap;
 use std::fs;
 use std::fs::{create_dir_all, metadata, read_dir, write};
@@ -10,10 +10,8 @@ use std::path::{Path, PathBuf};
 use stellar_cli::commands::global::Args;
 use toml_edit::{value, DocumentMut, Item, Table};
 
-use crate::{arg_parsing, commands::build};
+use crate::{arg_parsing, commands::build, commands::init::FRONTEND_TEMPLATE};
 use stellar_cli::print::Print;
-
-const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
 
 /// A command to upgrade an existing Soroban workspace to a scaffold project
 #[derive(Parser, Debug, Clone)]

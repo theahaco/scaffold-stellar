@@ -1370,10 +1370,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "degit"
-version = "0.1.3"
+name = "degit-rs"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb3684f8997956fca390d357aeb127e76fd6cf9838ab6601089f15ebec88d090"
+checksum = "8a1475644f586f6990fcf87b0b9ab9440a92021b65bd8020a783d90ea997fef1"
 dependencies = [
  "clap 2.34.0",
  "colored 1.9.4",
@@ -5754,7 +5754,7 @@ dependencies = [
  "cargo_toml",
  "clap 4.5.35",
  "crate-git-revision",
- "degit",
+ "degit-rs",
  "dialoguer",
  "dirs",
  "flate2",

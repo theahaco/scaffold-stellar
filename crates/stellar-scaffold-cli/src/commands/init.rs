@@ -1,5 +1,5 @@
 use clap::Parser;
-use degit::degit;
+use degit_rs::degit;
 use std::fs::{copy, metadata, read_dir, remove_dir_all};
 use std::path::PathBuf;
 use std::process::Command;
@@ -8,7 +8,7 @@ use std::{env, io};
 use super::{build, generate};
 use stellar_cli::{commands::global, print::Print};
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
+pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend#v0.0.1";
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
