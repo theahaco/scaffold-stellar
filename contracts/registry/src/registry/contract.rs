@@ -19,7 +19,7 @@ use crate::{
 use super::{Deployable, Redeployable};
 
 impl Contract {
-    fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
+    fn get_contract_id(env: &Env, contract_name: &String) -> Result<Address, Error> {
         Storage::new(env)
             .contract
             .get(contract_name)
@@ -33,7 +33,7 @@ impl Contract {
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let name = canonicalize(name)?;
-        let contract_id = Self::get(env, &name)?;
+        let contract_id = Self::get_contract_id(env, &name)?;
         Storage::new(env)
             .contract
             .extend_ttl(&name, MAX_BUMP, MAX_BUMP);
@@ -95,7 +95,7 @@ impl Deployable for Contract {
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
         let contract_name = canonicalize(&contract_name)?;
-        Self::get(env, &contract_name)
+        Self::get_contract_id(env, &contract_name)
     }
 }
 

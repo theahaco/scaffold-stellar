@@ -1,6 +1,6 @@
 use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, String, Val};
 
-use crate::{registry::wasm::PublishedWasm, storage::maps::LoamKey};
+use crate::{registry::wasm::PublishedWasm, storage::maps::ToStorageKey};
 
 mod maps;
 
@@ -22,7 +22,7 @@ impl Storage {
 
 pub struct ContractKey;
 
-impl LoamKey<String> for ContractKey {
+impl ToStorageKey<String> for ContractKey {
     fn to_key(env: &Env, k: &String) -> Val {
         (symbol_short!("CR"), k.clone()).into_val(env)
     }
@@ -30,7 +30,7 @@ impl LoamKey<String> for ContractKey {
 
 pub struct WasmKey;
 
-impl LoamKey<String> for WasmKey {
+impl ToStorageKey<String> for WasmKey {
     fn to_key(env: &Env, k: &String) -> Val {
         (symbol_short!("WA"), k.clone()).into_val(env)
     }
@@ -38,7 +38,7 @@ impl LoamKey<String> for WasmKey {
 
 pub struct HashKey;
 
-impl LoamKey<BytesN<32>> for HashKey {
+impl ToStorageKey<BytesN<32>> for HashKey {
     fn to_key(_: &Env, k: &BytesN<32>) -> Val {
         k.clone().to_val()
     }
