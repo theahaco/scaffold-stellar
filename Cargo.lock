@@ -5773,7 +5773,7 @@ dependencies = [
  "mockito",
  "notify",
  "openssl",
- "predicates 3.1.3",
+ "predicates",
  "rand 0.8.5",
  "regex",
  "reqwest 0.12.15",
