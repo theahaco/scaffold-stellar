@@ -5773,14 +5773,11 @@ dependencies = [
  "mockito",
  "notify",
  "openssl",
- "pathdiff",
- "predicates",
+ "predicates 3.1.3",
  "rand 0.8.5",
  "regex",
  "reqwest 0.12.15",
- "rust-embed",
  "serde",
- "serde_derive",
  "serde_json",
  "sha2 0.10.9",
  "shlex",
@@ -5791,8 +5788,6 @@ dependencies = [
  "stellar-scaffold-test",
  "stellar-strkey 0.0.13",
  "stellar-xdr",
- "strsim 0.11.1",
- "symlink",
  "tar",
  "tempfile",
  "thiserror 2.0.12",
@@ -5802,7 +5797,6 @@ dependencies = [
  "toml_edit",
  "uuid 1.16.0",
  "walkdir",
- "wasm-gen",
  "webbrowser",
 ]
 
@@ -5957,12 +5951,6 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
-
-[[package]]
-name = "symlink"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
 
 [[package]]
 name = "syn"

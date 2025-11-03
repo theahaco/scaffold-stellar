@@ -50,26 +50,20 @@ sha2 = { workspace = true }
 reqwest = { version = "0.12.9", features = ["json"] }
 thiserror = "2.0.12"
 serde = "1.0.82"
-serde_derive = "1.0.82"
 serde_json = "1.0.82"
 
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
 itertools = "0.12.1"
 ignore = "0.4"
-strsim = "0.11.1"
 heck = "0.5.0"
-pathdiff = "0.2.1"
 hex = "0.4.3"
 shlex = "1.1.0"
-symlink = "0.1.0"
 toml = { version = "0.8.12", features = ["parse", "preserve_order"] }
 rand = "0.8.5"
-wasm-gen = { version = "0.1.4" }
 notify = "6.1.1"
 stellar-strkey = { workspace = true }
 stellar-xdr = { workspace = true }
-rust-embed = { version = "8.2.0", features = ["debug-embed"] }
 regex = "1.10.5"
 toml_edit = "0.22.16"
 indexmap = { version = "1.9", features = ["serde"] }
