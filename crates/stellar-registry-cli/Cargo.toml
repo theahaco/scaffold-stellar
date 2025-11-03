@@ -39,7 +39,7 @@ soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
 stellar-strkey = { workspace = true }
 
-thiserror = "1.0.31"
+thiserror = "2.0.12"
 tokio = { version = "1", features = ["full"] }
 shlex = "1.1.0"
 heck = "0.4.1"
@@ -52,7 +52,7 @@ dotenvy = "0.15.7"
 [dev-dependencies]
 assert_cmd = "2.0.4"
 assert_fs = "1.0.7"
-predicates = "2.1.5"
+predicates = "3.1.3"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
 [build-dependencies]
