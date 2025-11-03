@@ -76,5 +76,4 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-            target/
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
