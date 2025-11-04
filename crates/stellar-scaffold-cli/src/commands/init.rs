@@ -63,13 +63,18 @@ impl Cmd {
             .to_str()
             .ok_or(Error::InvalidProjectPathEncoding)?;
 
-        degit(FRONTEND_TEMPLATE, project_str);
+
+        tokio::task::spawn_blocking(move || {
+            degit(FRONTEND_TEMPLATE, project_str);
+        })
+        .await
+        .expect("Blocking task panicked");
 
         if metadata(&absolute_project_path).is_err()
             || read_dir(&absolute_project_path)?.next().is_none()
         {
             return Err(Error::DegitError(format!(
-                "Failed to clone template into {project_str}: directory is empty or missing",
+                "Failed to clone template into {absolute_project_path:?}: directory is empty or missing",
             )));
         }
 
@@ -122,7 +127,7 @@ impl Cmd {
         }
 
         printer.blankln("\n\n");
-        printer.checkln(format!("Project successfully created at {project_str}"));
+        printer.checkln(format!("Project successfully created at {}!", absolute_project_path.display()));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
         if !npm_install_command.status.success() {

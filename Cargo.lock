@@ -805,13 +805,13 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "codespan-reporting"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba7a06c0b31fff5ff2e1e7d37dbf940864e2a974b336e1a2938d10af6e8fb283"
+checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
  "serde",
  "termcolor",
- "unicode-width 0.2.0",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -1190,8 +1190,8 @@ dependencies = [
 
 [[package]]
 name = "degit-rs"
-version = "0.2.1"
-source = "git+https://github.com/theahaco/degit-rs?rev=422d4878aee21fe789a727d82572790e0877a9b9#422d4878aee21fe789a727d82572790e0877a9b9"
+version = "0.2.3"
+source = "git+https://github.com/theahaco/degit-rs?rev=556c450039c872cdd262f74278973e7e2c69675d#556c450039c872cdd262f74278973e7e2c69675d"
 dependencies = [
  "clap",
  "colored 3.0.0",
@@ -2710,9 +2710,9 @@ dependencies = [
 
 [[package]]
 name = "keyring"
-version = "3.6.2"
+version = "3.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1961983669d57bdfe6c0f3ef8e4c229b5ef751afcc7d87e4271d2f71f6ccfa8b"
+checksum = "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c"
 dependencies = [
  "byteorder 1.5.0",
  "dbus-secret-service",
@@ -2720,7 +2720,8 @@ dependencies = [
  "secret-service",
  "security-framework 2.11.1",
  "security-framework 3.3.0",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
+ "zeroize",
 ]
 
 [[package]]
