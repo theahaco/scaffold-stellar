@@ -25,10 +25,10 @@ stellar-xdr = "23.0.0"
 stellar-strkey = "0.0.13"
 
 cargo_metadata = "0.18.1"
-thiserror = "2.0.12"
+thiserror = "2.0.17"
 sha2 = "0.10.8"
 
-clap = "4.1.8"
+clap = "4.5.51"
 
 [profile.contracts]
 inherits = "release"

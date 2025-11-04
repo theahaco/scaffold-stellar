@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"]}
 admin-sep = { workspace = true}
-semver = { version = "1.0.26", default-features = false }
+semver = { version = "1.0.27", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
