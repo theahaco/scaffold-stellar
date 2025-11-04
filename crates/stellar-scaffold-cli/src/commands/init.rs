@@ -87,7 +87,7 @@ impl Cmd {
             repo = format!("{repo}#{TUTORIAL_BRANCH}");
         }
         tokio::task::spawn_blocking(move || {
-        degit(repo.as_str(), project_str);
+            degit(repo.as_str(), project_str);
         })
         .await
         .expect("Blocking task panicked");
