@@ -1,7 +1,7 @@
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::env_toml::{Account, Contract, Environment, Network};
 use clap::Parser;
-use degit_rs::degit;
+use degit::degit;
 use indexmap::IndexMap;
 use std::fs;
 use std::fs::{create_dir_all, metadata, read_dir, write};

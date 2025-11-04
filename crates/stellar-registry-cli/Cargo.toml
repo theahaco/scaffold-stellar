@@ -26,7 +26,6 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
 clap = { workspace = true, features = [
     "derive",
     "env",
