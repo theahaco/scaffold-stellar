@@ -1191,7 +1191,8 @@ dependencies = [
 [[package]]
 name = "degit-rs"
 version = "0.2.3"
-source = "git+https://github.com/theahaco/degit-rs?rev=556c450039c872cdd262f74278973e7e2c69675d#556c450039c872cdd262f74278973e7e2c69675d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3fbe021db08caf0ff8d5f75768a76675ee583c7f70891916385714ad297b23b"
 dependencies = [
  "clap",
  "colored 3.0.0",
@@ -1200,7 +1201,6 @@ dependencies = [
  "regex",
  "reqwest",
  "tar",
- "tokio",
 ]
 
 [[package]]

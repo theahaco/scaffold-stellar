@@ -36,7 +36,7 @@ clap = { version = "4.5.51", features = [
     "deprecated",
     "string",
 ] }
-degit = { package = "degit-rs", version = "0.2.1", git = "https://github.com/theahaco/degit-rs", rev = "556c450039c872cdd262f74278973e7e2c69675d" }
+degit = { package = "degit-rs", version = "0.2.3" }
 dialoguer = "0.12.0"
 dirs = "6.0.0"
 flate2 = "1.0"
