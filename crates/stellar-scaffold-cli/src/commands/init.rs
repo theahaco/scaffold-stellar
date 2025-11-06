@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Args, Parser};
 use degit::degit;
 use std::fs::{copy, metadata, read_dir, remove_dir_all};
 use std::path::PathBuf;
@@ -8,13 +8,29 @@ use std::{env, io};
 use super::{build, generate};
 use stellar_cli::{commands::global, print::Print};
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
+pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
+const TUTORIAL_BRANCH: &str = "tutorial";
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// The path to the project must be provided
     pub project_path: PathBuf,
+
+    #[command(flatten)]
+    vers: Vers,
+}
+
+#[derive(Args, Debug, Clone)]
+#[group(multiple = false)]
+struct Vers {
+    /// Initialize the tutorial project instead of the default project
+    #[arg(long, default_value_t = false)]
+    pub tutorial: bool,
+
+    /// Optional argument to specify a tagged version
+    #[arg(long)]
+    pub tag: Option<String>,
 }
 
 /// Errors that can occur during initialization
@@ -61,15 +77,27 @@ impl Cmd {
 
         let project_str = absolute_project_path
             .to_str()
-            .ok_or(Error::InvalidProjectPathEncoding)?;
+            .ok_or(Error::InvalidProjectPathEncoding)?
+            .to_owned();
 
-        degit(FRONTEND_TEMPLATE, project_str);
+        let mut repo = FRONTEND_TEMPLATE.to_string();
+        if let Some(tag) = self.vers.tag.as_deref() {
+            repo = format!("{repo}#{tag}");
+        } else if self.vers.tutorial {
+            repo = format!("{repo}#{TUTORIAL_BRANCH}");
+        }
+        tokio::task::spawn_blocking(move || {
+            degit(repo.as_str(), &project_str);
+        })
+        .await
+        .expect("Blocking task panicked");
 
         if metadata(&absolute_project_path).is_err()
             || read_dir(&absolute_project_path)?.next().is_none()
         {
             return Err(Error::DegitError(format!(
-                "Failed to clone template into {project_str}: directory is empty or missing",
+                "Failed to clone template into {}: directory is empty or missing",
+                absolute_project_path.display()
             )));
         }
 
@@ -86,11 +114,13 @@ impl Cmd {
         }
 
         // Update the project's OpenZeppelin examples with the latest editions
-        let example_contracts = ["nft-enumerable", "fungible-allowlist"];
+        if !self.vers.tutorial {
+            let example_contracts = ["nft-enumerable", "fungible-allowlist"];
 
-        for contract in example_contracts {
-            self.update_oz_example(&absolute_project_path, contract, global_args)
-                .await?;
+            for contract in example_contracts {
+                self.update_oz_example(&absolute_project_path, contract, global_args)
+                    .await?;
+            }
         }
 
         // Install npm dependencies
@@ -122,7 +152,10 @@ impl Cmd {
         }
 
         printer.blankln("\n\n");
-        printer.checkln(format!("Project successfully created at {project_str}"));
+        printer.checkln(format!(
+            "Project successfully created at {}!",
+            absolute_project_path.display()
+        ));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
         if !npm_install_command.status.success() {
