@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 use assert_cmd::{Command, assert::Assert};
 use assert_fs::TempDir;
 use fs_extra::dir::{CopyOptions, copy};
