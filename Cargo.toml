@@ -21,7 +21,7 @@ soroban-spec-tools = "23.1.2"
 
 soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" }
 admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0" }
-stellar-xdr = "23.0.0"
+stellar-xdr = "24.0.1"
 stellar-strkey = "0.0.13"
 
 cargo_metadata = "0.18.1"
