@@ -3027,6 +3027,7 @@ dependencies = [
  "semver",
  "soroban-sdk 23.0.2 (git+https://github.com/stellar/rs-soroban-sdk?rev=99134976ee1d31fa1fa5db8a63bd1ea66b8abda8)",
  "stellar-registry",
+ "stellar-xdr",
 ]
 
 [[package]]

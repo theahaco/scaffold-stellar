@@ -21,6 +21,7 @@ semver = { version = "1.0.27", default-features = false }
 soroban-sdk = { workspace = true, features = ["testutils"] }
 stellar-registry = { workspace = true }
 assert_matches = "1.5.0"
+stellar-xdr = { workspace = true }
 hello_world = { path = "../test/hello_world" }
 
 [package.metadata.loam]

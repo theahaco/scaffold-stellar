@@ -37,6 +37,14 @@ impl Contract {
         Storage::new(env)
             .contract
             .extend_ttl(&name, MAX_BUMP, MAX_BUMP);
+        /*
+        Here we check if the contract being upgrade supports the admin interface.
+        If so we can fetch the admin and call require auth at the top level.
+        This prevents needing to use a more complex auth entry because the signer must be authorized in
+        the root of the call. However, if the contract doesn't implement the interface, then it is up to
+        the caller to have constructed the auth entries correctly and the contract itself for handling how
+        authorization is set up for upgrading.
+         */
         if let Ok(Ok(author)) = env.try_invoke_contract::<Address, Error>(
             &contract_id,
             &symbol_short!("admin"),

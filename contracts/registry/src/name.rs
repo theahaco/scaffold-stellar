@@ -18,7 +18,7 @@ pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     let (first, _) = out.split_at_mut(s.len() as usize);
     s.copy_into_slice(first);
     let s = core::str::from_utf8_mut(first).map_err(|_| Error::InvalidName)?;
-    if is_keyword(s) || !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
+    if !s.starts_with(|c: char| c.is_ascii_alphabetic()) {
         return Err(Error::InvalidName);
     }
     let mut chars_to_change: [Option<(usize, char)>; MAX_NAME_LENGTH] = [None; MAX_NAME_LENGTH];
@@ -36,6 +36,9 @@ pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     let as_bytes = unsafe { s.as_bytes_mut() };
     for (i, c) in chars_to_change.into_iter().flatten() {
         as_bytes[i] = c as u8;
+    }
+    if is_keyword(unsafe { &core::str::from_utf8_unchecked(&as_bytes) }) {
+        return Err(Error::InvalidName);
     }
     Ok(String::from_bytes(env, as_bytes))
 }
