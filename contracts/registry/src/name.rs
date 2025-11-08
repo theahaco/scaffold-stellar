@@ -37,7 +37,7 @@ pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
     for (i, c) in chars_to_change.into_iter().flatten() {
         as_bytes[i] = c as u8;
     }
-    if is_keyword(unsafe { &core::str::from_utf8_unchecked(&as_bytes) }) {
+    if is_keyword(unsafe { core::str::from_utf8_unchecked(as_bytes) }) {
         return Err(Error::InvalidName);
     }
     Ok(String::from_bytes(env, as_bytes))
