@@ -266,7 +266,7 @@ fn invalid_string(s: &str) {
 }
 
 #[test]
-fn valid_simpl_names() {
+fn valid_simple_names() {
     valid_string("publish");
     valid_string("a_a_b");
     valid_string("abcdefghabcdefgh");
