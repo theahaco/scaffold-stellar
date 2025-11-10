@@ -1,7 +1,3 @@
----
-sidebar_position: 5
----
-
 # Registry Guide
 
 The Stellar Registry is a system for publishing, deploying, and managing smart contracts on the Stellar network. This guide explains how to use the registry CLI tools to manage your contracts.

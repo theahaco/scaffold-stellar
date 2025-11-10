@@ -1,7 +1,3 @@
----
-sidebar_position: 1
----
-
 # Welcome to Scaffold Stellar!
 
 **Scaffold Stellar** is a developer toolkit for building decentralized applications (dApps) and smart contracts on the [**Stellar** blockchain](https://stellar.org).

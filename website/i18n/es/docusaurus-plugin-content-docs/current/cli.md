@@ -1,7 +1,3 @@
----
-sidebar_position: 3
----
-
 # CLI Commands
 
 Scaffold Stellar provides several CLI commands to help manage your Stellar smart contract development.

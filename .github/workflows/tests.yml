@@ -67,7 +67,7 @@ jobs:
       - run: just test-integration
       - name: Always Save Cache
         id: cache-save
-        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -76,5 +76,4 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-            target/
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}

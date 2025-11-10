@@ -1,20 +1,36 @@
-use clap::Parser;
+use clap::{Args, Parser};
 use degit::degit;
 use std::fs::{copy, metadata, read_dir, remove_dir_all};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, io};
 
-use super::generate;
+use super::{build, generate};
 use stellar_cli::{commands::global, print::Print};
 
-const FRONTEND_TEMPLATE: &str = "https://github.com/theahaco/scaffold-stellar-frontend";
+pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
+const TUTORIAL_BRANCH: &str = "tutorial";
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// The path to the project must be provided
     pub project_path: PathBuf,
+
+    #[command(flatten)]
+    vers: Vers,
+}
+
+#[derive(Args, Debug, Clone)]
+#[group(multiple = false)]
+struct Vers {
+    /// Initialize the tutorial project instead of the default project
+    #[arg(long, default_value_t = false)]
+    pub tutorial: bool,
+
+    /// Optional argument to specify a tagged version
+    #[arg(long)]
+    pub tag: Option<String>,
 }
 
 /// Errors that can occur during initialization
@@ -61,15 +77,27 @@ impl Cmd {
 
         let project_str = absolute_project_path
             .to_str()
-            .ok_or(Error::InvalidProjectPathEncoding)?;
+            .ok_or(Error::InvalidProjectPathEncoding)?
+            .to_owned();
 
-        degit(FRONTEND_TEMPLATE, project_str);
+        let mut repo = FRONTEND_TEMPLATE.to_string();
+        if let Some(tag) = self.vers.tag.as_deref() {
+            repo = format!("{repo}#{tag}");
+        } else if self.vers.tutorial {
+            repo = format!("{repo}#{TUTORIAL_BRANCH}");
+        }
+        tokio::task::spawn_blocking(move || {
+            degit(repo.as_str(), &project_str);
+        })
+        .await
+        .expect("Blocking task panicked");
 
         if metadata(&absolute_project_path).is_err()
             || read_dir(&absolute_project_path)?.next().is_none()
         {
             return Err(Error::DegitError(format!(
-                "Failed to clone template into {project_str}: directory is empty or missing",
+                "Failed to clone template into {}: directory is empty or missing",
+                absolute_project_path.display()
             )));
         }
 
@@ -85,26 +113,70 @@ impl Cmd {
             git_commit(&absolute_project_path, "initial commit");
         }
 
-        // Update the project with the latest OpenZeppelin examples
-        self.update_oz_example(
-            &absolute_project_path,
-            "fungible-token-interface",
-            global_args,
-        )
-        .await?;
-        self.update_oz_example(&absolute_project_path, "nft-enumerable", global_args)
-            .await?;
+        // Update the project's OpenZeppelin examples with the latest editions
+        if !self.vers.tutorial {
+            let example_contracts = ["nft-enumerable", "fungible-allowlist"];
 
-        printer.checkln(format!("Project successfully created at {project_str}"));
+            for contract in example_contracts {
+                self.update_oz_example(&absolute_project_path, contract, global_args)
+                    .await?;
+            }
+        }
+
+        // Install npm dependencies
+        printer.infoln("Installing npm dependencies...");
+        let npm_install_command = Command::new("npm")
+            .arg("install")
+            .current_dir(&absolute_project_path)
+            .output()?;
+        if !npm_install_command.status.success() {
+            printer.warnln(
+                "Failed to install dependencies, run 'npm install' in the project directory",
+            );
+        }
+
+        // Build contracts and create contract clients
+        printer.infoln("Building contracts and generating client code...");
+        // Use clap to parse build command with defaults, then configure programmatically
+        let mut build_command = build::Command::parse_from(["build", "--build-clients"]);
+        build_command.build.manifest_path = Some(absolute_project_path.join("Cargo.toml"));
+        build_command.build_clients_args.env = Some(build::clients::ScaffoldEnv::Development);
+        build_command.build_clients_args.workspace_root = Some(absolute_project_path.clone());
+        let mut build_args = global_args.clone();
+        if !(global_args.verbose && global_args.very_verbose) {
+            build_args.quiet = true;
+        }
+
+        if let Err(e) = build_command.run(&build_args).await {
+            printer.warnln(format!("Failed to build contract clients: {e}"));
+        }
+
+        printer.blankln("\n\n");
+        printer.checkln(format!(
+            "Project successfully created at {}!",
+            absolute_project_path.display()
+        ));
+        printer.blankln(" You can now run the application with:\n");
+        printer.blankln(format!("\tcd {}", self.project_path.display()));
+        if !npm_install_command.status.success() {
+            printer.blankln("\tnpm install");
+        }
+        printer.blankln("\tnpm start\n");
+        printer.blankln(" Happy hacking! 🚀");
         Ok(())
     }
 
+    /// Updates the project with an Open Zeppelin example contract
+    ///
+    /// This method attempts to generate a contract from Open Zeppelin
+    /// and prints a warning if it can't be found or generated.
     async fn update_oz_example(
         &self,
         absolute_project_path: &PathBuf,
-        contract_path: &'static str,
+        contract_path: &str,
         global_args: &global::Args,
     ) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
         let original_dir = env::current_dir()?;
         env::set_current_dir(absolute_project_path)?;
 
@@ -118,7 +190,7 @@ impl Cmd {
         let mut quiet_global_args = global_args.clone();
         quiet_global_args.quiet = true;
 
-        generate::contract::Cmd {
+        let result = generate::contract::Cmd {
             from: Some(contract_path.to_owned()),
             ls: false,
             from_wizard: false,
@@ -130,8 +202,29 @@ impl Cmd {
             ),
         }
         .run(&quiet_global_args)
-        .await?;
-        env::set_current_dir(original_dir)?;
+        .await;
+
+        // Restore directory before handling result
+        let _ = env::set_current_dir(original_dir);
+
+        match result {
+            Ok(()) => {
+                printer.infoln(format!(
+                    "Successfully added OpenZeppelin example contract: {contract_path}"
+                ));
+            }
+            Err(generate::contract::Error::ExampleNotFound(_)) => {
+                printer.infoln(format!(
+                    "Skipped missing OpenZeppelin example contract: {contract_path}"
+                ));
+            }
+            Err(e) => {
+                printer.warnln(format!(
+                    "Failed to generate example contract: {contract_path}\n{e}"
+                ));
+            }
+        }
+
         Ok(())
     }
 }
