@@ -80,14 +80,13 @@ impl Command {
         workspace_root: &Path,
         env: &ScaffoldEnv,
     ) -> Result<(), Error> {
-        if let Some(current_env) = env_toml::Environment::get(workspace_root, env)? {
-            if current_env.network.run_locally {
+        if let Some(current_env) = env_toml::Environment::get(workspace_root, env)?
+            && current_env.network.run_locally {
                 docker::start_local_stellar().await.map_err(|e| {
                     eprintln!("Failed to start Stellar Docker container: {e:?}");
                     Error::DockerStart
                 })?;
             }
-        }
         Ok(())
     }
 
@@ -97,14 +96,13 @@ impl Command {
         let packages = self.list_packages(&metadata)?;
         let workspace_root = metadata.workspace_root.as_std_path();
 
-        if let Some(env) = &self.build_clients_args.env {
-            if env == &ScaffoldEnv::Development {
+        if let Some(env) = &self.build_clients_args.env
+            && env == &ScaffoldEnv::Development {
                 printer.infoln("Starting local Stellar Docker container...");
                 self.start_local_docker_if_needed(workspace_root, env)
                     .await?;
                 printer.checkln("Local Stellar network is healthy and running.");
             }
-        }
 
         if self.list {
             for p in packages {
@@ -195,9 +193,9 @@ impl Command {
 
         meta_map.insert("scaffold_version".to_string(), version::pkg().to_string());
 
-        if let Value::Object(map) = &p.metadata {
-            if let Some(val) = &map.get("stellar") {
-                if let Value::Object(stellar_meta) = val {
+        if let Value::Object(map) = &p.metadata
+            && let Some(val) = &map.get("stellar")
+                && let Value::Object(stellar_meta) = val {
                     // When cargo_inherit is set, copy meta from Cargo toml
                     if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
                         meta_map.insert("name".to_string(), p.name.clone());
@@ -231,8 +229,6 @@ impl Command {
                         meta_map.insert("home_domain".to_string(), homepage);
                     }
                 }
-            }
-        }
         cmd.meta.extend(meta_map);
         Ok(cmd)
     }
