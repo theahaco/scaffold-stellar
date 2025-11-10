@@ -149,9 +149,10 @@ impl Cmd {
 
             // Skip items that shouldn't be copied
             if let Some(name_str) = item_name.to_str()
-                && skip_items.contains(&name_str) {
-                    continue;
-                }
+                && skip_items.contains(&name_str)
+            {
+                continue;
+            }
 
             let src = entry.path();
             let dest = self.workspace_path.join(&item_name);

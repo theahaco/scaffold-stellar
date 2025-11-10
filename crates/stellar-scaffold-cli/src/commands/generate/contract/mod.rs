@@ -162,13 +162,14 @@ members = []
                 // Check if we need to update the tag
                 if let cargo_toml::Dependency::Detailed(detail) = existing_dep
                     && let Some(existing_tag) = &detail.tag
-                        && existing_tag != tag {
-                            workspace_deps.insert(
-                                dep.clone(),
-                                cargo_toml::Dependency::Detailed(Box::new(git_dep)),
-                            );
-                            updated_deps.push((dep, existing_tag.clone()));
-                        }
+                    && existing_tag != tag
+                {
+                    workspace_deps.insert(
+                        dep.clone(),
+                        cargo_toml::Dependency::Detailed(Box::new(git_dep)),
+                    );
+                    updated_deps.push((dep, existing_tag.clone()));
+                }
             } else {
                 workspace_deps.insert(
                     dep.clone(),
@@ -351,11 +352,7 @@ members = []
             Ok::<(), std::io::Error>(())
         })
         .await
-        .map_err(|e| {
-            Error::Io(std::io::Error::other(
-                e.to_string(),
-            ))
-        })?
+        .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?
         .map_err(Error::Io)?;
 
         Ok(())
