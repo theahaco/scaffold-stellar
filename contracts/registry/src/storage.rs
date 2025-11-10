@@ -51,25 +51,29 @@ mod tests {
     use soroban_sdk::{xdr::ToXdr, Env, IntoVal, String};
 
     #[test]
-    fn test_hash_key() {
+    fn hash_key_prefix_is_unique() {
         let env = &Env::default();
+        env.cost_estimate().budget().reset_unlimited();
         let key_bytes: [u8; 32] = [1; 32];
         let mut hash = env.crypto().sha256(&key_bytes.into_val(env));
         let hash_prefix: [u8; 4] = [0, 0, 0, 13];
         let vec_prefix: [u8; 4] = [0, 0, 0, 16];
-        let mut v = [0u8; 4];
+        let mut key_pefix = [0u8; 4];
         for _ in 0..10_000 {
             let val = HashKey::to_key(env, &hash.to_bytes());
             let bytes = val.to_xdr(env);
-            bytes.slice(..4).copy_into_slice(&mut v);
-            assert_eq!(hash_prefix, v);
-            let s = String::from_str(env, &std::format!("hello{}", bytes.get(1).unwrap()));
-            let expected_tuple = WasmKey::to_key(env, &s).to_xdr(env);
-            expected_tuple.slice(..4).copy_into_slice(&mut v);
-            assert_eq!(vec_prefix, v);
-            let expected_tuple = ContractKey::to_key(env, &s).to_xdr(env);
-            expected_tuple.slice(..4).copy_into_slice(&mut v);
-            assert_eq!(vec_prefix, v);
+            bytes.slice(..4).copy_into_slice(&mut key_pefix);
+            assert_eq!(
+                hash_prefix, key_pefix,
+                "hash key will always have the same prefix as BytesN<32>"
+            );
+            let s = String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
+            let wasm_key = WasmKey::to_key(env, &s).to_xdr(env);
+            wasm_key.slice(..4).copy_into_slice(&mut key_pefix);
+            assert_eq!(vec_prefix, key_pefix);
+            let contract_key = ContractKey::to_key(env, &s).to_xdr(env);
+            contract_key.slice(..4).copy_into_slice(&mut key_pefix);
+            assert_eq!(vec_prefix, key_pefix);
             hash = env.crypto().sha256(&hash.to_bytes().into_val(env));
         }
     }
