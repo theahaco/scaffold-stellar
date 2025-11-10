@@ -82,7 +82,7 @@ stellar scaffold init --tutorial guessing-game-tutorial
 ```
 
 :::tip
-The `--tutorial` flag will create a new project with a simpler starting template specifically for this tutorial. We'll build up to the final version over the next few steps. If you want the full template with the final version of the contract, plus other examples, follow the [Quick Start](../../quick-start.mdx) guide instead.
+The `--tutorial` flag will create a new project with a simpler starting template specifically for this tutorial. We'll build up to the final version over the next few steps. If you want the full template with the final version of the contract, plus other examples, follow the [Quick Start](../quick-start.mdx) guide instead.
 :::
 
 This creates a new project from our starter template containing everything you need. You can call your project anything you'd like. It will also install all the dependencies we need using `npm`. Then navigate into the created directory and start the development server:
