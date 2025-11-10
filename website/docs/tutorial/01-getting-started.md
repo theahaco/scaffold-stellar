@@ -269,7 +269,7 @@ Finally, we add the `guess` function which accepts a number as the guess and com
 mod test;
 ```
 
-Post Script: this last line includes the test module into this file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want by defining the module. Note you also need to tell the compile that this is a test module, which is at the top of our file `#![cfg(test)]`.
+This last line includes the test module into this file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want by defining the module. Note you also need to tell the compile that this is a test module, which is at the top of our file `#![cfg(test)]`.
 
 ```rust
 #[cfg(test)]
