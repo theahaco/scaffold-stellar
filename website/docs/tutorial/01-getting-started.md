@@ -6,7 +6,7 @@ sidebar_label: Getting Started
 
 This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application.
 
-:::tip If you just want to get up and running quickly, check out the [Quick Start](/docs/quick-start.mdx) guide. :::
+:::tip If you just want to get up and running quickly, check out the [Quick Start](../quick-start.mdx) guide. :::
 
 We'll cover:
 
