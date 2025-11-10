@@ -25,13 +25,13 @@ Open up `environments.toml` in your editor. Put it side-by-side with the output 
 
 At the top, you'll see settings for the development network:
 
-```toml
+````toml
 ```toml
 [development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 run-locally = true
-```
+````
 
 Every Stellar network is identified by a `network-passphrase`; it's like the fingerprint of the network and helps keep transactions cryptographically secure between networks. And you connect to any given Stellar network via a configurable `rpc-url`. If you look at the rest of `environments.toml`, every environment's network requires these settings. For our development environment, we also want to run the network locally. `run-locally` tells Scaffold CLI to use _Stellar_ CLI to run a local network container (`stellar container start`) and wait for it to finish startup before moving on to parse the rest of the `development` settings.
 
@@ -112,65 +112,65 @@ Let's walk through this line by line:
 - `[development.contracts.guess_the_number]`: this project only has one contract, so we can specify the settings for its contract clients here. You could also have a `[development.contracts]` with a more JSON-like specification for `guess_the_number` (`guess_the_number = { client = true, … }`).
 - `guess_the_number`: this name must match the name of the contract specified in its `Cargo.toml` file, but in underscore-case. Compare it to the `name` field in `contracts/guess-the-number/Cargo.toml` and the generated Wasm files (`ls target/wasm32v1-none/release/*.wasm`).
 
-   The `npm run start` output that corresponds to this came out right at the top:
+  The `npm run start` output that corresponds to this came out right at the top:
 
-   ```
-   [0] ℹ️ Watching …/guessing-game-tutorial/contracts/guess-the-number
-   ```
+  ```
+  [0] ℹ️ Watching …/guessing-game-tutorial/contracts/guess-the-number
+  ```
+
 - `client = true`: this tells Scaffold CLI to generate a contract client for this contract.
 
-   This results in the `npm run start` output:
+  This results in the `npm run start` output:
 
-   ```
-   [0] ℹ️ Binding "guess_the_number" contract
-   [0] ✅ 'npm run build' succeeded in …/guessing-game-tutorial/target/packages/guess_the_number
-   ```
+  ```
+  [0] ℹ️ Binding "guess_the_number" contract
+  [0] ✅ 'npm run build' succeeded in …/guessing-game-tutorial/target/packages/guess_the_number
+  ```
 
-   The contract _client_ also gets called the "TS (or TypeScript) Bindings" for the contract, because they are generated with the Stellar CLI command `stellar contract bindings typescript`.
+  The contract _client_ also gets called the "TS (or TypeScript) Bindings" for the contract, because they are generated with the Stellar CLI command `stellar contract bindings typescript`.
 
 - `constructor_args`: the contract has a `constructor`, as we saw in the previous step. This `constructor_args` setting specifies the arguments to use when deploying & initializing the contract. You could deploy the contract yourself with:
 
-   ```bash
-   stellar contract deploy \
-       --wasm-hash [find this in npm run start output] \
-       --source me \
-       -- \
-       --admin me
-   ```
+  ```bash
+  stellar contract deploy \
+      --wasm-hash [find this in npm run start output] \
+      --source me \
+      -- \
+      --admin me
+  ```
 
-   As you can see, the `constructor_args` get passed directly along to this `stellar contract deploy` command.
+  As you can see, the `constructor_args` get passed directly along to this `stellar contract deploy` command.
 
-   `client = true` and the `constructor_args` settings together resulted in this `npm run start` output:
+  `client = true` and the `constructor_args` settings together resulted in this `npm run start` output:
 
-   ```
-   [0] ℹ️ Installing "guess_the_number" wasm bytecode on-chain...
-   [0] ℹ️   ↳ hash: d801a98511519b2e9d4f2fadffc4215fc81f91426381dbdb328d10252e8298ac
-   [0] ℹ️ Instantiating "guess_the_number" smart contract
-   [0] ℹ️   ↳ contract_id: CCMMU6UYIPGSBR7ZP4DTQEEOQDHL3PJ52ZD7FJIFG4O46Q3QPVGVHAAV
-   ```
+  ```
+  [0] ℹ️ Installing "guess_the_number" wasm bytecode on-chain...
+  [0] ℹ️   ↳ hash: d801a98511519b2e9d4f2fadffc4215fc81f91426381dbdb328d10252e8298ac
+  [0] ℹ️ Instantiating "guess_the_number" smart contract
+  [0] ℹ️   ↳ contract_id: CCMMU6UYIPGSBR7ZP4DTQEEOQDHL3PJ52ZD7FJIFG4O46Q3QPVGVHAAV
+  ```
 
-   The contract gets deployed in two steps:
-
-   1. The Wasm gets uploaded to the blockchain, so that many contracts could use it.
-   2. A contract gets deployed (aka "instantiated", in the current parlance of this output) so that there is an actual smart contract that refers to, or points to, that Wasm.
+  The contract gets deployed in two steps:
+  1.  The Wasm gets uploaded to the blockchain, so that many contracts could use it.
+  2.  A contract gets deployed (aka "instantiated", in the current parlance of this output) so that there is an actual smart contract that refers to, or points to, that Wasm.
 
 - `after_deploy`: calls to the contract to make after it gets deployed. Kind of like the `constructor_args`, these are specified using _only_ the part that comes after the `--` (this part of the command is sometimes called the "slop", so these `after_deploy` scripts are _slop only!_). The setting above tells Scaffold CLI to make the following call, after deploying the contract:
 
-   ```bash
-   stellar contract deploy \
-       --id guess_the_number
-       --source me
-       -- \
-       reset
-   ```
+  ```bash
+  stellar contract deploy \
+      --id guess_the_number
+      --source me
+      -- \
+      reset
+  ```
 
-   This `after_deploy` script produces this `npm run start` output:
+  This `after_deploy` script produces this `npm run start` output:
 
-   ```
-   [0] ℹ️ Running after_deploy script for "guess_the_number"
-   [0] ℹ️   ↳ Executing: stellar contract invoke --id CCMMU6UYIPGSBR7ZP4DTQEEOQDHL3PJ52ZD7FJIFG4O46Q3QPVGVHAAV --config-dir /Users/chadoh/code/scast/frontend -- reset
-   [0] ℹ️   ↳ Result: Res("")
-   ```
+  ```
+  [0] ℹ️ Running after_deploy script for "guess_the_number"
+  [0] ℹ️   ↳ Executing: stellar contract invoke --id CCMMU6UYIPGSBR7ZP4DTQEEOQDHL3PJ52ZD7FJIFG4O46Q3QPVGVHAAV --config-dir /Users/chadoh/code/scast/frontend -- reset
+  [0] ℹ️   ↳ Result: Res("")
+  ```
 
 ### Let's break it already!
 
@@ -206,10 +206,10 @@ Now you can trigger the bug in two exciting ways!
 
 1. Go to the Debugger page and submit a `guess`. 💥 BOOM! In the Response box, you'll see:
 
-  ```
-  Simulation Failed
-  HostError: Error(WasmVm, InvalidAction) Event log (newest first): 0: [Diagnostic Event] contract:CCW3B3N6HHG2TVAHUGJUU6TJD3AXTAJN35TYUNFZ4X6D2Y4JCGVJLD7K, topics:[error, Error(WasmVm, InvalidAction)], data:["VM call trapped: UnreachableCodeReached", guess] 1: [Diagnostic Event] topics:[fn_call, CCW3B3N6HHG2TVAHUGJUU6TJD3AXTAJN35TYUNFZ4X6D2Y4JCGVJLD7K, guess], data:1 `
-  ```
+```
+Simulation Failed
+HostError: Error(WasmVm, InvalidAction) Event log (newest first): 0: [Diagnostic Event] contract:CCW3B3N6HHG2TVAHUGJUU6TJD3AXTAJN35TYUNFZ4X6D2Y4JCGVJLD7K, topics:[error, Error(WasmVm, InvalidAction)], data:["VM call trapped: UnreachableCodeReached", guess] 1: [Diagnostic Event] topics:[fn_call, CCW3B3N6HHG2TVAHUGJUU6TJD3AXTAJN35TYUNFZ4X6D2Y4JCGVJLD7K, guess], data:1 `
+```
 
 2. Go to the home page, make sure your browser's inspector console is open. Then find the &lt;GuessTheNumber /&gt; section and submit a guess. 💥 BOOM! You should see a similar error in your browser console.
 
@@ -470,16 +470,19 @@ TODO
 ## What We've Learned
 
 In this step, we covered several important concepts:
+
 1. `environments.toml` structure
-  - **network**: Configure which network each enviroment connects to, and automatically run a local node
-  - **accounts**: Create account keypairs for an environment
-  - **contracts**: Specify "contract dependencies," for which to build contract clients, for each environment. In `development`, Scaffold CLI will also automatically build & deploy the contracts, too, with an optional `after_deploy` script
+
+- **network**: Configure which network each enviroment connects to, and automatically run a local node
+- **accounts**: Create account keypairs for an environment
+- **contracts**: Specify "contract dependencies," for which to build contract clients, for each environment. In `development`, Scaffold CLI will also automatically build & deploy the contracts, too, with an optional `after_deploy` script
+
 2. Code Organization
-	- **Private functions**: Help organize code and prevent external access to internal logic
-	- **DRY principle**: Don't repeat yourself - extract common logic into reusable functions
+   - **Private functions**: Help organize code and prevent external access to internal logic
+   - **DRY principle**: Don't repeat yourself - extract common logic into reusable functions
 3. Contract Lifecycle
-	- **Immediate functionality**: Contracts should work right after deployment
-	- **Consistent state**: Always ensure your contract is in a valid state
+   - **Immediate functionality**: Contracts should work right after deployment
+   - **Consistent state**: Always ensure your contract is in a valid state
 
 Our contract is now much more robust:
 

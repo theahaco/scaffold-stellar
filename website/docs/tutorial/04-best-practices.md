@@ -9,6 +9,7 @@ Our guessing game works, but it's not quite ready for production. Let's add prof
 ## What We'll Accomplish
 
 By the end of this step, you'll have:
+
 - Custom error types instead of panics
 - Robust error handling throughout the contract
 - Better security against common attacks
@@ -59,6 +60,7 @@ pub enum Error {
 ### Understanding Custom Errors
 
 Custom errors provide several benefits:
+
 - **Better UX**: Users get meaningful error messages
 - **No crashes**: Contract returns errors instead of panicking
 - **Debuggability**: Developers can handle different error cases
@@ -93,6 +95,7 @@ pub struct GuessEvent {
 ```
 
 Events help with:
+
 - **Monitoring**: Track game activity
 - **Analytics**: Understand player behavior
 - **Debugging**: See what happened in past transactions
@@ -142,10 +145,9 @@ fn get_actual_number(env: &Env) -> Result<u64, Error> {
 ```
 
 XOR (exclusive or) is a simple but effective obfuscation technique:
-- `number ^ salt = obfuscated_value`
-- `obfuscated_value ^ salt = number` (XOR is reversible)
-Without knowing the salt, the stored value looks random. Note this doesn't provide cryptographic security, but makes casual observation much harder.
 
+- `number ^ salt = obfuscated_value`
+- `obfuscated_value ^ salt = number` (XOR is reversible) Without knowing the salt, the stored value looks random. Note this doesn't provide cryptographic security, but makes casual observation much harder.
 
 ### Advanced techniques
 
@@ -157,7 +159,7 @@ _🏗️✨ TODO: add explanations_
 
 ## Step 4: Update Functions with Error Handling
 
-_🏗️✨ TODO:  clean up code and test_
+_🏗️✨ TODO: clean up code and test_
 
 Let's update our main functions to use proper error handling:
 
@@ -241,7 +243,6 @@ pub fn guess(env: &Env, guesser: Address, a_number: u64) -> Result<bool, Error> 
 
 _🏗️✨ TODO: is this necessary?_
 
-
 Here's your complete, production-ready contract:
 
 _🏗️✨ TODO: add link to github repo of sample project_
@@ -306,6 +307,7 @@ stellar contract invoke \
 _🏗️✨ TODO_
 
 Our current contract is quite efficient, but for even better performance:
+
 - Use `Temporary` storage for short-lived data
 - Batch operations when possible
 - Avoid unnecessary storage reads
@@ -315,6 +317,7 @@ Our current contract is quite efficient, but for even better performance:
 Our contract has evolved from a simple demo to production-ready code:
 
 ### Security Improvements
+
 - ✅ **Custom error types**: No more crashes, proper error handling
 - ✅ **Input validation**: Check all user inputs
 - ✅ **Obfuscated storage**: Secret number is not obvious
@@ -322,12 +325,14 @@ Our contract has evolved from a simple demo to production-ready code:
 - ✅ **Event logging**: Full audit trail of all actions
 
 ### Code Quality
+
 - ✅ **Proper error propagation**: Using `Result<T, Error>` throughout
 - ✅ **Defensive programming**: Check all assumptions
 - ✅ **Clean separation**: Private helpers for internal logic
 - ✅ **Documentation**: Clear function purposes and error cases
 
 ### User Experience
+
 - ✅ **Meaningful errors**: Users know exactly what went wrong
 - ✅ **Real-time events**: Frontend can show live updates
 - ✅ **Admin tools**: Easy management and monitoring
@@ -349,21 +354,25 @@ Before deploying to mainnet, ensure:
 Let's look at how far we've come:
 
 ### Step 1: Basic Contract
+
 - Simple number storage
 - Panic-prone code
 - No authentication
 
 ### Step 2: Development Workflow and a UI
+
 - Constructor initialization
 - Private helper functions
 - Basic error handling
 
 ### Step 3: Adding Transactions
+
 - Proper authorization
 - Token transfers
 - Financial incentives
 
 ### Step 4: Production Ready
+
 - Comprehensive error handling
 - Security measures
 - Professional monitoring
@@ -371,6 +380,7 @@ Let's look at how far we've come:
 ## Congratulations!
 
 You've built a complete, production-ready smart contract that demonstrates:
+
 - Proper Rust and Soroban patterns
 - Economic incentives and token handling
 - Professional error handling and security

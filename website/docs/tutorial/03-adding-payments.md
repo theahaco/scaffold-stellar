@@ -100,10 +100,10 @@ pub fn guess(env: &Env, guesser: Address, a_number: u64) -> bool {
 
 TODO: this section is a stub.
 
-In  `src/components/GuessTheNumber.tsx`, add this at the top:
+In `src/components/GuessTheNumber.tsx`, add this at the top:
 
 ```ts
-import { wallet } from "../util/wallet"
+import { wallet } from "../util/wallet";
 ```
 
 Then change this:
@@ -124,9 +124,11 @@ const submitGuess = async () => {
   const tx = await game.guess(
     { guesser: address, a_number: BigInt(theGuess) },
     // @ts-expect-error js-stellar-sdk has bad typings; publicKey is, in fact, allowed
-    { publicKey: address }
+    { publicKey: address },
   );
-  const { result } = await tx.signAndSend({ signTransaction: wallet.signTransaction.bind(game) })
+  const { result } = await tx.signAndSend({
+    signTransaction: wallet.signTransaction.bind(game),
+  });
   setGuessedIt(result);
 };
 ```
@@ -156,6 +158,7 @@ Use freighter to switch accounts:
 _🏗️✨ TODO: add screenshots of interacting with freighter_
 
 Via the CLI:
+
 ```bash
 # Bob makes a guess (and pays the fee)
 stellar contract invoke \
