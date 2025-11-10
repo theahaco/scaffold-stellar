@@ -76,18 +76,18 @@ pub fn guess(env: &Env, guesser: Address, a_number: u64) -> bool {
 
       // pay full pot to `guesser`, whether they sent the transaction or not
       let tx = xlm_client.transfer(
-        self.current_contract_address(),
+        env.current_contract_address(),
         guesser,
-        x.balance(self.current_contract_address()),
+        xlm_client.balance(env.current_contract_address()),
       );
-      if tx.is_err {
+      if tx.is_err() {
         panic!("transfer failed!");
       }
   } else {
     // Before transferring their funds, make sure guesser is actually the one calling this function
     guesser.require_auth();
-    let tx = xlm_client.transfer(guesser, self.current_contract_address(), 1_000_000_0);
-    if tx.is_err {
+    let tx = xlm_client.transfer(guesser, env.current_contract_address(), 1_000_000_0);
+    if tx.is_err() {
       panic!("transfer failed!");
     }
   }
