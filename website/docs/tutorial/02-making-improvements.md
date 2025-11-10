@@ -154,7 +154,7 @@ Let's walk through this line by line:
   1.  The Wasm gets uploaded to the blockchain, so that many contracts could use it.
   2.  A contract gets deployed (aka "instantiated", in the current parlance of this output) so that there is an actual smart contract that refers to, or points to, that Wasm.
 
-- `after_deploy`: calls to the contract to make after it gets deployed. Kind of like the `constructor_args`, these are specified using _only_ the part that comes after the `--` (this part of the command is sometimes called the "slop", so these `after_deploy` scripts are _slop only!_). The setting above tells Scaffold CLI to make the following call, after deploying the contract:
+- `after_deploy`: calls to the contract to make after it gets deployed. Kind of like the `constructor_args`, these are specified using _only_ the part that comes after the `--`. The setting above tells Scaffold CLI to make the following call, after deploying the contract:
 
   ```bash
   stellar contract deploy \
