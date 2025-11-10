@@ -1,7 +1,7 @@
 [package]
 name = "stellar-registry"
 version = "0.0.5"
-edition = "2021"
+edition = "2024"
 description = "A smart contract library for using stellar registry to import other smart contracts"
 license = "Apache-2.0"
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-registry"
