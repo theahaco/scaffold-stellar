@@ -25,7 +25,7 @@ This tutorial is split into four sections:
 
 1. [Getting Started](./01-getting-started.md): will help you setup your development environment, initialize a new project, and explain the architecture and contract code
 2. [Making Improvements](./02-making-improvements.md): will explain the front-end architecture and more CLI tooling to get you used to the development workflow
-3. [Adding Transactions](./03-adding-transactions.md): will show examples of working with real transactions of XLM in smart contracts and interacting with wallets in the dApp
+3. [Adding Transactions](./03-adding-payments.md): will show examples of working with real transactions of XLM in smart contracts and interacting with wallets in the dApp
 4. [Best Practices](./04-best-practices.md): will add some final polish to our contract to make sure everything is ready to be deployed to production
 
 Well, what are you waiting for? [Get started!](./01-getting-started.md)
