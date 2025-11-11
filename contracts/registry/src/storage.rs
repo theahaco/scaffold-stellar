@@ -48,7 +48,7 @@ impl ToStorageKey<BytesN<32>> for HashKey {
 mod tests {
     extern crate std;
     use super::{maps::ToStorageKey, ContractKey, HashKey, WasmKey};
-    use rand::{RngCore, SeedableRng, rngs::SmallRng};
+    use rand::{rngs::SmallRng, RngCore, SeedableRng};
     use soroban_sdk::{xdr::ToXdr, Env, IntoVal, String};
 
     #[test]

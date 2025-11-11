@@ -247,8 +247,6 @@ fn returns_most_recent_version() {
     assert_eq!(res, forth_hash);
 }
 
-
-
 #[test]
 fn valid_simple_names() {
     valid_string("publish");

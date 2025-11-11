@@ -1,6 +1,6 @@
 use soroban_sdk::Env;
 
-use crate::{Error, name::canonicalize, test::registry::to_string};
+use crate::{name::canonicalize, test::registry::to_string, Error};
 pub fn valid_string(s: &str) {
     test_string(s, true);
 }
