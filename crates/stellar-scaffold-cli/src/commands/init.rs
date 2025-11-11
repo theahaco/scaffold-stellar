@@ -231,7 +231,7 @@ impl Cmd {
 
 // Check if git is installed and exists in PATH
 fn git_exists() -> bool {
-    Command::new("git").arg("--version").output().is_err()
+    Command::new("git").arg("--version").output().is_ok()
 }
 
 // Initialize a new git repository
