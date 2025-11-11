@@ -6,8 +6,7 @@ authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
 version = "0.0.18"
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
 autobins = false
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-scaffold-cli"
 
