@@ -1,6 +1,7 @@
 extern crate std;
 
 use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3};
+use crate::test::util::{invalid_string, valid_string};
 use crate::{
     error::Error,
     name::canonicalize,
@@ -16,6 +17,7 @@ use soroban_sdk::{
 
 mod contracts;
 mod registry;
+mod util;
 
 #[test]
 fn use_publish_method() {
@@ -246,38 +248,40 @@ fn returns_most_recent_version() {
 }
 
 #[test]
-fn validate_names() {
-    fn test_string(s: &str, result: bool) {
-        let raw_result = canonicalize(&to_string(&Env::default(), s));
-        if result {
-            assert!(raw_result.is_ok(), "should be valid: {s}");
-        } else {
-            assert_eq!(
-                raw_result,
-                Err(Error::InvalidName),
-                "should be invalid: {s}"
-            );
-        }
-    }
+fn valid_simple_names() {
+    valid_string("publish");
+    valid_string("a_a_b");
+    valid_string("abcdefghabcdefgh");
+    valid_string("abcdefghabcdefghabcdefghabcdefgh");
+}
 
-    test_string("publish", true);
-    test_string("a_a_b", true);
-    test_string("abcdefghabcdefgh", true);
-    test_string("abcdefghabcdefghabcdefghabcdefgh", true);
-    test_string(
-        "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh",
-        true,
-    );
-    test_string(
-        "abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgha",
-        false,
-    );
-    test_string("a-a_b", true);
-    test_string("a-a]]]_b", false);
-    test_string("_ab", false);
-    test_string("-ab", false);
-    test_string("1ab", false);
+#[test]
+fn valid_complex_names() {
+    valid_string("abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh");
+    valid_string("a-a_b");
+}
 
+#[test]
+fn invalid_names_keywords() {
+    invalid_string("pub");
+    invalid_string("Pub");
+    invalid_string("PUb");
+
+    invalid_string("enum");
+    invalid_string("eNum");
+}
+
+#[test]
+fn invalid_names() {
+    invalid_string("abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgha");
+    invalid_string("a-a]]]_b");
+    invalid_string("_ab");
+    invalid_string("-ab");
+    invalid_string("1ab");
+}
+
+#[test]
+fn normalization() {
     assert_eq!(
         canonicalize(&to_string(&Env::default(), "ls_test")).unwrap(),
         to_string(&Env::default(), "ls-test")

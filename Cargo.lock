@@ -3080,9 +3080,11 @@ dependencies = [
  "admin-sep",
  "assert_matches",
  "hello_world",
+ "rand 0.9.2",
  "semver",
  "soroban-sdk 23.0.2",
  "stellar-registry",
+ "stellar-xdr",
 ]
 
 [[package]]

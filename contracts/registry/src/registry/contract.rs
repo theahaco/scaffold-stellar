@@ -19,7 +19,7 @@ use crate::{
 use super::{Deployable, Redeployable};
 
 impl Contract {
-    fn get(env: &Env, contract_name: &String) -> Result<Address, Error> {
+    fn get_contract_id(env: &Env, contract_name: &String) -> Result<Address, Error> {
         Storage::new(env)
             .contract
             .get(contract_name)
@@ -33,10 +33,18 @@ impl Contract {
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let name = canonicalize(name)?;
-        let contract_id = Self::get(env, &name)?;
+        let contract_id = Self::get_contract_id(env, &name)?;
         Storage::new(env)
             .contract
             .extend_ttl(&name, MAX_BUMP, MAX_BUMP);
+        /*
+        Here we check if the contract being upgrade supports the admin interface.
+        If so we can fetch the admin and call require auth at the top level.
+        This prevents needing to use a more complex auth entry because the signer must be authorized in
+        the root of the call. However, if the contract doesn't implement the interface, then it is up to
+        the caller to have constructed the auth entries correctly and the contract itself for handling how
+        authorization is set up for upgrading.
+         */
         if let Ok(Ok(author)) = env.try_invoke_contract::<Address, Error>(
             &contract_id,
             &symbol_short!("admin"),
@@ -95,7 +103,7 @@ impl Deployable for Contract {
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
         let contract_name = canonicalize(&contract_name)?;
-        Self::get(env, &contract_name)
+        Self::get_contract_id(env, &contract_name)
     }
 }
 
