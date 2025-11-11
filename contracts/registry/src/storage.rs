@@ -58,7 +58,7 @@ mod tests {
         let mut hash = env.crypto().sha256(&key_bytes.into_val(env));
         let hash_prefix: [u8; 4] = [0, 0, 0, 13];
         let vec_prefix: [u8; 4] = [0, 0, 0, 16];
-        let mut key_pefix = [0u8; 4];
+        let mut key_prefix = [0u8; 4];
         for _ in 0..10_000 {
             let val = HashKey::to_key(env, &hash.to_bytes());
             let bytes = val.to_xdr(env);
