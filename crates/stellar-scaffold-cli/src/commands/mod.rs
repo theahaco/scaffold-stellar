@@ -4,6 +4,7 @@ use clap::{command, CommandFactory, FromArgMatches, Parser};
 use stellar_cli;
 
 pub mod build;
+pub mod clean;
 pub mod generate;
 pub mod init;
 pub mod update_env;
@@ -51,6 +52,7 @@ impl Root {
             Cmd::Upgrade(upgrade_info) => upgrade_info.run(&self.global_args).await?,
             Cmd::UpdateEnv(e) => e.run()?,
             Cmd::Watch(watch_info) => watch_info.run(&self.global_args).await?,
+            Cmd::Clean(clean_info) => clean_info.run(&self.global_args)?,
         }
         Ok(())
     }
@@ -85,6 +87,9 @@ pub enum Cmd {
 
     /// Monitor contracts and environments.toml for changes and rebuild as needed
     Watch(watch::Cmd),
+
+    /// Clean scaffold-generated artifacts
+    Clean(clean::Cmd),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -102,6 +107,8 @@ pub enum Error {
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]
     Watch(#[from] watch::Error),
+    #[error(transparent)]
+    Clean(#[from] clean::Error),
 }
 
 pub fn npm_cmd() -> &'static str {
