@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.17...stellar-scaffold-cli-v0.0.18) - 2025-11-11
+
+### Fixed
+
+- wrong boolean on git check during init ([#299](https://github.com/theahaco/scaffold-stellar/pull/299))
+
 ## [0.0.17](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.16...stellar-scaffold-cli-v0.0.17) - 2025-11-10
 
 ### Added
