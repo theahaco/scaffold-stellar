@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use clap::{command, CommandFactory, FromArgMatches, Parser};
+use clap::{CommandFactory, FromArgMatches, Parser, command};
 use stellar_cli;
 
 pub mod build;

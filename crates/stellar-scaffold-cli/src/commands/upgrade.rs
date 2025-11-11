@@ -8,7 +8,7 @@ use std::fs::{create_dir_all, metadata, read_dir, write};
 use std::io;
 use std::path::{Path, PathBuf};
 use stellar_cli::commands::global::Args;
-use toml_edit::{value, DocumentMut, Item, Table};
+use toml_edit::{DocumentMut, Item, Table, value};
 
 use crate::{arg_parsing, commands::build, commands::init::FRONTEND_TEMPLATE};
 use stellar_cli::print::Print;
@@ -29,9 +29,7 @@ pub struct Cmd {
 pub enum Error {
     #[error("Failed to clone template: {0}")]
     DegitError(String),
-    #[error(
-        "Workspace path contains invalid UTF-8 characters and cannot be converted to a string"
-    )]
+    #[error("Workspace path contains invalid UTF-8 characters and cannot be converted to a string")]
     InvalidWorkspacePathEncoding,
     #[error("IO error: {0}")]
     IoError(#[from] io::Error),
@@ -150,10 +148,10 @@ impl Cmd {
             let item_name = entry.file_name();
 
             // Skip items that shouldn't be copied
-            if let Some(name_str) = item_name.to_str() {
-                if skip_items.contains(&name_str) {
-                    continue;
-                }
+            if let Some(name_str) = item_name.to_str()
+                && skip_items.contains(&name_str)
+            {
+                continue;
             }
 
             let src = entry.path();
