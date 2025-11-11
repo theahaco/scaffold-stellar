@@ -48,32 +48,36 @@ impl ToStorageKey<BytesN<32>> for HashKey {
 mod tests {
     extern crate std;
     use super::{maps::ToStorageKey, ContractKey, HashKey, WasmKey};
+    use rand::{RngCore, SeedableRng, rngs::SmallRng};
     use soroban_sdk::{xdr::ToXdr, Env, IntoVal, String};
 
     #[test]
     fn hash_key_prefix_is_unique() {
         let env = &Env::default();
         env.cost_estimate().budget().reset_unlimited();
-        let key_bytes: [u8; 32] = [1; 32];
+        let mut key_bytes: [u8; 32] = [0; 32];
+        SmallRng::from_os_rng().fill_bytes(&mut key_bytes);
         let mut hash = env.crypto().sha256(&key_bytes.into_val(env));
         let hash_prefix: [u8; 4] = [0, 0, 0, 13];
         let vec_prefix: [u8; 4] = [0, 0, 0, 16];
         let mut key_prefix = [0u8; 4];
+        // Verify over multiple iterations that the first 4 bytes of the XDR
+        // serialization of the different key types remain distinct.
         for _ in 0..10_000 {
             let val = HashKey::to_key(env, &hash.to_bytes());
             let bytes = val.to_xdr(env);
-            bytes.slice(..4).copy_into_slice(&mut key_pefix);
+            bytes.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(
-                hash_prefix, key_pefix,
+                hash_prefix, key_prefix,
                 "hash key will always have the same prefix as BytesN<32>"
             );
             let s = String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
             let wasm_key = WasmKey::to_key(env, &s).to_xdr(env);
-            wasm_key.slice(..4).copy_into_slice(&mut key_pefix);
-            assert_eq!(vec_prefix, key_pefix);
+            wasm_key.slice(..4).copy_into_slice(&mut key_prefix);
+            assert_eq!(vec_prefix, key_prefix);
             let contract_key = ContractKey::to_key(env, &s).to_xdr(env);
-            contract_key.slice(..4).copy_into_slice(&mut key_pefix);
-            assert_eq!(vec_prefix, key_pefix);
+            contract_key.slice(..4).copy_into_slice(&mut key_prefix);
+            assert_eq!(vec_prefix, key_prefix);
             hash = env.crypto().sha256(&hash.to_bytes().into_val(env));
         }
     }

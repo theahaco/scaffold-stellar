@@ -12,8 +12,7 @@ impl Normalized {
     pub const MAX_NAME_LENGTH: usize = 64;
 
     pub fn canonicalize(s: &String) -> Result<String, Error> {
-        let normalized_str = Normalized::new(s)?;
-        normalaized_str.to_string(s.env())
+        Normalized::new(s)?.to_string(s.env())
     }
 
     pub fn new(s: &String) -> Result<Self, Error> {

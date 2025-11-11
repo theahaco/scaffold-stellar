@@ -1,6 +1,7 @@
 extern crate std;
 
 use crate::test::contracts::{hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3};
+use crate::test::util::{invalid_string, valid_string};
 use crate::{
     error::Error,
     name::canonicalize,
@@ -16,6 +17,7 @@ use soroban_sdk::{
 
 mod contracts;
 mod registry;
+mod util;
 
 #[test]
 fn use_publish_method() {
@@ -245,25 +247,7 @@ fn returns_most_recent_version() {
     assert_eq!(res, forth_hash);
 }
 
-fn test_string(s: &str, result: bool) {
-    let raw_result = canonicalize(&to_string(&Env::default(), s));
-    if result {
-        assert!(raw_result.is_ok(), "should be valid: {s}");
-    } else {
-        assert_eq!(
-            raw_result,
-            Err(Error::InvalidName),
-            "should be invalid: {s}"
-        );
-    }
-}
-fn valid_string(s: &str) {
-    test_string(s, true);
-}
 
-fn invalid_string(s: &str) {
-    test_string(s, false);
-}
 
 #[test]
 fn valid_simple_names() {
@@ -276,7 +260,7 @@ fn valid_simple_names() {
 #[test]
 fn valid_complex_names() {
     valid_string("abcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefghabcdefgh");
-    test_string("a-a_b", true);
+    valid_string("a-a_b");
 }
 
 #[test]
