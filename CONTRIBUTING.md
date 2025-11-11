@@ -55,6 +55,17 @@ just test
 just test-integration
 ```
 
+## Changes to the Frontend Template
+
+If you want to make a change to the project scaffold created by the `init` command, you can do so at [the frontend template repo](https://github.com/theahaco/scaffold-stellar-frontend). The `init` command accepts a `--tag` argument if you want to use a specific version of the template other than the latest `main` branch:
+
+```bash
+# specify a branch name
+stellar scaffold init --tag feat/my-feature my-project-name
+# specify a tagged commit
+stellar scaffold init --tag v1.2.3 my-project-name
+```
+
 ## Troubleshooting
 
 - If you need to clean the project (remove the target folder and all compiled artifacts), run: `cargo clean`.
@@ -64,4 +75,3 @@ just test-integration
 - If you run `just test` or other commands in WSL (Windows Subsystem for Linux), the build may consume a lot of memory. On machines with limited WSL resources, builds can terminate unexpectedly due to out-of-memory errors. Solution: increase WSL resources by editing (or creating) `C:\Users\YOUR_USER\.wslconfig` file if possible.
 
 - For Windows users, please refer [here](./WINDOWS.md).
-
