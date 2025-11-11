@@ -1,4 +1,22 @@
-# Installation
+# Contributing to Scaffold Stellar
+
+Thanks for taking the time to improve Scaffold Stellar!
+
+The following is a set of guidelines for contributions and may change over time. Feel free to suggest improvements to this document in a pull request. We want to make it as easy as possible to contribute changes that help this project, and the Stellar ecosystem, grow and thrive. There are a few guidelines that we ask contributors to follow so that we can merge your changes quickly.
+
+## Getting started
+
+- Make sure you have a [GitHub account](https://github.com/signup/free).
+- If responding to an existing [GitHub issue](https://github.com/theahaco/scaffold-stellar/issues), comment on that issue to express your interest and intent to work on this issue.
+- If an issue does not exist for the work you'd like to contribute, create a GitHub issue.
+  - Clearly describe the issue, including steps to reproduce if it is a bug.
+- Fork the repository on GitHub.
+
+## Setting up your development environment
+
+### Install required tools
+
+You need a couple build and test tools to work with the crates in the Scaffold Stellar project.
 
 To install `just`, run the following command:
 
@@ -20,7 +38,7 @@ cargo install cargo-nextest
 ```
 https://crates.io/crates/cargo-nextest
 
-# Setup
+### Setup your dev environment
 
 To set up the environment, run:
 
@@ -28,15 +46,7 @@ To set up the environment, run:
 just setup
 ```
 
-# Redeploy
-
-To see redeployment in action, use:
-
-```bash
-just redeploy
-```
-
-# Tests
+### Running the tests
 
 To run tests, use:
 
@@ -45,7 +55,7 @@ just test
 just test-integration
 ```
 
-# Troubleshooting
+## Troubleshooting
 
 - If you need to clean the project (remove the target folder and all compiled artifacts), run: `cargo clean`.
 

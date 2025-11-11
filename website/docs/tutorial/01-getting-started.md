@@ -1,22 +1,22 @@
-# Tutorial: A Guess the Number Game
+---
+sidebar_label: Getting Started
+---
 
-This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application. You should have a basic understanding of the command line and of general programming concepts, but we'll walk through all the code together so don't worry if you're new to Stellar, Rust, or dApp development.
+# Getting Started with Scaffold Stellar
 
-:::tip
+This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application.
 
-If you just want to get up and running quickly, check out the [Quick Start](/docs/quick-start.mdx) guide.
-
-:::
+:::tip If you just want to get up and running quickly, check out the [Quick Start](../quick-start.mdx) guide. :::
 
 We'll cover:
 
-1. [Setting up a development environment](#setup)
-2. [Initializing a new project](#init)
-3. [Exploring the scaffolded project structure](#structure)
-4. [Understanding code in an example contract](#code)
-5. [Running the application](#dapp)
+1. [Setting up a development environment](#%EF%B8%8F-setup-your-development-environment)
+2. [Initializing a new project](#%EF%B8%8F-initialize-your-project)
+3. [Running the application](#-open-the-app)
+4. [Exploring the scaffolded project structure](#%EF%B8%8F-exploring-the-project-structure)
+5. [Understanding code in an example contract](#-understand-the-contract-code)
+6. [Understanding how the application talks to the contract](#-understand-the-application-code)
 
-<a id="setup"></a>
 ## 🛠️ Setup Your Development Environment
 
 First, follow the [Setup Instructions](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup) here to install the necessary tools for Stellar contract development, specifically these sections:
@@ -49,19 +49,21 @@ Lastly, we'll install the Scaffold Stellar plugin for the Stellar CLI. We sugges
 
 If you don't have it installed, you can do so with:
 
-#### Macos or Linux:
+<details>
+    <summary>Macos or Linux</summary>
+    ```bash
+    curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    ```
+</details>
 
-```bash
-curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-```
-
-#### Windows:
-
+<details>
+    <summary>Windows</summary>
 ```powershell
 Set-ExecutionPolicy Unrestricted -Scope Process; iex (iwr "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.ps1").Content
 ```
+</details>
 
-### Then install Scaffold Stellar with:
+Then install Scaffold Stellar with:
 
 ```bash
 cargo binstall -y stellar-scaffold-cli
@@ -73,29 +75,20 @@ Or if you prefer, you can install it directly with Cargo which will compile it f
 cargo install --locked stellar-scaffold-cli
 ```
 
-Preferred installation is binstall
-
-<a id="init"></a>
 ## 🏗️ Initialize Your Project
-
-Our smart contract will be a Guess The Number game. You (the admin) can deploy the contract, randomly select a number between 1 and 10, and seed the contract with a prize. Users can make guesses and win the prize if they're correct!
 
 Let's initialize a project. Open your terminal and navigate to the directory where you keep your projects, then type:
 
 ```bash
-stellar scaffold init guessing-game-tutorial
+stellar scaffold init --tutorial guessing-game-tutorial
 ```
 
-This creates a new project from our starter template containing everything you need. You can call your project anything you'd like. Navigate into the created directory and install its NPM dependencies:
+:::tip The `--tutorial` flag will create a new project with a simpler starting template specifically for this tutorial. We'll build up to the final version over the next few steps. If you want the full template with the final version of the contract, plus other examples, follow the [Quick Start](/docs/quick-start.mdx) guide instead. :::
+
+This creates a new project from our starter template containing everything you need. You can call your project anything you'd like. It will also install all the dependencies we need using `npm`. Then navigate into the created directory and start the development server:
 
 ```bash
 cd guessing-game-tutorial
-npm install
-```
-
-Now you're ready to run it:
-
-```bash
 npm start
 ```
 
@@ -104,9 +97,44 @@ This command does two things:
 1. Starts the development server for the frontend using Vite.
 2. Watches for changes in contract code and rebuilds them automatically using Stellar Scaffold's watch command.
 
-The first time you compile these smart contracts can take a while. While it does its thing, let's have a look around.
+That's it! You have a running application communicating with your local Stellar network to interact with your starter contract. Let's check out how it works.
 
-<a id="structure"></a>
+## 🚀 Open the App
+
+The `npm start` command should tell you it's running at Vite's default port, [http://localhost:5173](http://localhost:5173). Open it up and you should see the home page:
+
+```
+Welcome to your app!
+
+...
+
+<GuessTheNumber />
+Connect wallet to play the guessing game
+```
+
+In order to test out our deployed example contract, we'll need to connect to a wallet.
+
+### 💰 Connect a Wallet
+
+In the top right corner, you'll see a big "Connect" button. Click it. You need to have a [Wallet](https://stellar.org/learn/wallets-to-store-send-and-receive-lumens) in order to interact with the dApp. The modal that opened will show a few options if you don't have one already. We recommend using [Freighter](https://www.freighter.app/).
+
+Once it's installed, we need to connect it to our local network running in Docker. Open the extension, click the menu, and navigate to "Settings," then "Network." Click the "Add custom network" button and enter the following info:
+
+- **Name**: `Local`
+- **HORIZON RPC URL**: `http:localhost:8000`
+- **SOROBAN RPC URL**: `http:localhost:8000/rpc`
+- **Passphrase**: `Standalone Network ; February 2017`
+- **Friendbot URL**: `http:localhost:8000/friendbot`
+- Check **Allow connecting to non-HTTPS networks**
+
+> ℹ️ The 🌐 icon in the extension lets you switch back and forth between this Local network as well as test and main net.
+
+Now click the dApp's "Connect" button and follow the prompts to let the application communicate with Freighter. If it's successful, you should see your account info in the header along with a new "Fund Account" button and a tag for the current network. Click the "Fund Account" button so we can test some transactions.
+
+Once your wallet balance has some XLM, you should see the "GuessTheNumber" component update with a text box. Go ahead and enter some guesses. Right out of the gate we have nice UI to invoke methods on the contract.
+
+So how does this work?
+
 ## 🗂️ Exploring the Project Structure
 
 Open the project in your editor. You will see a generated project structure including these files and folders:
@@ -117,11 +145,11 @@ Open the project in your editor. You will see a generated project structure incl
 ├── Cargo.lock
 ├── Cargo.toml
 ├── contracts/
-│   └──guess-the-number
-│      ├── Cargo.toml
-│      └── src
-│          ├── lib.rs
-│          └── test.rs
+│   └──guess-the-number
+│      ├── Cargo.toml
+│      └── src
+│          ├── lib.rs
+│          └── test.rs
 ├── environments.toml
 ├── packages/
 ├── README.md
@@ -155,47 +183,11 @@ So how do all these pieces work together? Here's what Scaffold Stellar handles f
 
 That's a lot of heavy lifting! Normally you'd have to do all this yourself, perhaps in a procedural script, but Scaffold Stellar does it for you. And it's deterministic, meaning you can always reproduce the same results from the same environment configuration. You set configuration values, specifying the desired starting state for your app, and Scaffold Stellar does all the work to get your app into that state.
 
-And we're just getting started! We haven't even looked at the application yet.
+We deployed the example contract, but we don't even know what it does. Luckily, we built a tool to help with that!
 
-<a id="dapp"></a>
-## 🚀 Open the App
-
-The `npm start` command should have finished building the contracts by now so you can open the app in your browser. It should be running at Vite's default port, [http://localhost:5173](http://localhost:5173), and you should see the home page:
-
-```
-Welcome to your app!
-
-...
-
-<GuessTheNumber />
-Connect wallet to play the guessing game
-```
-
-In order to test out our deployed example contract, we'll need to connect to a wallet.
-
-### 💰 Connect a Wallet
-
-In the top right corner, you'll see a big "Connect" button. Click it. You need to have a [Wallet](https://stellar.org/learn/wallets-to-store-send-and-receive-lumens) in order to interact with the dApp. The modal that opened will show a few options if you don't have one already. We recommend using [Freighter](https://www.freighter.app/).
-
-Once it's installed, we need to connect it to our local network running in Docker. Open the extension, click the menu, and navigate to "Settings," then "Network." Click the "Add custom network" button and enter the following info:
-
-- **Name**: `Local`
-- **HORIZON RPC URL**: `http:localhost:8000`
-- **SOROBAN RPC URL**: `http:localhost:8000/rpc`
-- **Passphrase**: `Standalone Network ; February 2017`
-- **Friendbot URL**: `http:localhost:8000/friendbot`
-- Check **Allow connecting to non-HTTPS networks**
-
-> ℹ️ The 🌐 icon in the extension lets you switch back and forth between this Local network as well as test and main net.
-
-Now click the dApp's "Connect" button and follow the prompts to let the application communicate with Freighter. If it's successful, you should see your account info in the header along with a new "Fund Account" button and a tag for the current network. Click the "Fund Account" button so we can test some transactions.
-
-Once your wallet balance has some XLM, you should see the "GuessTheNumber" component update with a text box. Go ahead and enter some guesses. Right out of the gate we have nice UI to invoke methods on the contract.
-
-<a id="code"></a>
 ## 🔎 Understand the Contract Code
 
-Now navigate to our contract explorer. Click the "Debugger" button in the header. These are our contract developer tools. They'll let you explore the contracts available to your application, view documentation, and even run methods to help debug them right from your app!
+Go back to your browser and look at the application again. Click the "&lt;/&gt; Debugger" button in the header. These are our contract developer tools. They'll let you explore the contracts available to your application, view documentation, and even run methods to help debug them right from your app!
 
 Select the `guess_the_number` contract and you should see its Contract ID from the local network deployment. You'll also see the contract's documentation for methods like:
 
@@ -225,7 +217,7 @@ In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/ref
 Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods. In this case the structs holds no values but we will still define methods on it.
 
 ```rust
-const THE_NUMBER: &Symbol = &symbol_short!("n");
+const THE_NUMBER: Symbol = symbol_short!("n");
 pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 ```
 
@@ -241,39 +233,50 @@ impl GuessTheNumber {
 Let's `impl`ement our contract's functionality.
 
 ```rust
-    pub fn __constructor(env: &Env, admin: &Address) {
-        Self::set_admin(env, admin);
-    }
+pub fn __constructor(env: &Env, admin: &Address) {
+    Self::set_admin(env, admin);
+}
 ```
 
 A contract's `constructor` runs when it is deployed. In this case, we're saying who has access to the admin functions. We don't want just anyone to be able to reset our number, do we?!
 
 ```rust
-    /// Update the number. Only callable by admin.
-    pub fn reset(env: &Env) {
-        Self::require_admin(env);
-        let new_number: u64 = env.prng().gen_range(1..=10);
-        env.storage().instance().set(&THE_NUMBER, &new_number);
-    }
+/// Update the number. Only callable by admin.
+pub fn reset(env: &Env) {
+    Self::require_admin(env);
+    let new_number: u64 = env.prng().gen_range(1..=10);
+    env.storage().instance().set(&THE_NUMBER, &new_number);
+}
 ```
 
 And here is the reset function. Note that we use `require_admin()` here so only you can run this function. It generates a random number between 1 and 10 and uses our key to store it.
 
 ```rust
-    /// Guess a number between 1 and 10
-    pub fn guess(env: &Env, a_number: u64) -> bool {
-        a_number == env.storage().instance().get::<_, u64>(&THE_NUMBER).unwrap()
-    }
+/// Guess a number from 1 to 10
+pub fn guess(env: &Env, a_number: u64) -> bool {
+    a_number
+        == env
+            .storage()
+            .instance()
+            .get::<_, u64>(&THE_NUMBER)
+            .expect("no number set")
 }
 ```
 
-Finally, we add the `guess` function which accepts a number as the guess and compares it to the stored number, returning the result. Notice we're using our defined key (that small Symbol) to find stored data that may or may not be there. That's why we need [`unwrap()`](https://doc.rust-lang.org/rust-by-example/error/option_unwrap.html), but we'll talk more about `Option` values later in the tutorial.
+Finally, we add the `guess` function which accepts a number as the guess and compares it to the stored number, returning the result. Notice we're using our defined key (that small Symbol) to find stored data that may or may not be there. The thing returned from `get` is a Rust [Option](https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html#the-option-enum-and-its-advantages-over-null-values), which is Rust's improvement over the `null` type. An `Option` can be `Some` or `None`. We use [`expect()`](https://doc.rust-lang.org/std/option/enum.Option.html#method.expect) to return the value contained in the `Some` or to panic with the "no number set" message if `None`. We'll talk more about `Option` values later in the tutorial.
 
 ```rust
 mod test;
 ```
 
-Post Script: this last line includes the test module into this file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want.
+This last line includes the test module into this file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want by defining the module. Note you also need to tell the compile that this is a test module, which is at the top of our file `#![cfg(test)]`.
+
+```rust
+#[cfg(test)]
+mod test {
+///
+}
+```
 
 ### 👷 Let's Make a Change
 
@@ -290,56 +293,6 @@ Save the file and watch your terminal output. The contracts get rebuilt, redeplo
 
 Tada!
 
-### 👀 Looking Deeper at the Output
-
-Sharp eyed readers might have noticed interesting lines in the build output. Let's take a look:
-
-```
-[0] ℹ️ Starting local network
-```
-
-This is the Docker container running Stellar locally. You can manage it with `stellar container` commands, but Scaffold Stellar should handle everything for you. We recommend using the local network for development because it's simpler than working with [the other networks](https://developers.stellar.org/docs/learn/fundamentals/networks), but we'll make use of them in later parts of the tutorial.
-
-```
-ℹ️ Build Summary:
-[0]   Wasm File: target/stellar/local/guess_the_number.wasm
-[0]   Wasm Hash: 2cda774ed515acb3af208478e64841d6253d52366f22156c5e7a550ee7b06cbe
-[0]   Exported Functions: 5 found
-[0]     • _
-[0]     • __constructor
-[0]     • guess
-[0]     • reset
-[0]     • upgrade
-[0] ✅ Build Complete
-```
-
-You'll see a build summary for each of our contracts as they compile to Wasm, the code that will actually run on the blockchain. There's a few other functions in our contract that weren't exported here. That's because they're private. We'll implement our own in the next part of the tutorial and explain why they're useful.
-
-```
-[0] ℹ️ Creating keys for "me"
-[0] ✅ Key saved with alias me in "/Users/zach/code/guessing-game-tutorial/.config/stellar/identity/me.toml"
-[0] ✅ Account me funded on "Standalone Network ; February 2017"
-```
-
-Scaffold Stellar creates an account for you to use on the local network and funds it so you can actually deploy your contracts. You can manage these accounts with the `stellar keys` command.
-
-```
-[0] ✅ Deployed!
-[0] ℹ️     ↳ contract_id: CBPAPSB7SXM3MNJVLXPSD6BRQ2ZN33OQVYWO45332TOP4PQLMCHJV4QN
-[0] ℹ️ Running after_deploy script for "guess_the_number"
-```
-
-After deployment, our `__constructor` method is run which initializes our contract. This is a perfect time to setup anything your contract needs to run. We also ran an `after_deploy` script to call our contract's `reset` method and generate a random number for us to guess. These are all configured in the `environments.toml` file and we'll dive into that in the next part of the tutorial.
-
-```
-[0] ℹ️ Binding "guess_the_number" contract
-...
-[0] ✅ Client "guess_the_number" created successfully
-```
-
-This is final piece of the puzzle. Now that the contract is deployed on chain, we can use it to generate an RPC client and TypeScript bindings used in our frontend code.
-
-<a id="app-code"></a>
 ## 🔎 Understand the Application Code
 
 The app's home page uses the `<GuessTheNumber />` component, so we can start by looking at that file in `src/components/GuessTheNumber.tsx`:
@@ -393,14 +346,14 @@ All you have to do is the fun part, focus on building your application instead o
 That covered a lot, but let's summarize how simple it actually was:
 
 1. We ran `stellar scaffold init guessing-game-tutorial` to generate a project from a starter template
-2. We ran `npm install` to get our dependencies
-3. We ran `npm start` to build and deploy the contracts to our local network, then run the application
+2. We ran `npm start` to build and deploy the contracts to our local network, then run the application
+3. We saw the application running in our browser and how it reacted and rebuilt everything anytime we changed the code
 
 That's it! Scaffold Stellar does all the heavy lifting, letting you jump right in to the fun parts of developing your contract and applications. 🎉
 
 ## What's Next?
 
-This is a great place to start, but there's a few things we can improve on. For example, our number is currently stored in plain text on the contract's storage. We
+That's a good start, but there's a lot we can improve on. In the next step, we'll:
 
 - Improve the contract code to make it more robust
 - Learn about private contract methods

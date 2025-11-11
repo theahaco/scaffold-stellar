@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.10](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.9...stellar-scaffold-macro-v0.8.10) - 2025-11-10
+
+### Other
+
+- *(deps)* bump the cargo-minor group across 1 directory with 17 updates ([#284](https://github.com/theahaco/scaffold-stellar/pull/284))
+
 ## [0.8.9](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.8...stellar-scaffold-macro-v0.8.9) - 2025-10-20
 
 ### Added

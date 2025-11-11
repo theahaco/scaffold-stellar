@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.17...stellar-scaffold-cli-v0.0.18) - 2025-11-11
+
+### Fixed
+
+- wrong boolean on git check during init ([#299](https://github.com/theahaco/scaffold-stellar/pull/299))
+
+## [0.0.17](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.16...stellar-scaffold-cli-v0.0.17) - 2025-11-10
+
+### Added
+
+- remove openssl dependency by using rustls-tls feature in reqwest ([#282](https://github.com/theahaco/scaffold-stellar/pull/282))
+- pin scaffold FE repo to specific version ([#278](https://github.com/theahaco/scaffold-stellar/pull/278))
+
+### Fixed
+
+- remove unneeded stellar-cli features ([#283](https://github.com/theahaco/scaffold-stellar/pull/283))
+
+### Other
+
+- *(deps)* bump the cargo-minor group across 1 directory with 17 updates ([#284](https://github.com/theahaco/scaffold-stellar/pull/284))
+- *(deps)* bump indexmap from 1.9.3 to 2.9.0 ([#234](https://github.com/theahaco/scaffold-stellar/pull/234))
+- clean up dependencies ([#272](https://github.com/theahaco/scaffold-stellar/pull/272))
+- Update notify package, removes crossbeam warning ([#271](https://github.com/theahaco/scaffold-stellar/pull/271))
+- *(deps)* bump predicates from 2.1.5 to 3.1.3 ([#233](https://github.com/theahaco/scaffold-stellar/pull/233))
+- *(deps)* bump thiserror from 1.0.69 to 2.0.12 ([#232](https://github.com/theahaco/scaffold-stellar/pull/232))
+
 ## [0.0.16](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.15...stellar-scaffold-cli-v0.0.16) - 2025-11-01
 
 ### Added
