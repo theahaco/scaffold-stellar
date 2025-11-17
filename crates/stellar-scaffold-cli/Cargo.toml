@@ -29,7 +29,7 @@ stellar-build = { path = "../stellar-build", version = "0.0.5" }
 stellar-cli = { workspace = true, default-features = false }
 soroban-rpc = { workspace = true }
 soroban-spec-tools = { workspace = true }
-clap = { version = "4.5.51", features = [
+clap = { version = "4.5.52", features = [
     "derive",
     "env",
     "deprecated",
