@@ -242,13 +242,11 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
         Ok(output) => {
             // Command ran without panic, but failed for some other reason
             // like network issue or missing dependency, etc.
-            printer.warnln(format!(
-                "Failed to install dependencies: Please run 'npm install' manually"
-            ));
-            if !output.stderr.is_empty() {
-                if let Ok(stderr) = String::from_utf8(output.stderr) {
-                    printer.warnln(format!("Error: {}", stderr.trim()));
-                }
+            printer.warnln("Failed to install dependencies: Please run 'npm install' manually");
+            if !output.stderr.is_empty()
+                && let Ok(stderr) = String::from_utf8(output.stderr)
+            {
+                printer.warnln(format!("Error: {}", stderr.trim()));
             }
             false
         }
