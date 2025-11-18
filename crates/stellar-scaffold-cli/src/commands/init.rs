@@ -106,13 +106,6 @@ impl Cmd {
         let env_path = absolute_project_path.join(".env");
         copy(example_path, env_path)?;
 
-        // If git is installed, run init and make initial commit
-        if git_exists() {
-            git_init(&absolute_project_path);
-            git_add(&absolute_project_path, &["-A"]);
-            git_commit(&absolute_project_path, "initial commit");
-        }
-
         // Update the project's OpenZeppelin examples with the latest editions
         if !self.vers.tutorial {
             let example_contracts = ["nft-enumerable", "fungible-allowlist"];
@@ -124,16 +117,7 @@ impl Cmd {
         }
 
         // Install npm dependencies
-        printer.infoln("Installing npm dependencies...");
-        let npm_install_command = Command::new("npm")
-            .arg("install")
-            .current_dir(&absolute_project_path)
-            .output()?;
-        if !npm_install_command.status.success() {
-            printer.warnln(
-                "Failed to install dependencies, run 'npm install' in the project directory",
-            );
-        }
+        let npm_status = npm_install(&absolute_project_path, &printer);
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
@@ -151,6 +135,13 @@ impl Cmd {
             printer.warnln(format!("Failed to build contract clients: {e}"));
         }
 
+        // If git is installed, run init and make initial commit
+        if git_exists() {
+            git_init(&absolute_project_path);
+            git_add(&absolute_project_path, &["-A"]);
+            git_commit(&absolute_project_path, "initial commit");
+        }
+
         printer.blankln("\n\n");
         printer.checkln(format!(
             "Project successfully created at {}!",
@@ -158,7 +149,7 @@ impl Cmd {
         ));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
-        if !npm_install_command.status.success() {
+        if !npm_status {
             printer.blankln("\tnpm install");
         }
         printer.blankln("\tnpm start\n");
@@ -226,6 +217,43 @@ impl Cmd {
         }
 
         Ok(())
+    }
+}
+
+// Check if npm is installed and exists in PATH
+fn npm_exists() -> bool {
+    Command::new("npm").arg("--version").output().is_ok()
+}
+
+// Install npm dependencies
+fn npm_install(path: &PathBuf, printer: &Print) -> bool {
+    if !npm_exists() {
+        printer.warnln("Failed to install dependencies, npm is not installed");
+        return false;
+    }
+
+    printer.infoln("Installing npm dependencies...");
+    match Command::new("npm")
+        .arg("install")
+        .current_dir(path)
+        .output()
+    {
+        Ok(output) if output.status.success() => true,
+        Ok(output) => {
+            // Command ran without panic, but failed for some other reason
+            // like network issue or missing dependency, etc.
+            printer.warnln("Failed to install dependencies: Please run 'npm install' manually");
+            if !output.stderr.is_empty()
+                && let Ok(stderr) = String::from_utf8(output.stderr)
+            {
+                printer.warnln(format!("Error: {}", stderr.trim()));
+            }
+            false
+        }
+        Err(e) => {
+            printer.warnln(format!("Failed to run npm install: {e}"));
+            false
+        }
     }
 }
 
