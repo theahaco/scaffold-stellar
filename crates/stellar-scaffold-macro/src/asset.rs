@@ -55,6 +55,7 @@ pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
     // let contract_id = format_ident!("\"{contract_id}\"");
     let contract_id = contract_id.to_string();
     let mod_name = format_ident!("{code}");
+    let convert_name = format_ident!("{code}_to_min_unit");
     quote! {
         #[allow(non_upper_case_globals)]
         pub(crate) mod #mod_name {
@@ -70,6 +71,22 @@ pub fn parse_literal(lit_str: &syn::LitStr, network: &Network) -> TokenStream {
             /// Create a Stellar Asset Client for the asset which provides an admin interface
             pub fn token_client<'a>(env: &soroban_sdk::Env) -> soroban_sdk::token::TokenClient<'a> {
                 soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
+            }
+
+            #[cfg(test)]
+            pub fn test_register(env: &soroban_sdk::Env, admin: &soroban_sdk::Address) -> soroban_sdk::testutils::StellarAssetContract {
+                let sac = env.register_stellar_asset_contract_v2(admin.clone());
+                stellar_asset_client(env).mint(admin, &1_000_000_000.to_i128().unwrap());
+                sac
+            }
+
+            #[cfg(not(test))]
+            pub fn register() {
+
+            }
+
+            pub fn #convert_name() {
+
             }
         }
     }

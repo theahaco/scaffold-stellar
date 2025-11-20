@@ -47,7 +47,9 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
 }
 
 /// Generates a contract Client for a given asset.
-/// It is expected that the name of an asset, e.g. "native" or "USDC:G1...."
+/// As the first argument, it expects the name of an asset, e.g. "native" or "USDC:G1...."
+/// To generate the contract id for the asset, it uses the `STELLAR_NETWORK` environment variable,
+/// which could be either `local`, `testnet`, `futurenet` or `mainnet`. (uses `local` if not set)
 ///
 /// # Panics
 ///
