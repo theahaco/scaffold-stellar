@@ -35,6 +35,7 @@ build:
 
 # Setup the project to use a pinned version of the CLI
 setup:
+    git config core.hooksPath .githooks
     -cargo binstall -y stellar-cli --version 23.1.3 --install-path ./target/bin
 
 # Build stellar-scaffold-cli test contracts to speed up testing
@@ -42,7 +43,7 @@ build-cli-test-contracts:
     just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
-    cargo nextest run -E 'package(stellar-scaffold-cli)' 
+    cargo nextest run -E 'package(stellar-scaffold-cli)'
     cargo nextest run -E 'package(stellar-registry-cli)'
     cargo nextest run
 
@@ -50,7 +51,7 @@ test-integration: build-cli-test-contracts
     cargo nextest run --verbose --package stellar-scaffold-cli --features integration-tests --no-run
     cargo nextest run --verbose --package stellar-registry-cli --features integration-tests --no-run
     cargo nextest run --package stellar-registry-cli --features integration-tests
-    cargo nextest run --package stellar-scaffold-cli --features integration-tests 
+    cargo nextest run --package stellar-scaffold-cli --features integration-tests
 
 create: build
     rm -rf .soroban
