@@ -108,7 +108,7 @@ pub fn parse_literal(lit_str: &syn::LitStr) -> TokenStream {
                 soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
             }
 
-            pub fn register(env: &soroban_sdk::Env, admin: &soroban_sdk::Address) {
+            pub fn register(env: &soroban_sdk::Env) {
                 let symbol = token_client(env).try_symbol();
                 if symbol.is_err()  {
                     env.deployer().with_stellar_asset(SERIALIZED_ASSET).deploy();
@@ -214,7 +214,7 @@ mod test {
                     soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
                 }
 
-                pub fn register(env: &soroban_sdk::Env, admin: &soroban_sdk::Address) {
+                pub fn register(env: &soroban_sdk::Env) {
                     let symbol = token_client(env).try_symbol();
                     if symbol.is_err()  {
                         env.deployer().with_stellar_asset(SERIALIZED_ASSET).deploy();
@@ -296,7 +296,7 @@ mod test {
                     soroban_sdk::token::TokenClient::new(&env, &contract_id(env))
                 }
 
-                pub fn register(env: &soroban_sdk::Env, admin: &soroban_sdk::Address) {
+                pub fn register(env: &soroban_sdk::Env) {
                     let symbol = token_client(env).try_symbol();
                     if symbol.is_err()  {
                         env.deployer().with_stellar_asset(SERIALIZED_ASSET).deploy();
