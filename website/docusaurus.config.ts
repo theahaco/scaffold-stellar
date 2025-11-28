@@ -37,6 +37,19 @@ const config: Config = {
     locales: ['en', 'es'],
   },
 
+  plugins: [
+    [
+      '@docusaurus/plugin-ideal-image',
+      {
+        quality: 70,
+        max: 1030, // max resized image's size.
+        min: 640, // min resized image's size. if original is lower, use that size.
+        steps: 2, // the max number of images generated between min and max (inclusive)
+        disableInDev: false,
+      },
+    ],
+  ],
+
   presets: [
     [
       'classic',
@@ -105,6 +118,7 @@ const config: Config = {
           label: 'Documentation',
         },
         {to: '/blog', label: 'Blog', position: 'left'},
+        {to: 'showcase', label: 'Showcase', position: 'left'},
         {
           type: 'localeDropdown',
           position: 'right',
