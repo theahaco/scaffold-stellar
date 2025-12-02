@@ -13,12 +13,13 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { workspace = true, features = ["alloc"] }
-admin-sep = { workspace = true }
+soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" , features = ["alloc"] }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0" }
+
 semver = { version = "1.0.27", default-features = false }
 
 [dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" ,  features = ["testutils"] }
 stellar-registry = { workspace = true }
 assert_matches = "1.5.0"
 stellar-xdr = { workspace = true }

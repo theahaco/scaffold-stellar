@@ -14,8 +14,8 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { workspace = true }
+soroban-sdk = {  git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" }
 admin-sep = { workspace = true }
 
 [dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-sdk = {  git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8", features = ["testutils"] }
