@@ -80,7 +80,9 @@ Here's what that means: your frontend app relies on contracts. Depending on whic
 
 Scaffold Stellar encourages you to build separate versions of your frontend for each of these environments. And for each, you specify the contracts you rely on.
 
-:::tip But wait. Isn't the behavior of a given contract the same across different networks? 🤔🤔🤔
+:::tip
+
+But wait. Isn't the behavior of a given contract the same across different networks? 🤔🤔🤔
 
 If you think about the lifecycle of a contract like our Guess The Number game, you might imagine finalizing the contract, then deploying the exact same contract to your local network, to testnet, and even eventually to mainnet. Why does Scaffold Stellar and `environments.toml` make you specify the contract for each? Why does it rebuild the contract clients for each, as if they might be entirely different? Couldn't we just generate the contract client once, and then change the RPC URL and Network Passphrase that the client gets instantiated with? Same _behavior_, different networks & contracts?
 
