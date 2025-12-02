@@ -6,7 +6,11 @@ sidebar_label: Getting Started
 
 This section will guide you through the development workflow for using Scaffold Stellar to build and deploy a Guess the Number game with a simple smart contract and an integrated frontend application.
 
-:::tip If you just want to get up and running quickly, check out the [Quick Start](../quick-start.mdx) guide. :::
+:::tip
+
+If you just want to get up and running quickly, check out the [Quick Start](../quick-start.mdx) guide.
+
+:::
 
 We'll cover:
 
@@ -83,7 +87,11 @@ Let's initialize a project. Open your terminal and navigate to the directory whe
 stellar scaffold init --tutorial guessing-game-tutorial
 ```
 
-:::tip The `--tutorial` flag will create a new project with a simpler starting template specifically for this tutorial. We'll build up to the final version over the next few steps. If you want the full template with the final version of the contract, plus other examples, follow the [Quick Start](/docs/quick-start.mdx) guide instead. :::
+:::tip
+
+The `--tutorial` flag will create a new project with a simpler starting template specifically for this tutorial. We'll build up to the final version over the next few steps. If you want the full template with the final version of the contract, plus other examples, follow the [Quick Start](/docs/quick-start.mdx) guide instead.
+
+:::
 
 This creates a new project from our starter template containing everything you need. You can call your project anything you'd like. It will also install all the dependencies we need using `npm`. Then navigate into the created directory and start the development server:
 
