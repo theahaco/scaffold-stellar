@@ -34,8 +34,8 @@ Additionally, you might want to have a look into registering your contract with
 
 We provide a template GitHub action which you have to adjust based on your needs.
 This action compiles your contract(s), create some signed attestations and registers
-the specific WASM to Stellar.Expert. You then need to download and upload that
-specific WASM using the aforementioned `stellar registry` commands.
+the specific Wasm to Stellar.Expert. You then need to download and upload that
+specific Wasm using the aforementioned `stellar registry` commands.
 
 ## dApp
 
@@ -48,7 +48,7 @@ npm run build
 This will bundle your application in the `/dist` folder. Then you
 have mainly two approaches to serve its content:
 
-1. A centralized service provider like Vercel, Netlify, else.
+1. A centralized service provider like GitHub Pages, Vercel, Netlify, etc.
 2. A decentralized solution like IPFS.
 
 As we are developing a blockchain application and decentralization is one of
@@ -56,18 +56,18 @@ the core principle of what we do, we recommend to deploy on your application
 following a decentralized approach.
 
 If for some reason you still prefer a centralized solution, you can have a look
-at this extensive guide from [Docusaurus](https://docusaurus.io/docs/deployment).
+at this extensive guide from [Vite](https://vite.dev/guide/static-deploy).
 
 The rest of this guide will focus on a decentralized deployment. We provide
-a GitHub action workflow which build the application, creates a signed
-attestation and deploy the files to IPFS:
+a GitHub action workflow which builds the application, creates a signed
+attestation and deploys the files to IPFS:
 
 1. Push on `dapp_production`,
 2. The IPFS workflow runs and produces an IPFS address (CID),
 
 The CID can be used with any IPFS gateway. This might not seem very convenient
 for your users, luckily in the ecosystem we have a gateway with which it is
-very easy to integrate with:
+very easy to integrate:
 
 https://xlm.sh/
 
