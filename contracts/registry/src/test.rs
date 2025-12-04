@@ -122,8 +122,8 @@ fn hello_world_using_publish_hash() {
     let author = &Address::generate(env);
 
     env.deployer().upload_contract_wasm(hw_bytes(env));
-    registry.mock_auth_for(
-        author,
+    registry.mock_auths_for(
+        &[author, registry.admin()],
         "publish_hash",
         ContractArgs::publish_hash(wasm_name, author, &hw_hash(env), &version),
     );
@@ -143,7 +143,7 @@ fn hello_world_using_publish_hash() {
 #[test]
 fn contract_admin_error_cases() {
     let registry = &Registry::new();
-    let env = &registry.env().clone();
+    let env = registry.env();
     let other_address = &Address::generate(env);
 
     let name = &to_string(env, "registry");
@@ -165,16 +165,11 @@ fn contract_admin_error_cases() {
     registry.mock_auth_for_publish(wasm_name, author, version, &registry.bytes());
 
     registry.publish();
-    registry.mock_auth_for(
-        other_address,
+    let args = vec![env, other_address.into_val(env)];
+    registry.mock_auths_for(
+        &[other_address, registry.admin()],
         "deploy",
-        ContractArgs::deploy(
-            wasm_name,
-            &None,
-            name,
-            author,
-            &Some(vec![env, other_address.into_val(env)]),
-        ),
+        ContractArgs::deploy(wasm_name, &None, name, author, &Some(args.clone())),
     );
 
     assert_eq!(

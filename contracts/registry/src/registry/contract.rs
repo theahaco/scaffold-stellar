@@ -3,7 +3,7 @@ use crate::name;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::Administratable;
+use admin_sep::{Administratable, AdministratableExtension};
 use soroban_sdk::{
     self, assert_with_error, contractimpl, symbol_short, vec, Address, BytesN, Env, IntoVal,
     InvokeError, String, Symbol,
@@ -77,8 +77,11 @@ impl Deployable for Contract {
         }
         if contract_name == name::registry(env) {
             assert_with_error!(env, Self::admin(env) == admin, Error::AdminOnly);
+        } else {
+            // Currently require admin for deploying
+            Self::require_admin(env);
         }
-        // signed by admin
+        // signed by admin of contract
         admin.require_auth();
 
         let hash = Self::get_hash_and_bump(env, &wasm_name, version.clone())?;

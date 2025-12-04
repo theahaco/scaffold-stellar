@@ -2,7 +2,7 @@ use crate::name;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::Administratable;
+use admin_sep::{Administratable, AdministratableExtension};
 use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
 use crate::{error::Error, name::canonicalize, util::MAX_BUMP, Contract};
@@ -150,6 +150,9 @@ impl Publishable for Contract {
             if author != current {
                 return Err(Error::WasmNameAlreadyTaken);
             }
+        } else {
+            // Admin must approve initial Publish
+            Self::require_admin(env);
         }
 
         if wasm_name == name::registry(env) && Self::admin(env) != author {
