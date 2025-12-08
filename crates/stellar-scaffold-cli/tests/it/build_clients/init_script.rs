@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{TestEnv, find_binary, rpc_url};
+use stellar_scaffold_test::{TestEnv, rpc_url};
 
 #[test]
 fn build_command_runs_init() {
