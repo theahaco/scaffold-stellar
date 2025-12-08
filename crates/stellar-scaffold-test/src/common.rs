@@ -205,6 +205,7 @@ impl TestEnv {
             self.cwd.join(".config").to_str().unwrap(),
         );
         stellar_scaffold.env("RUST_LOG", "trace");
+        stellar_scaffold.env("PATH", Self::stellar_path());
 
         if randomize_wasm {
             // Add a random meta key-value pair to make the WASM unique
@@ -263,17 +264,22 @@ impl TestEnv {
                 "XDG_CONFIG_HOME",
                 self.cwd.join(".config").to_str().unwrap(),
             );
+            stellar_scaffold.env("PATH", Self::stellar_path());
             stellar_scaffold.arg(cmd);
             stellar_scaffold
         }
     }
 
-    pub fn stellar(&self, cmd: &str) -> Command {
-        let mut stellar = Command::new("stellar");
+    pub fn stellar_path() -> String {
         let local_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/bin");
         let local_path_str = local_path.to_str().unwrap();
         let full_path = env!("PATH");
-        stellar.env("PATH", format!("{local_path_str}:{full_path}"));
+        format!("{local_path_str}:{full_path}")
+    }
+
+    pub fn stellar(&self, cmd: &str) -> Command {
+        let mut stellar = Command::new("stellar");
+        stellar.env("PATH", Self::stellar_path());
         stellar.env(
             "XDG_CONFIG_HOME",
             self.cwd.join(".config").to_str().unwrap(),
