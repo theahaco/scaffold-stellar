@@ -270,10 +270,12 @@ impl TestEnv {
 
     pub fn stellar(&self, cmd: &str) -> Command {
         let mut stellar = Command::new("stellar");
-        stellar.env(
-            "PATH",
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/bin"),
-        );
+        let local_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/bin")
+            .to_str()
+            .unwrap();
+        let full_path = env!("PATH");
+        stellar.env("PATH", format!("{local_path}:{full_path}"));
         stellar.env(
             "XDG_CONFIG_HOME",
             self.cwd.join(".config").to_str().unwrap(),
