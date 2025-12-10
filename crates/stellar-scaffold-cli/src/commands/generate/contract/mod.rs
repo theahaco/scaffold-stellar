@@ -1,11 +1,15 @@
+use cargo_toml::Dependency::Simple;
 use cargo_toml::Inheritable::{Inherited, Set};
-use cargo_toml::{Product, Publish};
+use cargo_toml::{Dependency, DepsSet, InheritedDependencyDetail, Product, Publish};
 use clap::Parser;
 use flate2::read::GzDecoder;
 use reqwest;
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::HashSet;
+use std::num::ParseIntError;
 use std::path::PathBuf;
+use std::process::Command;
 use std::{fs, path::Path};
 use stellar_cli::commands::global;
 use stellar_cli::print::Print;
@@ -74,6 +78,12 @@ pub enum Error {
     PathExists(String),
     #[error("Failed to update examples cache")]
     UpdateExamplesCache,
+    #[error("Failed to fetch workspace Cargo.toml")]
+    CargoError,
+    #[error(
+        "Dependency version mismatch for {0}: example version {1} doesn't match manifest version {2}"
+    )]
+    DependencyVersionMismatch(String, u32, u32),
 }
 
 impl Cmd {
@@ -141,10 +151,11 @@ impl Cmd {
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         // Read and update workspace Cargo.toml
-        let workspace_cargo_path = Path::new("Cargo.toml");
-        if workspace_cargo_path.exists() {
+        let workspace_cargo_path =
+            Self::get_workspace_root(&example_source_path.join("Cargo.toml"));
+        if let Ok(workspace_cargo_path) = workspace_cargo_path {
             Self::update_workspace_dependencies(
-                workspace_cargo_path,
+                &workspace_cargo_path,
                 &example_source_path,
                 &tag_name,
                 global_args,
@@ -163,7 +174,6 @@ impl Cmd {
         Ok(())
     }
 
-    #[allow(clippy::too_many_lines)] // TODO: refactor this function
     fn generate_soroban_example(
         &self,
         example_name: &str,
@@ -208,13 +218,39 @@ impl Cmd {
             }
         }
 
-        let workspace_cargo_path = Path::new("Cargo.toml");
-        if !workspace_cargo_path.exists() {
+        let example_toml_path = dest_path.join("Cargo.toml");
+
+        let workspace_cargo_path = Self::get_workspace_root(&example_toml_path);
+        if workspace_cargo_path.is_err() {
             printer.warnln("Warning: No workspace Cargo.toml found in current directory.");
             printer.println("You'll need to manually add contracts to your workspace.");
             return Ok(());
         }
+        let workspace_cargo_path = workspace_cargo_path.ok().unwrap();
 
+        self.write_new_manifest(
+            &workspace_cargo_path,
+            &example_toml_path,
+            example_name,
+            &printer,
+        )?;
+
+        printer.checkln(format!(
+            "Successfully downloaded example '{example_name}' to {}",
+            dest_path.display()
+        ));
+        printer
+            .infoln("You may need to modify your environments.toml to add constructor arguments!");
+        Ok(())
+    }
+
+    fn write_new_manifest(
+        &self,
+        workspace_cargo_path: &Path,
+        example_toml_path: &Path,
+        example_name: &str,
+        printer: &Print,
+    ) -> Result<(), Error> {
         let workspace_manifest = cargo_toml::Manifest::from_path(workspace_cargo_path)?;
         let workspace = workspace_manifest.workspace;
         if workspace.is_none() {
@@ -226,11 +262,10 @@ impl Cmd {
                 "[workspace.package]".to_string(),
             ));
         }
-        let workspace_package = workspace.package.unwrap();
+        let workspace_package = workspace.clone().package.unwrap();
 
         // Parse the Cargo.toml
-        let toml_path = dest_path.join("Cargo.toml");
-        let manifest = cargo_toml::Manifest::from_path(&toml_path)?;
+        let manifest = cargo_toml::Manifest::from_path(example_toml_path)?;
 
         let package = manifest
             .package
@@ -279,22 +314,111 @@ impl Cmd {
         };
 
         new_manifest.lib = Some(lib);
-        // TODO: check rust version
-        // TODO: inherit dependencies
-        new_manifest.dependencies = manifest.dependencies;
-        new_manifest.dev_dependencies = manifest.dev_dependencies;
+
+        // TODO: We might want to check rust version here as well, but it's not very trivial.
+        // Someone may use a nightly version and we always fail the check because technically the versions aren't the same
+        // We could just print a warning if there's a version mismatch
+
+        let mut dependencies = manifest.dependencies;
+        self.inherit_dependencies(printer, workspace.dependencies.clone(), &mut dependencies)?;
+        new_manifest.dependencies = dependencies;
+
+        let mut dev_dependencies = manifest.dev_dependencies;
+        self.inherit_dependencies(printer, workspace.dependencies, &mut dev_dependencies)?;
+        new_manifest.dev_dependencies = dev_dependencies;
+
         new_manifest.package = Some(new_package);
 
         let toml_string = toml::to_string_pretty(&new_manifest)?;
-        fs::write(toml_path, toml_string)?;
-
-        printer.checkln(format!(
-            "Successfully downloaded example '{example_name}' to {}",
-            dest_path.display()
-        ));
-        printer
-            .infoln("You may need to modify your environments.toml to add constructor arguments!");
+        fs::write(example_toml_path, toml_string)?;
         Ok(())
+    }
+
+    fn inherit_dependencies(
+        &self,
+        printer: &Print,
+        workspace_dependencies: DepsSet,
+        dependencies: &mut DepsSet,
+    ) -> Result<(), Error> {
+        let mut new_dependencies = vec![];
+        for (dependency_name, example_dep) in dependencies.iter() {
+            // This nested if statement gets the major dependency version from the workspace Cargo.toml
+            // and from the example Cargo.toml and checks that they are equal.
+            // If it fails, it simply prints a warning. But a mismatch is detected,
+            // it exits with an error (overridable by --force)
+            if let Some(manifest_dep) = workspace_dependencies.get(dependency_name) {
+                if let Some(example_major) = Self::try_get_major_version(example_dep)
+                    && let Some(manifest_major) = Self::try_get_major_version(manifest_dep)
+                {
+                    // Check major versions are equal
+                    if example_major != manifest_major {
+                        if self.force {
+                            printer.warnln(format!("Example {dependency_name} dependency version doesn't match manifest version (example might not compile)"));
+                        } else {
+                            return Err(Error::DependencyVersionMismatch(
+                                dependency_name.clone(),
+                                example_major,
+                                manifest_major,
+                            ));
+                        }
+                    }
+                } else {
+                    printer.warnln(format!("Workspace or an example Cargo.toml's {dependency_name} dependency version couldn't be parsed, skipping example version validation (if there's a mismatch it might not compile)"));
+                }
+
+                let mut optional = false;
+                let mut features = vec![];
+
+                // Copy details from the example dependency
+                if let Dependency::Detailed(detail) = example_dep {
+                    optional = detail.optional;
+                    features.clone_from(&detail.features);
+                }
+
+                new_dependencies.push((
+                    dependency_name.clone(),
+                    Dependency::Inherited(InheritedDependencyDetail {
+                        workspace: true,
+                        optional,
+                        features,
+                    }),
+                ));
+            } else {
+                // TODO: do we want to update workspace Cargo.toml to inherit this dependency?
+                printer.infoln(format!("Workspace Cargo.toml file doesn't define {dependency_name} dependency, it will not be inherited."));
+            }
+        }
+        for (dependency_name, dependency) in new_dependencies {
+            dependencies.insert(dependency_name.clone(), dependency);
+        }
+        Ok(())
+    }
+
+    fn try_get_major_version(dependency: &Dependency) -> Option<u32> {
+        match dependency {
+            Simple(version) => {
+                if let Some(Ok(example_version)) = Self::manifest_version_to_major(version) {
+                    return Some(example_version);
+                }
+            }
+            Dependency::Inherited(_) => {}
+            Dependency::Detailed(detail) => {
+                if let Some(version) = &detail.version
+                    && let Some(Ok(example_version)) = Self::manifest_version_to_major(version)
+                {
+                    return Some(example_version);
+                }
+            }
+        }
+        None
+    }
+
+    fn manifest_version_to_major(manifest_dep: &str) -> Option<Result<u32, ParseIntError>> {
+        manifest_dep
+            .split('.')
+            .next()
+            .map(|s| s.chars().filter(char::is_ascii_digit).collect::<String>())
+            .map(|s| s.parse::<u32>())
     }
 
     fn update_workspace_dependencies(
@@ -721,6 +845,28 @@ members = []
             .map_err(|e| Error::Io(std::io::Error::other(e)))?;
 
         Ok(())
+    }
+
+    fn get_workspace_root(path: &Path) -> Result<PathBuf, Error> {
+        let output = Command::new("cargo")
+            .arg("locate-project")
+            .arg("--workspace")
+            .arg("--message-format")
+            .arg("json")
+            .arg("--manifest-path")
+            .arg(path)
+            .output()?;
+
+        if !output.status.success() {
+            return Err(Error::CargoError);
+        }
+
+        let json_str = String::from_utf8(output.stdout).map_err(|_| Error::CargoError)?;
+        let parsed_json: Value = serde_json::from_str(&json_str).map_err(|_| Error::CargoError)?;
+
+        let workspace_root_str = parsed_json["root"].as_str().ok_or(Error::CargoError)?;
+
+        Ok(PathBuf::from(workspace_root_str))
     }
 }
 
