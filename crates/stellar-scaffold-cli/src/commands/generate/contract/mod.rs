@@ -503,7 +503,8 @@ members = []
     }
 
     fn filter_soroban_examples_repository(repo_cache_path: &Path) -> Result<(), Error> {
-        let ignore_list = HashSet::from(["workspace"]);
+        // Atomic multiswap imports atomic swap contract which is currently not supported
+        let ignore_list = HashSet::from(["workspace", "atomic_multiswap"]);
         let rd = repo_cache_path.read_dir()?;
         for path in rd {
             let path = path?.path();
