@@ -1,11 +1,16 @@
+use cargo_toml::Inheritable::{Inherited, Set};
+use cargo_toml::{Product, Publish};
 use clap::Parser;
 use flate2::read::GzDecoder;
 use reqwest;
 use serde::Deserialize;
+use std::collections::HashSet;
+use std::path::PathBuf;
 use std::{fs, path::Path};
 use stellar_cli::commands::global;
 use stellar_cli::print::Print;
 use tar::Archive;
+use toml::Value::Table;
 
 #[derive(Deserialize)]
 struct Release {
@@ -14,7 +19,7 @@ struct Release {
 
 #[derive(Parser, Debug)]
 pub struct Cmd {
-    /// Clone contract from `OpenZeppelin` examples
+    /// Clone contract from `OpenZeppelin` examples or `soroban-examples`
     #[arg(long, conflicts_with_all = ["ls", "from_wizard"])]
     pub from: Option<String>,
 
@@ -29,6 +34,10 @@ pub struct Cmd {
     /// Output directory for the generated contract (defaults to contracts/<example-name>)
     #[arg(short, long)]
     pub output: Option<String>,
+
+    /// Force add contract to existing project (ignoring some errors)
+    #[arg(long, conflicts_with_all = ["ls", "from_wizard"])]
+    pub force: bool,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -46,11 +55,25 @@ pub enum Error {
     #[error("Git command failed: {0}")]
     GitCloneFailed(String),
     #[error("Example '{0}' not found in OpenZeppelin stellar-contracts")]
-    ExampleNotFound(String),
+    OzExampleNotFound(String),
+    #[error("Example '{0}' not found in Stellar soroban-examples")]
+    StellarExampleNotFound(String),
+    #[error(
+        "Invalid Cargo toml file for soroban-example {0}: missing [package] or [dependencies] sections"
+    )]
+    InvalidCargoToml(String),
+    #[error(
+        "Invalid workspace toml file in the root of the current directory: missing {0} section"
+    )]
+    InvalidWorkspaceCargoToml(String),
     #[error("Failed to open browser: {0}")]
     BrowserFailed(String),
     #[error("No action specified. Use --from, --ls, or --from-wizard")]
     NoActionSpecified,
+    #[error("Destination path {0} already exists. Use --force to overwrite it")]
+    PathExists(String),
+    #[error("Failed to update examples cache")]
+    UpdateExamplesCache,
 }
 
 impl Cmd {
@@ -77,20 +100,45 @@ impl Cmd {
             .clone()
             .unwrap_or_else(|| format!("contracts/{example_name}"));
 
-        let repo_cache_path = self.ensure_cache_updated().await?;
+        let examples_info = self.ensure_cache_updated(&printer).await?;
 
+        if example_name.starts_with("oz-") {
+            let (_, example_name) = example_name.split_at(3);
+            Self::generate_oz_example(
+                example_name,
+                examples_info.oz_examples_path,
+                examples_info.oz_version_tag,
+                dest_path,
+                global_args,
+                printer,
+            )
+        } else {
+            self.generate_soroban_example(
+                example_name,
+                examples_info.soroban_examples_path,
+                dest_path,
+                printer,
+            )
+        }
+    }
+
+    fn generate_oz_example(
+        example_name: &str,
+        repo_cache_path: PathBuf,
+        tag_name: String,
+        dest_path: String,
+        global_args: &global::Args,
+        printer: Print,
+    ) -> Result<(), Error> {
         // Check if the example exists
         let example_source_path = repo_cache_path.join(format!("examples/{example_name}"));
         if !example_source_path.exists() {
-            return Err(Error::ExampleNotFound(example_name.to_string()));
+            return Err(Error::OzExampleNotFound(example_name.to_string()));
         }
 
         // Create destination and copy example contents
         fs::create_dir_all(&dest_path)?;
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
-
-        // Get the latest release tag we're using
-        let Release { tag_name } = Self::fetch_latest_release().await?;
 
         // Read and update workspace Cargo.toml
         let workspace_cargo_path = Path::new("Cargo.toml");
@@ -109,6 +157,140 @@ impl Cmd {
 
         printer.checkln(format!(
             "Successfully downloaded example '{example_name}' to {dest_path}"
+        ));
+        printer
+            .infoln("You may need to modify your environments.toml to add constructor arguments!");
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_lines)] // TODO: refactor this function
+    fn generate_soroban_example(
+        &self,
+        example_name: &str,
+        repo_cache_path: PathBuf,
+        dest_path: String,
+        printer: Print,
+    ) -> Result<(), Error> {
+        // Check if the example exists
+        let example_source_path = repo_cache_path.join(example_name);
+        if !example_source_path.exists() {
+            return Err(Error::StellarExampleNotFound(example_name.to_string()));
+        }
+        if Path::new(&dest_path).exists() {
+            if self.force {
+                printer.warnln(format!("Overwriting existing directory {dest_path}..."));
+                fs::remove_dir_all(&dest_path)?;
+            } else {
+                return Err(Error::PathExists(dest_path));
+            }
+        }
+
+        // Create destination and copy example contents
+        fs::create_dir_all(&dest_path)?;
+        Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
+
+        let dest_path = Path::new(&dest_path);
+
+        match fs::remove_file(dest_path.join("Cargo.lock")) {
+            Ok(..) => {}
+            Err(e) => {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    printer.errorln(format!("Failed to remove Cargo.lock: {e}"));
+                }
+            }
+        }
+        match fs::remove_file(dest_path.join("Makefile")) {
+            Ok(..) => {}
+            Err(e) => {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    printer.errorln(format!("Failed to remove Makefile: {e}"));
+                }
+            }
+        }
+
+        let workspace_cargo_path = Path::new("Cargo.toml");
+        if !workspace_cargo_path.exists() {
+            printer.warnln("Warning: No workspace Cargo.toml found in current directory.");
+            printer.println("You'll need to manually add contracts to your workspace.");
+            return Ok(());
+        }
+
+        let workspace_manifest = cargo_toml::Manifest::from_path(workspace_cargo_path)?;
+        let workspace = workspace_manifest.workspace;
+        if workspace.is_none() {
+            return Err(Error::InvalidWorkspaceCargoToml("[workspace]".to_string()));
+        }
+        let workspace = workspace.unwrap();
+        if workspace.package.is_none() {
+            return Err(Error::InvalidWorkspaceCargoToml(
+                "[workspace.package]".to_string(),
+            ));
+        }
+        let workspace_package = workspace.package.unwrap();
+
+        // Parse the Cargo.toml
+        let toml_path = dest_path.join("Cargo.toml");
+        let manifest = cargo_toml::Manifest::from_path(&toml_path)?;
+
+        let package = manifest
+            .package
+            .ok_or(Error::InvalidCargoToml(example_name.to_string()))?;
+        let name = package.name;
+
+        let mut new_manifest = cargo_toml::Manifest::from_str(
+            format!(
+                "[package]
+        name = \"{name}\""
+            )
+            .as_str(),
+        )?;
+
+        // Create new package metadata
+        let mut new_package = new_manifest.package.unwrap();
+        new_package.description = package.description;
+        if workspace_package.version.is_some() {
+            new_package.version = Inherited;
+        } else {
+            new_package.version = package.version;
+        }
+        if workspace_package.edition.is_none() {
+            return Err(Error::InvalidWorkspaceCargoToml(
+                "[workspace.package.edition]".to_string(),
+            ));
+        }
+        new_package.edition = Inherited;
+        if workspace_package.license.is_some() {
+            new_package.license = Some(Inherited);
+        }
+        if workspace_package.repository.is_some() {
+            new_package.repository = Some(Inherited);
+        }
+        new_package.publish = Set(Publish::Flag(false));
+
+        let mut table = toml::Table::new();
+        table.insert("cargo_inherit".to_string(), toml::Value::Boolean(true));
+        new_package.metadata = Some(Table(table));
+
+        // Copy over a lib section
+        let lib = Product {
+            crate_type: vec!["cdylib".to_string()],
+            doctest: false,
+            ..Default::default()
+        };
+
+        new_manifest.lib = Some(lib);
+        // TODO: check rust version
+        // TODO: inherit dependencies
+        new_manifest.dependencies = manifest.dependencies;
+        new_manifest.dev_dependencies = manifest.dev_dependencies;
+        new_manifest.package = Some(new_package);
+
+        let toml_string = toml::to_string_pretty(&new_manifest)?;
+        fs::write(toml_path, toml_string)?;
+
+        printer.checkln(format!(
+            "Successfully downloaded example '{example_name}' to {}",
+            dest_path.display()
         ));
         printer
             .infoln("You may need to modify your environments.toml to add constructor arguments!");
@@ -221,15 +403,8 @@ members = []
             .collect())
     }
 
-    async fn list_examples(&self, global_args: &global::Args) -> Result<(), Error> {
-        let printer = Print::new(global_args.quiet);
-
-        printer.infoln("Fetching available contract examples...");
-
-        let repo_cache_path = self.ensure_cache_updated().await?;
-        let examples_path = repo_cache_path.join("examples");
-
-        let mut examples: Vec<String> = if examples_path.exists() {
+    fn examples_list(examples_path: PathBuf) -> Result<Vec<String>, Error> {
+        let mut oz_examples: Vec<String> = if examples_path.exists() {
             fs::read_dir(examples_path)?
                 .filter_map(std::result::Result::ok)
                 .filter(|entry| entry.path().is_dir())
@@ -244,25 +419,58 @@ members = []
             Vec::new()
         };
 
-        examples.sort();
+        oz_examples.sort();
+
+        Ok(oz_examples)
+    }
+
+    async fn list_examples(&self, global_args: &global::Args) -> Result<(), Error> {
+        let printer = Print::new(global_args.quiet);
+
+        let examples_info = self.ensure_cache_updated(&printer).await?;
+
+        printer.infoln("Fetching available contract examples...");
+
+        let oz_examples_path = examples_info.oz_examples_path.join("examples");
+
+        let oz_examples = Self::examples_list(oz_examples_path)?;
+        let soroban_examples = Self::examples_list(examples_info.soroban_examples_path)?;
 
         printer.println("\nAvailable contract examples:");
         printer.println("────────────────────────────────");
+        printer.println("soroban-examples:");
 
-        for example in &examples {
+        for example in &soroban_examples {
             printer.println(format!("  📁 {example}"));
+        }
+
+        printer.println("────────────────────────────────");
+        printer.println("OpenZeppelin examples:");
+
+        for example in &oz_examples {
+            printer.println(format!("  📁 oz-{example}"));
         }
 
         printer.println("\nUsage:");
         printer.println("   stellar-scaffold contract generate --from <example-name>");
-        printer.println("   Example: stellar-scaffold contract generate --from nft-royalties");
+        printer.println(
+            "   Example (soroban-examples): stellar-scaffold contract generate --from hello-world",
+        );
+        printer.println("   Example (OpenZeppelin exampls): stellar-scaffold contract generate --from oz-nft-royalties");
 
         Ok(())
     }
 
-    async fn fetch_latest_release() -> Result<Release, Error> {
+    async fn fetch_latest_oz_release() -> Result<Release, Error> {
         Self::fetch_latest_release_from_url(
             "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/latest",
+        )
+        .await
+    }
+
+    async fn fetch_latest_soroban_examples_release() -> Result<Release, Error> {
+        Self::fetch_latest_release_from_url(
+            "https://api.github.com/repos/stellar/soroban-examples/releases/latest",
         )
         .await
     }
@@ -283,11 +491,63 @@ members = []
         Ok(release)
     }
 
-    async fn cache_repository(repo_cache_path: &Path, tag_name: &str) -> Result<(), Error> {
-        fs::create_dir_all(repo_cache_path)?;
+    async fn cache_oz_repository(repo_cache_path: &Path, tag_name: &str) -> Result<(), Error> {
+        Self::cache_repository("OpenZeppelin/stellar-contracts", repo_cache_path, tag_name).await
+    }
 
+    async fn cache_soroban_examples_repository(
+        repo_cache_path: &Path,
+        tag_name: &str,
+    ) -> Result<(), Error> {
+        Self::cache_repository("stellar/soroban-examples", repo_cache_path, tag_name).await
+    }
+
+    fn filter_soroban_examples_repository(repo_cache_path: &Path) -> Result<(), Error> {
+        let ignore_list = HashSet::from(["workspace"]);
+        let rd = repo_cache_path.read_dir()?;
+        for path in rd {
+            let path = path?.path();
+            if !path.is_dir() {
+                fs::remove_file(path)?;
+            } else if path.is_dir() {
+                // Remove ignored files and directories
+                if let Some(path_file_name) = path.file_name()
+                    && let Some(path_file_name) = path_file_name.to_str()
+                    && ignore_list.contains(path_file_name)
+                {
+                    fs::remove_dir_all(path)?;
+                    continue;
+                }
+
+                // Remove hidden directories (e.g. .git)
+                if path.starts_with(".") {
+                    fs::remove_dir_all(path)?;
+                } else {
+                    // Only allow simple examples for now (where Cargo.toml exists in the root)
+                    let rd = path.read_dir()?;
+                    let mut is_simple_example = false;
+                    for entry in rd {
+                        let entry = entry?;
+                        if entry.path().is_file() && entry.file_name() == "Cargo.toml" {
+                            is_simple_example = true;
+                        }
+                    }
+                    if !is_simple_example {
+                        fs::remove_dir_all(path)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn cache_repository(
+        repo: &str,
+        repo_cache_path: &Path,
+        tag_name: &str,
+    ) -> Result<(), Error> {
         // Download and extract the specific tag directly
-        Self::download_and_extract_tag(repo_cache_path, tag_name).await?;
+        Self::download_and_extract_tag(repo, repo_cache_path, tag_name).await?;
 
         if repo_cache_path.read_dir()?.next().is_none() {
             return Err(Error::GitCloneFailed(format!(
@@ -298,9 +558,12 @@ members = []
         Ok(())
     }
 
-    async fn download_and_extract_tag(dest_path: &Path, tag_name: &str) -> Result<(), Error> {
-        let url =
-            format!("https://github.com/OpenZeppelin/stellar-contracts/archive/{tag_name}.tar.gz",);
+    async fn download_and_extract_tag(
+        repo: &str,
+        dest_path: &Path,
+        tag_name: &str,
+    ) -> Result<(), Error> {
+        let url = format!("https://github.com/{repo}/archive/{tag_name}.tar.gz",);
 
         // Download the tar.gz file
         let client = reqwest::Client::new();
@@ -312,13 +575,15 @@ members = []
 
         if !response.status().is_success() {
             return Err(Error::GitCloneFailed(format!(
-                "Failed to download release {tag_name}: HTTP {}",
+                "Failed to download release {tag_name} from {url}: HTTP {}",
                 response.status()
             )));
         }
 
         // Get the response bytes
         let bytes = response.bytes().await?;
+
+        fs::create_dir_all(dest_path)?;
 
         // Extract the tar.gz in a blocking task to avoid blocking the async runtime
         let dest_path = dest_path.to_path_buf();
@@ -358,7 +623,7 @@ members = []
         Ok(())
     }
 
-    async fn ensure_cache_updated(&self) -> Result<std::path::PathBuf, Error> {
+    async fn ensure_cache_updated(&self, printer: &Print) -> Result<ExamplesInfo, Error> {
         let cache_dir = dirs::cache_dir().ok_or_else(|| {
             Error::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -366,16 +631,84 @@ members = []
             ))
         })?;
 
-        let base_cache_path = cache_dir.join("stellar-scaffold-cli/openzeppelin-stellar-contracts");
+        let cil_cache_path = cache_dir.join("stellar-scaffold-cli");
 
+        let oz_cache_path = cil_cache_path.join("openzeppelin-stellar-contracts");
+        let soroban_examples_cache_path = cil_cache_path.join("soroban_examples");
+
+        match Self::update_cache(&oz_cache_path, &soroban_examples_cache_path).await {
+            Ok(examples_info) => Ok(examples_info),
+            Err(e) => {
+                printer.warnln(format!("Failed to update examples cache: {e}"));
+                Self::get_latest_known_examples(&oz_cache_path, &soroban_examples_cache_path)
+            }
+        }
+    }
+
+    async fn update_cache(
+        oz_cache_path: &Path,
+        soroban_examples_cache_path: &Path,
+    ) -> Result<ExamplesInfo, Error> {
         // Get the latest release tag
-        let Release { tag_name } = Self::fetch_latest_release().await?;
-        let repo_cache_path = base_cache_path.join(&tag_name);
-        if !repo_cache_path.exists() {
-            Self::cache_repository(&repo_cache_path, &tag_name).await?;
+        let Release { tag_name } = Self::fetch_latest_oz_release().await?;
+        let oz_repo_cache_path = oz_cache_path.join(&tag_name);
+        if !oz_repo_cache_path.exists() {
+            Self::cache_oz_repository(&oz_repo_cache_path, &tag_name).await?;
+        }
+        let oz_tag_name = tag_name;
+
+        let Release { tag_name } = Self::fetch_latest_soroban_examples_release().await?;
+        let soroban_examples_cache_path = soroban_examples_cache_path.join(&tag_name);
+        if !soroban_examples_cache_path.exists() {
+            Self::cache_soroban_examples_repository(&soroban_examples_cache_path, &tag_name)
+                .await?;
+            Self::filter_soroban_examples_repository(&soroban_examples_cache_path)?;
         }
 
-        Ok(repo_cache_path)
+        Ok(ExamplesInfo {
+            oz_examples_path: oz_repo_cache_path,
+            oz_version_tag: oz_tag_name,
+            soroban_examples_path: soroban_examples_cache_path,
+            soroban_version_tag: tag_name,
+        })
+    }
+
+    fn get_latest_known_examples(
+        oz_cache_path: &Path,
+        soroban_examples_cache_path: &Path,
+    ) -> Result<ExamplesInfo, Error> {
+        if oz_cache_path.exists() && soroban_examples_cache_path.exists() {
+            let oz_tag_name = Self::get_latest_known_tag(oz_cache_path)?;
+            let soroban_examples_tag_name =
+                Self::get_latest_known_tag(soroban_examples_cache_path)?;
+
+            let oz_repo_cache_path = oz_cache_path.join(&oz_tag_name);
+            let soroban_examples_cache_path =
+                soroban_examples_cache_path.join(&soroban_examples_tag_name);
+
+            Ok(ExamplesInfo {
+                oz_examples_path: oz_repo_cache_path,
+                oz_version_tag: oz_tag_name,
+                soroban_examples_path: soroban_examples_cache_path,
+                soroban_version_tag: soroban_examples_tag_name,
+            })
+        } else {
+            Err(Error::UpdateExamplesCache)
+        }
+    }
+
+    fn get_latest_known_tag(example_cache_path: &Path) -> Result<String, Error> {
+        let rd = example_cache_path.read_dir()?;
+        let max_tag = rd
+            .filter_map(std::result::Result::ok)
+            .filter(|x| x.path().is_dir())
+            .filter_map(|x| x.file_name().to_str().map(std::string::ToString::to_string))
+            .max();
+        if let Some(tag) = max_tag {
+            Ok(tag)
+        } else {
+            Err(Error::UpdateExamplesCache)
+        }
     }
 
     fn copy_directory_contents(source: &Path, dest: &Path) -> Result<(), Error> {
@@ -388,6 +721,14 @@ members = []
 
         Ok(())
     }
+}
+
+struct ExamplesInfo {
+    oz_examples_path: PathBuf,
+    oz_version_tag: String,
+    soroban_examples_path: PathBuf,
+    #[allow(dead_code)] // TODO: remove if not used
+    soroban_version_tag: String,
 }
 
 fn open_wizard(global_args: &global::Args) -> Result<(), Error> {
@@ -428,6 +769,7 @@ mod tests {
             ls,
             from_wizard,
             output: None,
+            force: false,
         }
     }
 
