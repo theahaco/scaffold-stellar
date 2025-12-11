@@ -134,7 +134,34 @@ impl<'a> Registry<'a> {
         version: &Option<soroban_sdk::String>,
         bytes: &Bytes,
     ) {
-        self.mock_auth_for(author, "publish", (wasm_name, author, bytes, version));
+        self.mock_auths_for(
+            &[author, self.admin()],
+            "publish",
+            (wasm_name, author, bytes, version),
+        );
+    }
+
+    pub fn mock_auths_for(
+        &self,
+        addresses: &[&Address],
+        fn_name: &str,
+        args: impl TryIntoVal<Env, Vec<Val>>,
+    ) {
+        let env = self.env();
+        let invoke = MockAuthInvoke {
+            contract: &self.client.address,
+            fn_name,
+            args: unsafe { args.try_into_val(env).unwrap_unchecked() },
+            sub_invokes: &[],
+        };
+        let auths: std::vec::Vec<MockAuth<'_>> = addresses
+            .into_iter()
+            .map(|address| MockAuth {
+                address,
+                invoke: &invoke,
+            })
+            .collect();
+        env.mock_auths(&auths);
     }
 
     pub fn mock_auth_for(
@@ -164,8 +191,8 @@ impl<'a> Registry<'a> {
         let env = self.env();
         let client = self.client();
 
-        self.mock_auth_for(
-            author,
+        self.mock_auths_for(
+            &[author, self.admin()],
             "deploy",
             ContractArgs::deploy(
                 wasm_name,
@@ -194,13 +221,11 @@ impl<'a> Registry<'a> {
         args: &Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
         let client = self.client();
-
-        self.mock_auth_for(
-            author,
+        self.mock_auths_for(
+            &[author, self.admin()],
             "deploy",
             ContractArgs::deploy(wasm_name, version, name, author, args),
         );
-
         client.try_deploy(wasm_name, version, name, author, args)
     }
 
