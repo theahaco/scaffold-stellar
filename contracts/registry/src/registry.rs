@@ -40,8 +40,10 @@ pub trait Publishable {
 
 #[contracttrait]
 pub trait Deployable {
-    /// Deploys a new published contract returning the deployed contract's id.
+    /// Deploys a new published contract returning the deployed contract's id 
+    /// and claims the contract name.
     /// If no salt provided it will use the current sequence number.
+    /// If no deployer is provided it uses the contract as the deployer
     fn deploy(
         env: &Env,
         wasm_name: soroban_sdk::String,
@@ -49,12 +51,43 @@ pub trait Deployable {
         contract_name: soroban_sdk::String,
         admin: soroban_sdk::Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: Option<soroban_sdk::Address>,
     ) -> Result<soroban_sdk::Address, Error>;
+
+    
+    /// Claim name for an existing contract which wasn't deployed by the registry
+    fn claim_contract_id(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        contract_address: soroban_sdk::Address,
+        owner: soroban_sdk::Address,
+    ) -> Result<(), Error>;
 
     /// Look up the contract id of a deployed contract
     fn fetch_contract_id(
         env: &Env,
         contract_name: soroban_sdk::String,
+    ) -> Result<soroban_sdk::Address, Error>;
+
+    /// Look up the owner of a deployed contract
+    fn fetch_contract_owner(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+    ) -> Result<soroban_sdk::Address, Error>;
+
+    /// Deploys a new published contract returning the deployed contract's id 
+    /// but does not claim the contract name.
+    /// If name is provided it used as the salt.
+    /// Otherwise if no salt provided it will use a random one.
+    fn deploy_without_claiming(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+        contract_name: Option<soroban_sdk::String>,
+        salt: Option<soroban_sdk::BytesN<32>>,
+        admin: soroban_sdk::Address,
+        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: soroban_sdk::Address,
     ) -> Result<soroban_sdk::Address, Error>;
 }
 

@@ -1,11 +1,16 @@
 use soroban_sdk::{contractevent, Address, BytesN, String};
 
-// Define the event using the `contractevent` attribute macro.
+#[contractevent(topics = ["claim"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Claim {
+    pub contract_name: String,
+    pub contract_id: Address,
+}
+
 #[contractevent(topics = ["deploy"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Deploy {
     pub wasm_name: String,
-    pub contract_name: String,
     pub version: String,
     pub deployer: Address,
     pub contract_id: Address,

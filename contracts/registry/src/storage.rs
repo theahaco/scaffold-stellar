@@ -6,7 +6,7 @@ mod maps;
 
 pub struct Storage {
     pub wasm: maps::PersistentMap<String, PublishedWasm, WasmKey>,
-    pub contract: maps::PersistentMap<String, Address, ContractKey>,
+    pub contract: maps::PersistentMap<String, (Address, Address), ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
 }
 
@@ -41,6 +41,25 @@ pub struct HashKey;
 impl ToStorageKey<BytesN<32>> for HashKey {
     fn to_key(_: &Env, k: &BytesN<32>) -> Val {
         k.to_val()
+    }
+}
+
+
+#[derive(Clone)]
+pub struct ContractEntry {
+    pub owner: Address,
+    pub contract: Address,
+}
+
+impl From<(Address, Address)> for ContractEntry {
+    fn from((owner, contract): (Address, Address)) -> Self {
+        ContractEntry { owner, contract }
+    }
+}
+
+impl From<ContractEntry> for (Address, Address) {
+    fn from(ContractEntry { owner, contract }: ContractEntry) -> Self {
+        (owner, contract)
     }
 }
 

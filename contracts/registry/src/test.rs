@@ -86,8 +86,19 @@ fn hello_world_using_publish() {
     registry.publish();
     assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name);
-
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None);
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "deploy",
+        ContractArgs::deploy(
+            wasm_name,
+            &None,
+            name,
+            author,
+            &Some(vec![env, author.into_val(env)]),
+            &None,
+        ),
+    );
     assert_eq!(
         client
             .try_deploy(
@@ -95,7 +106,8 @@ fn hello_world_using_publish() {
                 &None,
                 name,
                 author,
-                &Some(vec![env, author.into_val(env)])
+                &Some(vec![env, author.into_val(env)]),
+                &None,
             )
             .unwrap_err(),
         Ok(Error::AlreadyDeployed)
@@ -131,7 +143,7 @@ fn hello_world_using_publish_hash() {
 
     assert_eq!(client.fetch_hash(wasm_name, &None), hw_hash(env));
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name);
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None);
 
     let hw_client = contracts::hw_client(env, &address);
     assert_eq!(
@@ -169,7 +181,7 @@ fn contract_admin_error_cases() {
     registry.mock_auths_for(
         &[other_address, registry.admin()],
         "deploy",
-        ContractArgs::deploy(wasm_name, &None, name, author, &Some(args.clone())),
+        ContractArgs::deploy(wasm_name, &None, name, author, &Some(args.clone()), &None),
     );
 
     assert_eq!(
@@ -178,12 +190,13 @@ fn contract_admin_error_cases() {
             &None,
             name,
             &other_address,
-            &Some(vec![env, other_address.into_val(env)]),
+            &Some(args),
+            &None,
         ),
         Err(Ok(Error::AdminOnly))
     );
 
-    registry.mock_auth_and_deploy(author, wasm_name, name);
+    registry.mock_auth_and_deploy(author, wasm_name, name, None);
 }
 
 #[test]
@@ -411,6 +424,7 @@ fn hello_world_deploy_v2() {
         hello_wasm,
         bob_contract,
         &Some(vec![env, bob.into_val(env)]),
+        None,
     );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client_v2(env, &address);
@@ -423,6 +437,7 @@ fn hello_world_deploy_v2() {
         hello_wasm,
         alice_contract,
         &Some(vec![env, alice.into_val(env)]),
+        None,
     );
     let address = res.unwrap().unwrap();
     let hw_client = contracts::hw_client(env, &address);
@@ -439,7 +454,8 @@ fn hello_world_deploy_v2() {
             sv0,
             hello_wasm,
             alice_contract,
-            &Some(vec![env, bob.into_val(env)])
+            &Some(vec![env, bob.into_val(env)]),
+            None,
         ),
         Err(Ok(Error::AlreadyDeployed))
     );
@@ -451,7 +467,8 @@ fn hello_world_deploy_v2() {
             sv0,
             hello_wasm,
             &to_string(env, "registry"),
-            &Some(vec![env, bob.into_val(env)])
+            &Some(vec![env, bob.into_val(env)]),
+            None
         ),
         Err(Ok(Error::AdminOnly))
     );

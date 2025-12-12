@@ -187,6 +187,7 @@ impl<'a> Registry<'a> {
         author: &Address,
         wasm_name: &soroban_sdk::String,
         name: &soroban_sdk::String,
+        deployer: Option<Address>
     ) -> Address {
         let env = self.env();
         let client = self.client();
@@ -200,6 +201,7 @@ impl<'a> Registry<'a> {
                 name,
                 author,
                 &Some(vec![env, author.into_val(env)]),
+                &deployer,
             ),
         );
 
@@ -209,6 +211,7 @@ impl<'a> Registry<'a> {
             name,
             author,
             &Some(vec![env, author.into_val(env)]),
+            &deployer,
         )
     }
 
@@ -219,14 +222,15 @@ impl<'a> Registry<'a> {
         wasm_name: &soroban_sdk::String,
         name: &soroban_sdk::String,
         args: &Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: Option<Address>,
     ) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
         let client = self.client();
         self.mock_auths_for(
             &[author, self.admin()],
             "deploy",
-            ContractArgs::deploy(wasm_name, version, name, author, args),
+            ContractArgs::deploy(wasm_name, version, name, author, args, &deployer),
         );
-        client.try_deploy(wasm_name, version, name, author, args)
+        client.try_deploy(wasm_name, version, name, author, args, &deployer)
     }
 
     pub fn mock_auth_and_try_upgrade(
