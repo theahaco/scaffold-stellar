@@ -1,11 +1,12 @@
 use crate::name;
+use crate::name::NormalizedName;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::{Administratable, AdministratableExtension};
 use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
-use crate::{error::Error, name::canonicalize, util::MAX_BUMP, Contract};
+use crate::{error::Error, util::MAX_BUMP, Contract};
 
 use super::Publishable;
 
@@ -42,19 +43,19 @@ impl HashMap {
 }
 
 impl Contract {
-    fn registry(env: &Env, name: &String) -> Result<PublishedWasm, Error> {
+    fn registry(env: &Env, name: &NormalizedName) -> Result<PublishedWasm, Error> {
         Storage::new(env)
             .wasm
             .get(name)
             .ok_or(Error::NoSuchWasmPublished)
     }
-    pub fn most_recent_version(env: &Env, name: &String) -> Result<String, Error> {
+    pub fn most_recent_version(env: &Env, name: &NormalizedName) -> Result<String, Error> {
         Ok(Self::registry(env, name)?.current_version)
     }
 
     pub(crate) fn get_version(
         env: &Env,
-        name: &String,
+        name: &NormalizedName,
         version: Option<String>,
     ) -> Result<String, Error> {
         version
@@ -64,7 +65,7 @@ impl Contract {
 
     pub(crate) fn get_hash(
         env: &Env,
-        name: &String,
+        name: &NormalizedName,
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
         Self::registry(env, name)?.get_hash(version)
@@ -72,7 +73,7 @@ impl Contract {
 
     pub(crate) fn get_hash_and_bump(
         env: &Env,
-        name: &String,
+        name: &NormalizedName,
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
         let registry = Self::registry(env, name)?;
@@ -84,7 +85,7 @@ impl Contract {
 
     pub(crate) fn set(
         env: &Env,
-        name: &String,
+        name: &NormalizedName,
         version: &String,
         hash: &BytesN<32>,
         author: Address,
@@ -100,11 +101,11 @@ impl Contract {
         wasm_map.set(name, &registry);
     }
 
-    pub(crate) fn author(env: &Env, name: &String) -> Option<Address> {
+    pub(crate) fn author(env: &Env, name: &NormalizedName) -> Option<Address> {
         Self::registry(env, name).ok().map(|wasm| wasm.author)
     }
 
-    fn validate_version(env: &Env, version: &String, wasm_name: &String) -> Result<(), Error> {
+    fn validate_version(env: &Env, version: &String, wasm_name: &NormalizedName) -> Result<(), Error> {
         let version = crate::version::parse(version)?;
         if let Ok(current_version) = Self::most_recent_version(env, wasm_name) {
             if version <= crate::version::parse(&current_version)? {
@@ -118,8 +119,7 @@ impl Contract {
 #[contractimpl]
 impl Publishable for Contract {
     fn current_version(env: &Env, wasm_name: String) -> Result<String, Error> {
-        let wasm_name = canonicalize(&wasm_name)?;
-        Self::most_recent_version(env, &wasm_name)
+        Self::most_recent_version(env, &wasm_name.try_into()?)
     }
 
     fn publish(
@@ -145,7 +145,7 @@ impl Publishable for Contract {
         }
         HashMap::add(env, &wasm_hash);
         author.require_auth();
-        let wasm_name = canonicalize(&wasm_name)?;
+        let wasm_name = wasm_name.try_into()?;
         if let Some(current) = Self::author(env, &wasm_name) {
             if author != current {
                 return Err(Error::WasmNameAlreadyTaken);
@@ -161,7 +161,7 @@ impl Publishable for Contract {
         Self::validate_version(env, &version, &wasm_name)?;
         Self::set(env, &wasm_name, &version, &wasm_hash, author.clone());
         crate::events::Publish {
-            wasm_name,
+            wasm_name: wasm_name.to_string(),
             wasm_hash,
             version,
             author,
@@ -175,7 +175,6 @@ impl Publishable for Contract {
         wasm_name: String,
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
-        let wasm_name = canonicalize(&wasm_name)?;
-        Self::get_hash(env, &wasm_name, version)
+        Self::get_hash(env, &wasm_name.try_into()?, version)
     }
 }

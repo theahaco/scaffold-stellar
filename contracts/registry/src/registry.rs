@@ -85,7 +85,6 @@ pub trait Deployable {
         version: Option<soroban_sdk::String>,
         contract_name: Option<soroban_sdk::String>,
         salt: Option<soroban_sdk::BytesN<32>>,
-        admin: soroban_sdk::Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: soroban_sdk::Address,
     ) -> Result<soroban_sdk::Address, Error>;

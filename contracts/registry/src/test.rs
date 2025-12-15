@@ -185,14 +185,7 @@ fn contract_admin_error_cases() {
     );
 
     assert_eq!(
-        client.try_deploy(
-            wasm_name,
-            &None,
-            name,
-            &other_address,
-            &Some(args),
-            &None,
-        ),
+        client.try_deploy(wasm_name, &None, name, &other_address, &Some(args), &None,),
         Err(Ok(Error::AdminOnly))
     );
 
@@ -548,4 +541,82 @@ fn hello_world_deploy_v2() {
         hw_client.hello(&to_string(env, "alice"))
     );
     assert_eq!(*alice, hw_client.admin());
+}
+
+#[test]
+fn hello_world_claim_with_publish() {
+    let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
+    let env = registry.env();
+    let name = &to_string(env, "hello_world");
+    let client = registry.client();
+
+    assert_eq!(
+        client.try_fetch_contract_id(name).unwrap_err(),
+        Ok(Error::NoSuchContractDeployed)
+    );
+
+    let author = registry.admin();
+    registry.mock_initial_publish();
+    registry.publish();
+
+    let wasm_hash = env.deployer().upload_contract_wasm(hw_bytes(env));
+    env.mock_all_auths();
+    let contract_id = env
+        .deployer()
+        .with_address(author.clone(), wasm_hash.clone())
+        .deploy_v2(wasm_hash, (author.clone(),));
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "claim_contract_id",
+        ContractArgs::claim_contract_id(name, &contract_id, author),
+    );
+    registry
+        .client()
+        .claim_contract_id(name, &contract_id, author);
+
+    assert_eq!(contract_id, registry.client().fetch_contract_id(name));
+}
+
+#[test]
+fn hello_world_deploy_without_claiming() {
+    let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
+    let env = registry.env();
+    let name = &to_string(env, "hello_world");
+    let client = registry.client();
+
+    assert_eq!(
+        client.try_fetch_contract_id(name).unwrap_err(),
+        Ok(Error::NoSuchContractDeployed)
+    );
+
+    let author = registry.admin();
+    
+
+    let wasm_hash = env.deployer().upload_contract_wasm(hw_bytes(env));
+    let version = &Some(to_string(&env, "0.0.0"));
+
+    registry.mock_auth_for_publish(name, author, &version, &hw_bytes(env));
+    registry
+        .client()
+        .publish(name, author, &hw_bytes(env), &version.clone().unwrap());
+    let hash = registry.client().fetch_hash(name, &None);
+    assert_eq!(hash, wasm_hash);
+
+    let args = vec![env, author.into_val(env)];
+    env.mock_all_auths();
+    let contract_id = registry.client().deploy_without_claiming(
+        name,
+        &None,
+        &None,
+        &Some(wasm_hash.clone()),
+        &Some(args),
+        author,
+    );
+
+    assert_eq!(
+        contract_id,
+        env.deployer()
+            .with_address(author.clone(), wasm_hash)
+            .deployed_address()
+    );
 }

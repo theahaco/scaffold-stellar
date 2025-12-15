@@ -1,12 +1,12 @@
-use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, String, Val};
+use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, Val};
 
-use crate::{registry::wasm::PublishedWasm, storage::maps::ToStorageKey};
+use crate::{name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey};
 
 mod maps;
 
 pub struct Storage {
-    pub wasm: maps::PersistentMap<String, PublishedWasm, WasmKey>,
-    pub contract: maps::PersistentMap<String, (Address, Address), ContractKey>,
+    pub wasm: maps::PersistentMap<NormalizedName, PublishedWasm, WasmKey>,
+    pub contract: maps::PersistentMap<NormalizedName, (Address, Address), ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
 }
 
@@ -22,17 +22,17 @@ impl Storage {
 
 pub struct ContractKey;
 
-impl ToStorageKey<String> for ContractKey {
-    fn to_key(env: &Env, k: &String) -> Val {
-        (symbol_short!("CR"), k.clone()).into_val(env)
+impl ToStorageKey<NormalizedName> for ContractKey {
+    fn to_key(env: &Env, k: &NormalizedName) -> Val {
+        (symbol_short!("CR"), k.to_string()).into_val(env)
     }
 }
 
 pub struct WasmKey;
 
-impl ToStorageKey<String> for WasmKey {
-    fn to_key(env: &Env, k: &String) -> Val {
-        (symbol_short!("WA"), k.clone()).into_val(env)
+impl ToStorageKey<NormalizedName> for WasmKey {
+    fn to_key(env: &Env, k: &NormalizedName) -> Val {
+        (symbol_short!("WA"), k.to_string()).into_val(env)
     }
 }
 
@@ -66,6 +66,8 @@ impl From<ContractEntry> for (Address, Address) {
 #[cfg(test)]
 mod tests {
     extern crate std;
+    use crate::name::NormalizedName;
+
     use super::{maps::ToStorageKey, ContractKey, HashKey, WasmKey};
     use rand::{rngs::SmallRng, RngCore, SeedableRng};
     use soroban_sdk::{xdr::ToXdr, Env, IntoVal, String};
@@ -90,11 +92,11 @@ mod tests {
                 hash_prefix, key_prefix,
                 "hash key will always have the same prefix as BytesN<32>"
             );
-            let s = String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
-            let wasm_key = WasmKey::to_key(env, &s).to_xdr(env);
+            let s = &String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
+            let wasm_key = WasmKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
             wasm_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
-            let contract_key = ContractKey::to_key(env, &s).to_xdr(env);
+            let contract_key = ContractKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
             contract_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
             hash = env.crypto().sha256(&hash.to_bytes().into_val(env));

@@ -1,5 +1,6 @@
 #![allow(non_upper_case_globals)]
 use crate::name;
+use crate::name::NormalizedName;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
 use crate::ContractArgs;
@@ -25,7 +26,7 @@ impl Contract {
     fn assert_no_contract_entry(
         env: &Env,
         contract_admin: &Address,
-        contract_name: &String,
+        contract_name: &NormalizedName,
     ) -> Result<(), Error> {
         if contract_name == &name::registry(env) {
             if &Self::admin(env) != contract_admin {
@@ -43,7 +44,7 @@ impl Contract {
             .ok_or(Error::AlreadyDeployed)
     }
 
-    fn get_contract_entry(env: &Env, contract_name: &String) -> Result<ContractEntry, Error> {
+    fn get_contract_entry(env: &Env, contract_name: &NormalizedName) -> Result<ContractEntry, Error> {
         Storage::new(env)
             .contract
             .get(contract_name)
@@ -51,21 +52,20 @@ impl Contract {
             .ok_or(Error::NoSuchContractDeployed)
     }
 
-    fn get_contract_id(env: &Env, contract_name: &String) -> Result<Address, Error> {
+    fn get_contract_id(env: &Env, contract_name: &NormalizedName) -> Result<Address, Error> {
         Ok(Self::get_contract_entry(env, contract_name)?.contract)
     }
 
-    fn get_contract_owner(env: &Env, contract_name: &String) -> Result<Address, Error> {
+    fn get_contract_owner(env: &Env, contract_name: &NormalizedName) -> Result<Address, Error> {
         Ok(Self::get_contract_entry(env, contract_name)?.owner)
     }
 
     fn upgrade(
         env: &Env,
-        name: &String,
+        name: &NormalizedName,
         wasm_hash: &BytesN<32>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
-        let name = canonicalize(name)?;
         let contract_id = Self::get_contract_id(env, &name)?;
         Storage::new(env)
             .contract
@@ -94,7 +94,7 @@ impl Contract {
 
     fn claim_contract_name(
         env: &Env,
-        contract_name: &String,
+        contract_name: &NormalizedName,
         contract_id: &Address,
         contract_admin: &Address,
     ) -> Result<(), Error> {
@@ -104,7 +104,7 @@ impl Contract {
             &(contract_admin.clone(), contract_id.clone()),
         );
         crate::events::Claim {
-            contract_name: contract_name.clone(),
+            contract_name: contract_name.to_string(),
             contract_id: contract_id.clone(),
         }
         .publish(env);
@@ -119,12 +119,13 @@ impl Contract {
         init: Option<Vec<Val>>,
         deployer: Address,
     ) -> Result<Address, Error> {
+        let wasm_name = wasm_name.try_into()?;
         let hash = Self::get_hash_and_bump(env, &wasm_name, version.clone())?;
         let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         let version = Self::get_version(env, &wasm_name, version)?;
         // Publish a deploy event
         crate::events::Deploy {
-            wasm_name: wasm_name.clone(),
+            wasm_name: wasm_name.to_string(),
             version,
             deployer,
             contract_id: contract_id.clone(),
@@ -145,12 +146,12 @@ impl Deployable for Contract {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: Option<Address>,
     ) -> Result<Address, Error> {
-        let contract_name = canonicalize(&contract_name)?;
+        let contract_name = contract_name.try_into()?;
         // signed by admin of contract
         Self::assert_no_contract_entry(env, &admin, &contract_name)?;
         admin.require_auth();
         let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
-        let salt: BytesN<32> = hash_string(env, &contract_name).into();
+        let salt: BytesN<32> = hash_string(env, contract_name.as_string()).into();
         let contract_id = Self::fetch_hash_and_deploy(
             env,
             &wasm_name,
@@ -168,19 +169,16 @@ impl Deployable for Contract {
         version: Option<soroban_sdk::String>,
         contract_name: Option<soroban_sdk::String>,
         salt: Option<soroban_sdk::BytesN<32>>,
-        admin: soroban_sdk::Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: soroban_sdk::Address,
     ) -> Result<Address, Error> {
         let contract_name = contract_name.as_ref().map(canonicalize).transpose()?;
-        // signed by admin of contract
-        admin.require_auth();
+        deployer.require_auth();
         let salt: BytesN<32> = contract_name
             .as_ref()
             .map(|name| hash_string(env, name).into())
             .or(salt)
             .unwrap_or_else(|| env.prng().gen());
-
         Self::fetch_hash_and_deploy(env, &wasm_name, version.clone(), salt, init, deployer)
     }
     fn claim_contract_id(
@@ -189,19 +187,17 @@ impl Deployable for Contract {
         contract_address: Address,
         owner: Address,
     ) -> Result<(), Error> {
-        let contract_name = canonicalize(&contract_name)?;
+        let contract_name = contract_name.try_into()?;
         owner.require_auth();
         Self::assert_no_contract_entry(env, &owner, &contract_name)?;
         Self::claim_contract_name(env, &contract_name, &contract_address, &owner)
     }
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
-        let contract_name = canonicalize(&contract_name)?;
-        Self::get_contract_id(env, &contract_name)
+        Self::get_contract_id(env, &contract_name.try_into()?)
     }
     fn fetch_contract_owner(env: &Env, contract_name: String) -> Result<Address, Error> {
-        let contract_name = canonicalize(&contract_name)?;
-        Self::get_contract_owner(env, &contract_name)
+        Self::get_contract_owner(env, &contract_name.try_into()?)
     }
 }
 
@@ -229,7 +225,7 @@ impl Redeployable for Contract {
         upgrade_fn: Option<soroban_sdk::Symbol>,
     ) -> Result<soroban_sdk::Address, Error> {
         let wasm_hash = env.deployer().upload_contract_wasm(wasm);
-        Self::upgrade(env, &name, &wasm_hash, upgrade_fn)
+        Self::upgrade(env, &name.try_into()?, &wasm_hash, upgrade_fn)
     }
 
     fn upgrade_contract(
@@ -239,7 +235,7 @@ impl Redeployable for Contract {
         version: Option<String>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
-        let wasm_hash = Self::get_hash_and_bump(env, &wasm_name, version)?;
-        Self::upgrade(env, &name, &wasm_hash, upgrade_fn)
+        let wasm_hash = Self::get_hash_and_bump(env, &wasm_name.try_into()?, version)?;
+        Self::upgrade(env, &name.try_into()?, &wasm_hash, upgrade_fn)
     }
 }
