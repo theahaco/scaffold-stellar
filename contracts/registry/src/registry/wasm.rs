@@ -3,7 +3,7 @@ use crate::name::NormalizedName;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::{Administratable, AdministratableExtension};
+use admin_sep::Administratable;
 use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
 use crate::{error::Error, util::MAX_BUMP, Contract};
@@ -105,7 +105,11 @@ impl Contract {
         Self::registry(env, name).ok().map(|wasm| wasm.author)
     }
 
-    fn validate_version(env: &Env, version: &String, wasm_name: &NormalizedName) -> Result<(), Error> {
+    fn validate_version(
+        env: &Env,
+        version: &String,
+        wasm_name: &NormalizedName,
+    ) -> Result<(), Error> {
         let version = crate::version::parse(version)?;
         if let Ok(current_version) = Self::most_recent_version(env, wasm_name) {
             if version <= crate::version::parse(&current_version)? {
@@ -150,9 +154,9 @@ impl Publishable for Contract {
             if author != current {
                 return Err(Error::WasmNameAlreadyTaken);
             }
-        } else {
-            // Admin must approve initial Publish
-            Self::require_admin(env);
+        } else if let Some(manager) = Storage::manager(env) {
+            // Manager must approve initial Publish
+            manager.require_auth();
         }
 
         if wasm_name == name::registry(env) && Self::admin(env) != author {

@@ -5,7 +5,7 @@ use crate::storage::ContractEntry;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::{Administratable, AdministratableExtension};
+use admin_sep::Administratable;
 use soroban_sdk::Val;
 use soroban_sdk::Vec;
 use soroban_sdk::{
@@ -32,19 +32,18 @@ impl Contract {
             if &Self::admin(env) != contract_admin {
                 return Err(Error::AdminOnly);
             }
-        } else {
+        } else if let Some(manager) = Storage::manager(env) {
             // Currently require admin for deploying
-            Self::require_admin(env);
+            manager.require_auth();
         }
-        Storage::new(env)
-            .contract
-            .get(contract_name)
-            .is_none()
-            .then_some(())
-            .ok_or(Error::AlreadyDeployed)
+        let is_available = !Storage::new(env).contract.has(contract_name);
+        is_available.then_some(()).ok_or(Error::AlreadyDeployed)
     }
 
-    fn get_contract_entry(env: &Env, contract_name: &NormalizedName) -> Result<ContractEntry, Error> {
+    fn get_contract_entry(
+        env: &Env,
+        contract_name: &NormalizedName,
+    ) -> Result<ContractEntry, Error> {
         Storage::new(env)
             .contract
             .get(contract_name)

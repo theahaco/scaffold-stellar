@@ -1,6 +1,9 @@
+use admin_sep::AdministratableExtension;
 use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, Val};
 
-use crate::{name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey};
+use crate::{
+    name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey, Contract,
+};
 
 mod maps;
 
@@ -17,6 +20,34 @@ impl Storage {
             contract: maps::PersistentMap::new(env),
             hash: maps::PersistentMap::new(env),
         }
+    }
+}
+
+pub struct Manager;
+
+impl ToStorageKey<()> for Manager {
+    fn to_key(_: &Env, _: &()) -> Val {
+        symbol_short!("MANAGER").to_val()
+    }
+}
+
+impl Storage {
+    pub fn manager(env: &Env) -> Option<Address> {
+        env.storage().instance().get(&Manager::to_key(env, &()))
+    }
+    pub fn set_manager_no_auth(env: &Env, new_manager: &Address) {
+        env.storage()
+            .instance()
+            .set(&Manager::to_key(env, &()), new_manager);
+    }
+    pub fn set_manager(env: &Env, new_manager: &Address) {
+        Contract::require_admin(env);
+        Self::set_manager_no_auth(env, new_manager);
+    }
+
+    pub fn remove_manager(env: &Env) {
+        Contract::require_admin(env);
+        env.storage().instance().remove(&Manager::to_key(env, &()))
     }
 }
 
@@ -43,7 +74,6 @@ impl ToStorageKey<BytesN<32>> for HashKey {
         k.to_val()
     }
 }
-
 
 #[derive(Clone)]
 pub struct ContractEntry {
@@ -93,10 +123,12 @@ mod tests {
                 "hash key will always have the same prefix as BytesN<32>"
             );
             let s = &String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
-            let wasm_key = WasmKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
+            let wasm_key =
+                WasmKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
             wasm_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
-            let contract_key = ContractKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
+            let contract_key =
+                ContractKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
             contract_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
             hash = env.crypto().sha256(&hash.to_bytes().into_val(env));

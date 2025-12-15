@@ -37,7 +37,13 @@ impl<'a> Registry<'a> {
         let e = Env::default();
         let env = &e.clone();
         let admin = Address::generate(env);
-        let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        let client = SorobanContractClient::new(
+            env,
+            &env.register(
+                Contract,
+                ContractArgs::__constructor(&admin, &Some(admin.clone())),
+            ),
+        );
         let bytes = Bytes::from_slice(env, registry::WASM);
         let hash = env.deployer().upload_contract_wasm(registry::WASM);
         Registry {
@@ -48,7 +54,7 @@ impl<'a> Registry<'a> {
             hash,
         }
     }
-
+    
     pub fn new_with_bytes(
         bytes: &dyn Fn(&Env) -> Bytes,
         hash: &dyn Fn(&Env) -> BytesN<32>,
@@ -56,7 +62,13 @@ impl<'a> Registry<'a> {
         let e = Env::default();
         let env = &e.clone();
         let admin = Address::generate(env);
-        let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        let client = SorobanContractClient::new(
+            env,
+            &env.register(
+                Contract,
+                ContractArgs::__constructor(&admin, &Some(admin.clone())),
+            ),
+        );
         Registry {
             env: env.clone(),
             client,
@@ -187,7 +199,7 @@ impl<'a> Registry<'a> {
         author: &Address,
         wasm_name: &soroban_sdk::String,
         name: &soroban_sdk::String,
-        deployer: Option<Address>
+        deployer: Option<Address>,
     ) -> Address {
         let env = self.env();
         let client = self.client();
