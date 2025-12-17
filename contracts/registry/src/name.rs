@@ -19,7 +19,11 @@ impl AsRef<String> for NormalizedName {
 }
 
 impl NormalizedName {
-    pub unsafe fn new(s: String) -> Self {
+    pub fn new(s: &String) -> Result<Self, Error> {
+        s.try_into()
+    }
+
+    pub unsafe fn new_unchecked(s: String) -> Self {
         NormalizedName(s)
     }
 
@@ -65,7 +69,7 @@ impl TryFromVal<Env, Val> for NormalizedName {
 
 #[must_use]
 pub fn registry(env: &Env) -> NormalizedName {
-    unsafe { NormalizedName::new(String::from_str(env, REGISTRY)) }
+    unsafe { NormalizedName::new_unchecked(String::from_str(env, REGISTRY)) }
 }
 
 /// Checks that the name is a valid crate name.

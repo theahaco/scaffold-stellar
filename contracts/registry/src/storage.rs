@@ -124,11 +124,11 @@ mod tests {
             );
             let s = &String::from_str(env, &std::format!("{}_hello", bytes.get(1).unwrap()));
             let wasm_key =
-                WasmKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
+                WasmKey::to_key(env, unsafe { &NormalizedName::new_unchecked(s.clone()) }).to_xdr(env);
             wasm_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
             let contract_key =
-                ContractKey::to_key(env, unsafe { &NormalizedName::new(s.clone()) }).to_xdr(env);
+                ContractKey::to_key(env, unsafe { &NormalizedName::new_unchecked(s.clone()) }).to_xdr(env);
             contract_key.slice(..4).copy_into_slice(&mut key_prefix);
             assert_eq!(vec_prefix, key_prefix);
             hash = env.crypto().sha256(&hash.to_bytes().into_val(env));
