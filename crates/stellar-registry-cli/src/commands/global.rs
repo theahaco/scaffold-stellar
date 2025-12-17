@@ -19,8 +19,8 @@ pub struct Args {
     )]
     pub registry_contract_id: Option<UnresolvedContract>,
     /// Whether to use the unverfied registry contract
-    #[arg(long, visible_alias = "use-unverifed-registry")]
-    pub use_unverifed: bool,
+    #[arg(long, visible_alias = "unverified")]
+    pub use_unverified: bool,
 
     #[command(flatten)]
     pub config: config::Args,
@@ -86,7 +86,7 @@ impl NetworkContract for Args {
         } = &self.get_network()?;
         self.registry_contract_id.as_ref().map_or_else(
             || {
-                Ok(if self.use_unverifed {
+                Ok(if self.use_unverified {
                     unverified_contract_id(network_passphrase)
                 } else {
                     verified_contract_id(network_passphrase)
