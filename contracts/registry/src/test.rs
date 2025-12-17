@@ -9,6 +9,7 @@ use crate::{
     ContractArgs,
 };
 use soroban_sdk::InvokeError::Abort;
+use soroban_sdk::TryIntoVal;
 use soroban_sdk::{
     self,
     testutils::{Address as _, BytesN as _},
@@ -85,8 +86,9 @@ fn hello_world_using_publish() {
     registry.mock_initial_publish();
     registry.publish();
     assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
+    let args = contracts::hello_world::Args::__constructor(author);
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None);
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None, &Some(args.clone()));
     registry.mock_auths_for(
         &[author, registry.admin()],
         "deploy",
@@ -95,7 +97,7 @@ fn hello_world_using_publish() {
             &None,
             name,
             author,
-            &Some(vec![env, author.into_val(env)]),
+            &Some(args.try_into_val(env).unwrap()),
             &None,
         ),
     );
@@ -106,7 +108,7 @@ fn hello_world_using_publish() {
                 &None,
                 name,
                 author,
-                &Some(vec![env, author.into_val(env)]),
+                &Some(args.try_into_val(env).unwrap()),
                 &None,
             )
             .unwrap_err(),
@@ -143,7 +145,13 @@ fn hello_world_using_publish_hash() {
 
     assert_eq!(client.fetch_hash(wasm_name, &None), hw_hash(env));
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None);
+    let address = registry.mock_auth_and_deploy(
+        author,
+        wasm_name,
+        name,
+        None,
+        &Some(contracts::hello_world::Args::__constructor(author)),
+    );
 
     let hw_client = contracts::hw_client(env, &address);
     assert_eq!(
@@ -189,7 +197,13 @@ fn contract_admin_error_cases() {
         Err(Ok(Error::AdminOnly))
     );
 
-    registry.mock_auth_and_deploy(author, wasm_name, name, None);
+    registry.mock_auth_and_deploy(
+        author,
+        wasm_name,
+        name,
+        None,
+        &Some(ContractArgs::__constructor(author, &Some(author.clone()))),
+    );
 }
 
 #[test]
@@ -590,7 +604,6 @@ fn hello_world_deploy_without_claiming() {
     );
 
     let author = registry.admin();
-    
 
     let wasm_hash = env.deployer().upload_contract_wasm(hw_bytes(env));
     let version = &Some(to_string(&env, "0.0.0"));

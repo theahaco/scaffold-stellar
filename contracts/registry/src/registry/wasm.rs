@@ -148,7 +148,6 @@ impl Publishable for Contract {
             return Err(Error::HashAlreadyPublished);
         }
         HashMap::add(env, &wasm_hash);
-        author.require_auth();
         let wasm_name = wasm_name.try_into()?;
         if let Some(current) = Self::author(env, &wasm_name) {
             if author != current {
@@ -157,6 +156,8 @@ impl Publishable for Contract {
         } else if let Some(manager) = Storage::manager(env) {
             // Manager must approve initial Publish
             manager.require_auth();
+        } else {
+            author.require_auth();
         }
 
         if wasm_name == name::registry(env) && Self::admin(env) != author {

@@ -77,7 +77,7 @@ impl Cmd {
                         .wasm_name
                         .is_none()
                         .then(|| format!("--wasm_name={val}")),
-                    "binver" => self.binver.is_none().then(|| format!("--version={val}")),
+                    "binver" => self.binver.is_none().then(|| format!("--version=\"{val}\"")),
                     _ => None,
                 }
             }
@@ -90,7 +90,7 @@ impl Cmd {
 
         // Add version if specified
         if let Some(ref version) = self.binver {
-            args.push(format!("--version={version}"));
+            args.push(format!("--version=\"{version}\""));
         }
 
         // Use the provided author or the source account

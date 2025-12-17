@@ -35,6 +35,8 @@ impl Contract {
         } else if let Some(manager) = Storage::manager(env) {
             // Currently require admin for deploying
             manager.require_auth();
+        } else {
+            contract_admin.require_auth();
         }
         let is_available = !Storage::new(env).contract.has(contract_name);
         is_available.then_some(()).ok_or(Error::AlreadyDeployed)
@@ -187,7 +189,6 @@ impl Deployable for Contract {
         owner: Address,
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
-        owner.require_auth();
         Self::assert_no_contract_entry(env, &owner, &contract_name)?;
         Self::claim_contract_name(env, &contract_name, &contract_address, &owner)
     }
