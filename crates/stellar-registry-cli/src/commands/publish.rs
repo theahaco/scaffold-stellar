@@ -9,7 +9,7 @@ use stellar_cli::{
     xdr::{ScMetaEntry, ScMetaV0},
 };
 
-use crate::contract::NetworkContract;
+use crate::{commands::global, contract::NetworkContract};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -32,7 +32,7 @@ pub struct Cmd {
     #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
     pub slop: Vec<OsString>,
     #[command(flatten)]
-    pub config: config::Args,
+   pub config: global::Args,
     #[command(flatten)]
     pub fee: fee::Args,
 }

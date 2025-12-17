@@ -5,6 +5,7 @@ use clap::{CommandFactory, FromArgMatches, Parser, command};
 pub mod create_alias;
 pub mod deploy;
 pub mod download;
+pub mod global;
 pub mod publish;
 pub mod upgrade;
 pub mod version;

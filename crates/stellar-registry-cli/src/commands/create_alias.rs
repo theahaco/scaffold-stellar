@@ -1,9 +1,12 @@
 use clap::Parser;
 
-use stellar_cli::{commands::contract::invoke, config};
+use stellar_cli::{commands::contract::invoke};
 use stellar_strkey::Contract;
 
-use crate::contract::{NetworkContract, REGISTRY_NAME};
+use crate::{
+    commands::global,
+    contract::{NetworkContract, REGISTRY_NAME},
+};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -11,7 +14,7 @@ pub struct Cmd {
     pub contract_name: String,
 
     #[command(flatten)]
-    pub config: config::Args,
+    pub config: global::Args,
 }
 
 #[derive(thiserror::Error, Debug)]

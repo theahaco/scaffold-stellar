@@ -9,10 +9,13 @@ use stellar_cli::{
     commands::contract::invoke,
     config, fee,
     utils::rpc::get_remote_wasm_from_hash,
-    xdr::{self, AccountId, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256},
+    xdr::{
+        self, AccountId, InvokeContractArgs, Limits, ScSpecEntry, ScString, ScVal, Uint256,
+        WriteXdr,
+    },
 };
 
-use crate::contract::NetworkContract;
+use crate::{commands::global, contract::NetworkContract};
 
 mod util;
 
@@ -31,7 +34,7 @@ pub struct Cmd {
     #[arg(long)]
     pub version: Option<String>,
     #[command(flatten)]
-    pub config: config::Args,
+    pub config: global::Args,
     #[command(flatten)]
     pub fee: fee::Args,
 }
@@ -150,6 +153,9 @@ impl Cmd {
             util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
         let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
         let mut txn = assembled.transaction().clone();
+        if self.fee.build_only {
+            println!("{}", txn.to_xdr_base64(Limits::none())?)
+        }
         txn = config
             .sign_soroban_authorizations(&txn, &signers)
             .await?

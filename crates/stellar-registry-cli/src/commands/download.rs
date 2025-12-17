@@ -1,9 +1,9 @@
 use std::{io::Write, path::PathBuf};
 
 use clap::Parser;
-use stellar_cli::{commands::contract::invoke, config, xdr};
+use stellar_cli::{commands::contract::invoke, xdr};
 
-use crate::contract::NetworkContract;
+use crate::{commands::global, contract::NetworkContract};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -19,7 +19,7 @@ pub struct Cmd {
     pub out_file: Option<PathBuf>,
 
     #[command(flatten)]
-    pub config: config::Args,
+    pub config: global::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
