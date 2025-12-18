@@ -350,6 +350,7 @@ impl Cmd {
                 out_dir: None,
                 print_commands_only: false,
                 meta: Vec::new(),
+                optimize: false,
             },
             list: false,
             build_clients: false, // Don't build clients, just contracts

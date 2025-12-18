@@ -6,6 +6,7 @@ use ed25519_dalek::SigningKey;
 use stellar_cli::{
     commands::contract::arg_parsing,
     config,
+    signer::Signer,
     xdr::{
         HostFunction, InvokeContractArgs, InvokeHostFunctionOp, Memo, MuxedAccount, Operation,
         OperationBody, Preconditions, ScSpecEntry, ScVal, SequenceNumber, Transaction,
@@ -15,11 +16,11 @@ use stellar_cli::{
 
 use super::Error;
 
-pub fn find_args_and_signers(
+pub async fn find_args_and_signers(
     contract_id: &stellar_strkey::Contract,
     mut slop: Vec<OsString>,
     spec_entries: &[ScSpecEntry],
-) -> Result<(ScVal, Vec<SigningKey>), Error> {
+) -> Result<(ScVal, Vec<Signer>), Error> {
     if !spec_entries.iter().any(is_constructor_fn) {
         return Ok((ScVal::Void, vec![]));
     }
@@ -29,7 +30,8 @@ pub fn find_args_and_signers(
         &slop,
         spec_entries,
         &config::Args::default(),
-    );
+    )
+    .await;
     match res {
         Ok((_, _, host_function_params, signers)) => {
             if host_function_params.function_name.len() > 64 {

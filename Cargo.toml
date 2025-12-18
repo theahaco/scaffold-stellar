@@ -1,66 +1,45 @@
 [workspace]
+resolver = "2"
+default-members = ["crates/*"]
 members = [
     "crates/*",
     "contracts/registry",
     "contracts/test/*",
     "crates/stellar-scaffold-test/fixtures/contracts/*",
 ]
-default-members = ["crates/*"]
-resolver = "2"
 
 [workspace.package]
 repository = "https://github.com/theahaco/scaffold-stellar"
 
 [workspace.dependencies]
-cargo_metadata = "0.18.1"
-clap = "4.1.8"
-sha2 = "0.10.8"
+stellar-scaffold-macro = { path = "crates/stellar-scaffold-macro" }
+stellar-registry = { path = "crates/stellar-registry" }
+
+stellar-cli = { version = "23.3.0", package = "soroban-cli", default-features = false  }
+soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
 soroban-spec-tools = "23.1.2"
-stellar-strkey = "0.0.13"
+
+soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0" }
 stellar-xdr = "23.0.0"
+stellar-strkey = "0.0.13"
+
+cargo_metadata = "0.18.1"
 thiserror = "2.0.17"
+sha2 = "0.10.8"
 
-[workspace.dependencies.admin-sep]
-git = "https://github.com/theahaco/admin-sep"
-rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0"
+clap = "4.1.8"
 
-[workspace.dependencies.soroban-rpc]
-version = "23.0.1"
-package = "stellar-rpc-client"
-
-[workspace.dependencies.soroban-sdk]
-git = "https://github.com/stellar/rs-soroban-sdk"
-rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8"
-
-[workspace.dependencies.stellar-cli]
-version = "23.1.4"
-package = "soroban-cli"
-default-features = false
-
-[workspace.dependencies.stellar-macros]
-git = "https://github.com/OpenZeppelin/stellar-contracts"
-tag = "v0.5.1"
-
-[workspace.dependencies.stellar-registry]
-path = "crates/stellar-registry"
-
-[workspace.dependencies.stellar-scaffold-macro]
-path = "crates/stellar-scaffold-macro"
-
-[workspace.dependencies.stellar-tokens]
-git = "https://github.com/OpenZeppelin/stellar-contracts"
-tag = "v0.5.1"
+[profile.contracts]
+inherits = "release"
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = true
+panic = "abort"
+codegen-units = 1
+lto = true
 
 [workspace.lints.clippy]
 result_large_err = "allow"
-
-[profile.contracts]
-opt-level = "z"
-debug = false
-lto = true
-debug-assertions = true
-codegen-units = 1
-panic = "abort"
-overflow-checks = true
-strip = true
-inherits = "release"
