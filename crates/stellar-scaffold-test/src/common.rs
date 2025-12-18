@@ -42,7 +42,10 @@ impl AssertExt for Assert {
 
 impl TestEnv {
     pub fn new(template: &str) -> Self {
-        let temp_dir = Arc::new(TempDir::new().unwrap());
+        let temp_dir = TempDir::new().unwrap();
+        // Uncomment the line below for persistent temp dirs
+        // let temp_dir = temp_dir.into_persistent();
+        let temp_dir = Arc::new(temp_dir);
         let cwd = temp_dir.path().join(template);
         Self::set_options(&temp_dir);
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
