@@ -1,6 +1,8 @@
 use cargo_toml::Dependency::Simple;
 use cargo_toml::Inheritable::{Inherited, Set};
-use cargo_toml::{Dependency, DepsSet, InheritedDependencyDetail, Product, Publish};
+use cargo_toml::{
+    Dependency, DepsSet, InheritedDependencyDetail, Manifest, Product, Publish, Workspace,
+};
 use clap::Parser;
 use flate2::read::GzDecoder;
 use reqwest;
@@ -246,13 +248,13 @@ impl Cmd {
 
     fn write_new_manifest(
         &self,
-        workspace_cargo_path: &Path,
+        workspace_toml_path: &Path,
         example_toml_path: &Path,
         example_name: &str,
         printer: &Print,
     ) -> Result<(), Error> {
-        let workspace_manifest = cargo_toml::Manifest::from_path(workspace_cargo_path)?;
-        let workspace = workspace_manifest.workspace;
+        let workspace_manifest = Manifest::from_path(workspace_toml_path)?;
+        let workspace = workspace_manifest.workspace.as_ref();
         if workspace.is_none() {
             return Err(Error::InvalidWorkspaceCargoToml("[workspace]".to_string()));
         }
@@ -320,24 +322,41 @@ impl Cmd {
         // We could just print a warning if there's a version mismatch
 
         let mut dependencies = manifest.dependencies;
-        self.inherit_dependencies(printer, workspace.dependencies.clone(), &mut dependencies)?;
+        let mut new_workspace_dependencies = workspace.dependencies.clone();
+        self.inherit_dependencies(printer, &mut new_workspace_dependencies, &mut dependencies)?;
         new_manifest.dependencies = dependencies;
 
         let mut dev_dependencies = manifest.dev_dependencies;
-        self.inherit_dependencies(printer, workspace.dependencies, &mut dev_dependencies)?;
+        self.inherit_dependencies(
+            printer,
+            &mut new_workspace_dependencies,
+            &mut dev_dependencies,
+        )?;
         new_manifest.dev_dependencies = dev_dependencies;
 
         new_manifest.package = Some(new_package);
 
         let toml_string = toml::to_string_pretty(&new_manifest)?;
         fs::write(example_toml_path, toml_string)?;
+
+        let new_workspace = Workspace {
+            dependencies: new_workspace_dependencies,
+            ..workspace.clone()
+        };
+        let new_workspace_manifest = Manifest {
+            workspace: Some(new_workspace),
+            ..workspace_manifest
+        };
+        let toml_string = toml::to_string_pretty(&new_workspace_manifest)?;
+        fs::write(workspace_toml_path, toml_string)?;
+
         Ok(())
     }
 
     fn inherit_dependencies(
         &self,
         printer: &Print,
-        workspace_dependencies: DepsSet,
+        workspace_dependencies: &mut DepsSet,
         dependencies: &mut DepsSet,
     ) -> Result<(), Error> {
         let mut new_dependencies = vec![];
@@ -365,28 +384,31 @@ impl Cmd {
                 } else {
                     printer.warnln(format!("Workspace or an example Cargo.toml's {dependency_name} dependency version couldn't be parsed, skipping example version validation (if there's a mismatch it might not compile)"));
                 }
-
-                let mut optional = false;
-                let mut features = vec![];
-
-                // Copy details from the example dependency
-                if let Dependency::Detailed(detail) = example_dep {
-                    optional = detail.optional;
-                    features.clone_from(&detail.features);
-                }
-
-                new_dependencies.push((
-                    dependency_name.clone(),
-                    Dependency::Inherited(InheritedDependencyDetail {
-                        workspace: true,
-                        optional,
-                        features,
-                    }),
-                ));
             } else {
-                // TODO: do we want to update workspace Cargo.toml to inherit this dependency?
-                printer.infoln(format!("Workspace Cargo.toml file doesn't define {dependency_name} dependency, it will not be inherited."));
+                workspace_dependencies.insert(dependency_name.clone(), example_dep.clone());
+
+                printer.infoln(format!(
+                    "Updating workspace Cargo.toml with new dependency {dependency_name}."
+                ));
             }
+
+            let mut optional = false;
+            let mut features = vec![];
+
+            // Copy details from the example dependency
+            if let Dependency::Detailed(detail) = example_dep {
+                optional = detail.optional;
+                features.clone_from(&detail.features);
+            }
+
+            new_dependencies.push((
+                dependency_name.clone(),
+                Dependency::Inherited(InheritedDependencyDetail {
+                    workspace: true,
+                    optional,
+                    features,
+                }),
+            ));
         }
         for (dependency_name, dependency) in new_dependencies {
             dependencies.insert(dependency_name.clone(), dependency);
