@@ -7,7 +7,8 @@ pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
     commands::contract::invoke,
-    config, fee,
+    config::{self, UnresolvedMuxedAccount},
+    fee,
     utils::rpc::get_remote_wasm_from_hash,
     xdr::{
         self, AccountId, InvokeContractArgs, Limits, ScSpecEntry, ScString, ScVal, Uint256,
@@ -34,6 +35,9 @@ pub struct Cmd {
     /// Version of the wasm to deploy
     #[arg(long)]
     pub version: Option<String>,
+    /// Optional deployer, by default is registry contract itself
+    #[arg(long)]
+    pub deployer: Option<UnresolvedMuxedAccount>,
     #[command(flatten)]
     pub config: global::Args,
     #[command(flatten)]
@@ -54,6 +58,8 @@ pub enum Error {
     SpecTools(#[from] soroban_spec_tools::Error),
     #[error(transparent)]
     Config(#[from] config::Error),
+    #[error(transparent)]
+    ConfigAddress(#[from] config::address::Error),
     #[error(transparent)]
     Xdr(#[from] xdr::Error),
     #[error("Cannot parse contract spec")]
@@ -130,7 +136,15 @@ impl Cmd {
         let spec_entries = self.spec_entries(&registry).await?;
         let (args, signers) =
             util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
-
+        let deployer = if let Some(deployer) = &self.deployer {
+            Some(
+                deployer
+                    .resolve_muxed_account(&self.config.locator, None)
+                    .await?,
+            )
+        } else {
+            None
+        };
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
             function_name: "deploy".try_into().unwrap(),
@@ -146,6 +160,9 @@ impl Cmd {
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
                 ))),
                 args,
+                deployer.map_or(ScVal::Void, |muxed_account| {
+                    ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
+                }),
             ]
             .try_into()
             .unwrap(),
