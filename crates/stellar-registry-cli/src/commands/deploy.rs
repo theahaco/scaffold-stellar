@@ -14,8 +14,9 @@ use stellar_cli::{
         WriteXdr,
     },
 };
+use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
-use crate::{commands::global, contract::NetworkContract};
+use crate::commands::global;
 
 mod util;
 
@@ -23,7 +24,7 @@ mod util;
 pub struct Cmd {
     /// Name of contract to be deployed
     #[arg(long, visible_alias = "deploy-as")]
-    pub contract_name: String,
+    pub contract_name: PrefixedName,
     /// Name of published contract to deploy from
     #[arg(long)]
     pub wasm_name: String,
@@ -84,7 +85,7 @@ impl Cmd {
             Ok(contract_id) => {
                 println!(
                     "Contract {} deployed successfully to {contract_id}",
-                    self.contract_name
+                    self.contract_name.name
                 );
                 Ok(())
             }
@@ -96,33 +97,37 @@ impl Cmd {
         }
     }
 
-    pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = self
-            .config
-            .view_registry(&["fetch_hash", "--wasm_name", &self.wasm_name])
+    pub async fn hash(&self, registry: &Registry) -> Result<xdr::Hash, Error> {
+        let res = registry
+            .as_contract()
+            .invoke_with_result(&["fetch_hash", "--wasm_name", &self.wasm_name], None, true)
             .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
 
-    pub async fn wasm(&self) -> Result<Vec<u8>, Error> {
-        Ok(get_remote_wasm_from_hash(&self.config.rpc_client()?, &self.hash().await?).await?)
+    pub async fn wasm(&self, registry: &Registry) -> Result<Vec<u8>, Error> {
+        Ok(
+            get_remote_wasm_from_hash(&self.config.rpc_client()?, &self.hash(registry).await?)
+                .await?,
+        )
     }
 
-    pub async fn spec_entries(&self) -> Result<Vec<ScSpecEntry>, Error> {
-        Ok(contract_spec::Spec::new(&self.wasm().await?)
+    pub async fn spec_entries(&self, registry: &Registry) -> Result<Vec<ScSpecEntry>, Error> {
+        Ok(contract_spec::Spec::new(&self.wasm(registry).await?)
             .map_err(|_| Error::CannotParseContractSpec)?
             .spec)
     }
 
     async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
+        let registry = self.contract_name.registry(&self.config).await?;
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
-        let contract_address = self.config.contract_sc_address()?;
-        let contract_id = &self.config.contract_id()?;
-        let spec_entries = self.spec_entries().await?;
+        let contract_address = registry.as_contract().sc_address();
+        let contract_id = &registry.as_contract().id();
+        let spec_entries = self.spec_entries(&registry).await?;
         let (args, signers) =
             util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
 
@@ -134,7 +139,9 @@ impl Cmd {
                 self.version.clone().map_or(ScVal::Void, |s| {
                     ScVal::String(ScString(s.try_into().unwrap()))
                 }),
-                ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(
+                    self.contract_name.name.clone().try_into().unwrap(),
+                )),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
                 ))),

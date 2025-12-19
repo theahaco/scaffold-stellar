@@ -1,13 +1,14 @@
 use clap::Parser;
 use stellar_cli::commands::contract::invoke;
+use stellar_registry_build::named_registry::PrefixedName;
 
-use crate::{commands::global, contract::NetworkContract};
+use crate::commands::global;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// Name of contract to upgrade
     #[arg(long)]
-    pub contract_name: String,
+    pub contract_name: PrefixedName,
 
     /// Name of published Wasm
     #[arg(long)]
@@ -39,8 +40,9 @@ pub enum Error {
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
-        let contract_name = &self.contract_name;
+        let contract_name = &self.contract_name.name;
         let wasm_name = &self.wasm_name;
+
         let mut slop = vec![
             "upgrade_contract",
             "--name",
@@ -52,15 +54,18 @@ impl Cmd {
             slop.push("--version");
             slop.push(version);
         }
-        self.config
-            .invoke_registry(&slop, None, false)
+        let registry = self.contract_name.registry(&self.config).await?;
+        registry
+            .as_contract()
+            .invoke_with_result(&slop, None, false)
             .await
             .map_err(Error::UpgradeFailed)?;
         let version = if let Some(version) = self.version.as_deref() {
             version.to_string()
         } else {
-            self.config
-                .view_registry(&["current_version", "--wasm-name", wasm_name])
+            registry
+                .as_contract()
+                .invoke_with_result(&["current_version", "--wasm-name", wasm_name], None, true)
                 .await?
         };
         println!("Upgraded {contract_name} to {wasm_name}@{version}",);

@@ -8,8 +8,9 @@ use stellar_cli::{
     config, fee,
     xdr::{ScMetaEntry, ScMetaV0},
 };
+use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
-use crate::{commands::global, contract::NetworkContract};
+use crate::commands::global;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -21,7 +22,7 @@ pub struct Cmd {
     pub author: Option<String>,
     /// Wasm name, if not provided, will try to extract from contract metadata
     #[arg(long)]
-    pub wasm_name: Option<String>,
+    pub wasm_name: Option<PrefixedName>,
     /// Wasm binary version, if not provided, will try to extract from contract metadata
     #[arg(long)]
     pub binver: Option<String>,
@@ -32,7 +33,7 @@ pub struct Cmd {
     #[arg(last = true, id = "CONTRACT_FN_AND_ARGS")]
     pub slop: Vec<OsString>,
     #[command(flatten)]
-   pub config: global::Args,
+    pub config: global::Args,
     #[command(flatten)]
     pub fee: fee::Args,
 }
@@ -77,15 +78,18 @@ impl Cmd {
                         .wasm_name
                         .is_none()
                         .then(|| format!("--wasm_name={val}")),
-                    "binver" => self.binver.is_none().then(|| format!("--version=\"{val}\"")),
+                    "binver" => self
+                        .binver
+                        .is_none()
+                        .then(|| format!("--version=\"{val}\"")),
                     _ => None,
                 }
             }
         }));
 
         // Add wasm_name if specified
-        if let Some(ref wasm_name) = self.wasm_name {
-            args.push(format!("--wasm_name={wasm_name}"));
+        if let Some(PrefixedName { name, .. }) = self.wasm_name.as_ref() {
+            args.push(format!("--wasm_name={name}"));
         }
 
         // Add version if specified
@@ -100,10 +104,14 @@ impl Cmd {
             self.config.source_account().await?.to_string()
         };
         args.push(format!("--author={author}"));
-
-        // Pass config and fee to invoke_registry
-        self.config
-            .invoke_registry(
+        let registry = Registry::new(
+            &self.config,
+            self.wasm_name.as_ref().and_then(|p| p.channel.as_deref()),
+        )
+        .await?;
+        registry
+            .as_contract()
+            .invoke(
                 &args.iter().map(String::as_str).collect::<Vec<_>>(),
                 Some(&self.fee),
                 self.dry_run,
