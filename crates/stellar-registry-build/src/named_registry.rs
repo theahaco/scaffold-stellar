@@ -15,7 +15,7 @@ impl FromStr for PrefixedName {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some((channel, name)) = s.split_once("/") {
+        if let Some((channel, name)) = s.split_once('/') {
             Ok(Self {
                 channel: Some(channel.to_owned()),
                 name: name.to_owned(),
@@ -37,6 +37,6 @@ impl From<PrefixedName> for ContractId {
 
 impl PrefixedName {
     pub async fn registry(&self, config: &config::Args) -> Result<Registry, invoke::Error> {
-        Registry::from_named_registry(config, &self).await
+        Registry::from_named_registry(config, self).await
     }
 }

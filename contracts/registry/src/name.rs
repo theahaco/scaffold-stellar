@@ -23,6 +23,9 @@ impl NormalizedName {
         s.try_into()
     }
 
+    /// Creates a new normalized name but skips normalizing it
+    /// # Safety
+    /// Ensure name is normalized
     pub unsafe fn new_unchecked(s: String) -> Self {
         NormalizedName(s)
     }

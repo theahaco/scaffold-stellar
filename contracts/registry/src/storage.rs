@@ -26,7 +26,7 @@ impl Storage {
 pub struct Manager;
 
 impl ToStorageKey<()> for Manager {
-    fn to_key(_: &Env, _: &()) -> Val {
+    fn to_key(_: &Env, (): &()) -> Val {
         symbol_short!("MANAGER").to_val()
     }
 }
@@ -47,7 +47,7 @@ impl Storage {
 
     pub fn remove_manager(env: &Env) {
         Contract::require_admin(env);
-        env.storage().instance().remove(&Manager::to_key(env, &()))
+        env.storage().instance().remove(&Manager::to_key(env, &()));
     }
 }
 

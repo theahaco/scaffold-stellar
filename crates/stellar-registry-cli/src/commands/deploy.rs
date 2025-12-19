@@ -178,7 +178,8 @@ impl Cmd {
         let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
         let mut txn = assembled.transaction().clone();
         if self.fee.build_only {
-            println!("{}", txn.to_xdr_base64(Limits::none())?)
+            println!("{}", txn.to_xdr_base64(Limits::none())?);
+            std::process::exit(1);
         }
         txn = config
             .sign_soroban_authorizations(&txn, &signers)
