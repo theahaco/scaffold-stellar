@@ -1,17 +1,15 @@
 use clap::Parser;
 
-use stellar_cli::{commands::contract::invoke};
+use stellar_cli::commands::contract::invoke;
+use stellar_registry_build::named_registry::PrefixedName;
 use stellar_strkey::Contract;
 
-use crate::{
-    commands::global,
-    contract::{NetworkContract, REGISTRY_NAME},
-};
+use crate::commands::global;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// Name of deployed contract
-    pub contract_name: String,
+    pub named_registry: PrefixedName,
 
     #[command(flatten)]
     pub config: global::Args,
@@ -31,34 +29,21 @@ pub enum Error {
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
-        // Use the network config from flattened args
-        let network = self.config.get_network()?;
-        let network_passphrase = network.network_passphrase;
-
+        let network_passphrase = self.config.get_network()?.network_passphrase;
+        let alias = &self.named_registry.name;
         let contract = self.get_contract_id().await?;
-        let alias = &self.contract_name;
-
         // Only create alias mapping, don't fetch wasm here
         self.config
             .locator
             .save_contract_id(&network_passphrase, &contract, alias)?;
-
         eprintln!("✅ Successfully registered contract alias '{alias}' for {contract}");
-
         Ok(())
     }
 
     pub async fn get_contract_id(&self) -> Result<Contract, Error> {
-        if self.contract_name == REGISTRY_NAME {
-            return Ok(self.config.contract_id()?);
-        }
-        // Prepare the arguments for invoke_registry
-        let slop = ["fetch_contract_id", "--contract-name", &self.contract_name];
-        // Use this.config directly
+        let registry = &self.named_registry.registry(&self.config).await?;
         eprintln!("Fetching contract ID via registry...");
-        let raw = self.config.view_registry(&slop).await?;
-        let contract_id = raw.trim_matches('"').to_string();
-        Ok(contract_id.parse()?)
+        Ok(registry.fetch_contract_id(&self.named_registry.name).await?)
     }
 }
 

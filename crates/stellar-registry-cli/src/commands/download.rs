@@ -2,13 +2,14 @@ use std::{io::Write, path::PathBuf};
 
 use clap::Parser;
 use stellar_cli::{commands::contract::invoke, xdr};
+use stellar_registry_build::named_registry::PrefixedName;
 
-use crate::{commands::global, contract::NetworkContract};
+use crate::commands::global;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// Name of published Wasm
-    pub wasm_name: String,
+    pub wasm_name: PrefixedName,
 
     /// Version of published Wasm, if not specified, the latest version will be fetched
     #[arg(long)]
@@ -56,12 +57,17 @@ impl Cmd {
     }
 
     pub async fn download_bytes(&self) -> Result<Vec<u8>, Error> {
-        let mut slop = vec!["fetch_hash", "--wasm-name", &self.wasm_name];
-        if let Some(version) = self.version.as_deref() {
+        let registry = &self.wasm_name.registry(&self.config).await?;
+        let mut slop = vec!["fetch_hash", "--wasm-name", &self.wasm_name.name];
+        let version = self.version.clone().map(|v| format!("\"{v}\""));
+        if let Some(version) = version.as_deref() {
             slop.push("--version");
             slop.push(version);
         }
-        let raw = self.config.view_registry(&slop).await?;
+        let raw = registry
+            .as_contract()
+            .invoke_with_result(&slop, None, true)
+            .await?;
         let bytes = stellar_cli::utils::rpc::get_remote_wasm_from_hash(
             &self.config.get_network()?.rpc_client()?,
             &raw.trim_matches('"').parse()?,
