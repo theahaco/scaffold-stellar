@@ -66,7 +66,8 @@ pub fn stellar_address() -> stellar_strkey::ed25519::PublicKey {
 }
 
 pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Contract {
-    PreHashContractID::new(stellar_address(), salt).id(&network_passphrase.parse().unwrap())
+    PreHashContractID::new(stellar_address(), salt)
+        .id(&stellar_build::Network::from_passphrase(network_passphrase).unwrap())
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {

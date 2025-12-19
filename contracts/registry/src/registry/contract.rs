@@ -67,10 +67,10 @@ impl Contract {
         wasm_hash: &BytesN<32>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
-        let contract_id = Self::get_contract_id(env, &name)?;
+        let contract_id = Self::get_contract_id(env, name)?;
         Storage::new(env)
             .contract
-            .extend_ttl(&name, MAX_BUMP, MAX_BUMP);
+            .extend_ttl(name, MAX_BUMP, MAX_BUMP);
         /*
         Here we check if the contract being upgrade supports the admin interface.
         If so we can fetch the admin and call require auth at the top level.
@@ -98,7 +98,7 @@ impl Contract {
         contract_name: &NormalizedName,
         contract_id: &Address,
         contract_admin: &Address,
-    ) -> Result<(), Error> {
+    ) {
         let mut contract_map = Storage::new(env).contract;
         contract_map.set(
             contract_name,
@@ -109,7 +109,6 @@ impl Contract {
             contract_id: contract_id.clone(),
         }
         .publish(env);
-        Ok(())
     }
 
     fn fetch_hash_and_deploy(
@@ -161,7 +160,7 @@ impl Deployable for Contract {
             init,
             deployer.clone(),
         )?;
-        Self::claim_contract_name(env, &contract_name, &contract_id, &admin)?;
+        Self::claim_contract_name(env, &contract_name, &contract_id, &admin);
         Ok(contract_id)
     }
     fn deploy_without_claiming(
@@ -190,7 +189,8 @@ impl Deployable for Contract {
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
         Self::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Self::claim_contract_name(env, &contract_name, &contract_address, &owner)
+        Self::claim_contract_name(env, &contract_name, &contract_address, &owner);
+        Ok(())
     }
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {

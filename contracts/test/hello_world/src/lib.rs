@@ -1,5 +1,5 @@
 #![no_std]
-use admin_sep::*;
+use admin_sep::{Administratable, Upgradable};
 use soroban_sdk::{Address, Env, String, contract, contractimpl};
 
 #[contract]

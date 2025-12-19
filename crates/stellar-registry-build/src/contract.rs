@@ -41,7 +41,7 @@ impl Contract {
         view_only: bool,
     ) -> invoke::Cmd {
         invoke::Cmd {
-            contract_id: UnresolvedContract::Resolved(self.id.clone()),
+            contract_id: UnresolvedContract::Resolved(self.id),
             slop: slop.iter().map(Into::into).collect(),
             config: self.config.clone(),
             fee: fee.cloned().unwrap_or_default(),
