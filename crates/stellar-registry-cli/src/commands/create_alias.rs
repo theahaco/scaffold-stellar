@@ -43,7 +43,9 @@ impl Cmd {
     pub async fn get_contract_id(&self) -> Result<Contract, Error> {
         let registry = &self.named_registry.registry(&self.config).await?;
         eprintln!("Fetching contract ID via registry...");
-        Ok(registry.fetch_contract_id(&self.named_registry.name).await?)
+        Ok(registry
+            .fetch_contract_id(&self.named_registry.name)
+            .await?)
     }
 }
 

@@ -40,7 +40,7 @@ pub trait Publishable {
 
 #[contracttrait]
 pub trait Deployable {
-    /// Deploys a new published contract returning the deployed contract's id 
+    /// Deploys a new published contract returning the deployed contract's id
     /// and claims the contract name.
     /// If no salt provided it will use the current sequence number.
     /// If no deployer is provided it uses the contract as the deployer
@@ -54,7 +54,6 @@ pub trait Deployable {
         deployer: Option<soroban_sdk::Address>,
     ) -> Result<soroban_sdk::Address, Error>;
 
-    
     /// Claim name for an existing contract which wasn't deployed by the registry
     fn claim_contract_id(
         env: &Env,
@@ -75,7 +74,7 @@ pub trait Deployable {
         contract_name: soroban_sdk::String,
     ) -> Result<soroban_sdk::Address, Error>;
 
-    /// Deploys a new published contract returning the deployed contract's id 
+    /// Deploys a new published contract returning the deployed contract's id
     /// but does not claim the contract name.
     /// If name is provided it used as the salt.
     /// Otherwise if no salt provided it will use a random one.

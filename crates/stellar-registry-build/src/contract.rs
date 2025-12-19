@@ -151,10 +151,7 @@ impl ContractId {
         })
     }
 
-    pub async fn resolve_contract(
-        &self,
-        config: &config::Args,
-    ) -> Result<Contract, invoke::Error> {
+    pub async fn resolve_contract(&self, config: &config::Args) -> Result<Contract, invoke::Error> {
         Ok(Contract::new(self.resolve_id(config).await?, config))
     }
 }
