@@ -15,8 +15,7 @@ impl Registry {
         Self::new(config, name.channel.as_deref()).await
     }
     pub async fn new(config: &config::Args, name: Option<&str>) -> Result<Self, invoke::Error> {
-        let id = verified_contract_id(&config.get_network()?.network_passphrase);
-        let contract = Registry(Contract::new(id, config));
+        let contract = Self::verified(config)?;
         if let Some(name) = name {
             if let Ok(contract_id) = name.parse() {
                 Ok(Registry(Contract::new(contract_id, config)))
@@ -46,6 +45,17 @@ impl Registry {
 
     pub fn as_contract(&self) -> &Contract {
         &self.0
+    }
+
+    pub fn verified(config: &config::Args) -> Result<Self, invoke::Error> {
+        Ok(Registry(Contract::new(
+            if let Ok(id) = std::env::var("STELLAR_REGISTRY_CONTRACT_ID") {
+                id.parse().expect("Malformed contract id")
+            } else {
+                verified_contract_id(&config.get_network()?.network_passphrase)
+            },
+            config,
+        )))
     }
 }
 

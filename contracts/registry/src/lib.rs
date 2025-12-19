@@ -19,9 +19,10 @@ use crate::storage::Storage;
 #[contract]
 pub struct Contract;
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl Administratable for Contract {}
-#[contractimpl]
+
+#[contractimpl(contracttrait)]
 impl Upgradable for Contract {}
 
 #[contractimpl]

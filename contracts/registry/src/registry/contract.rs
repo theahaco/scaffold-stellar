@@ -6,6 +6,7 @@ use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
+use soroban_sdk::log;
 use soroban_sdk::Val;
 use soroban_sdk::Vec;
 use soroban_sdk::{
@@ -23,19 +24,18 @@ use crate::{
 use super::{Deployable, Redeployable};
 
 impl Contract {
-    fn assert_no_contract_entry(
+    fn assert_no_contract_entry_and_authorize(
         env: &Env,
         contract_admin: &Address,
         contract_name: &NormalizedName,
     ) -> Result<(), Error> {
-        if contract_name == &name::registry(env) {
-            if &Self::admin(env) != contract_admin {
-                return Err(Error::AdminOnly);
-            }
-        } else if let Some(manager) = Storage::manager(env) {
+        if let Some(manager) = Storage::manager(env) {
             // Currently require admin for deploying
             manager.require_auth();
         } else {
+            if contract_name == &name::registry(env) && &Self::admin(env) != contract_admin {
+                return Err(Error::AdminOnly);
+            }
             contract_admin.require_auth();
         }
         let is_available = !Storage::new(env).contract.has(contract_name);
@@ -149,10 +149,10 @@ impl Deployable for Contract {
     ) -> Result<Address, Error> {
         let contract_name = contract_name.try_into()?;
         // signed by admin of contract
-        Self::assert_no_contract_entry(env, &admin, &contract_name)?;
-        admin.require_auth();
+        log!(env, "deploy", admin);
+        Self::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
         let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
-        let salt: BytesN<32> = hash_string(env, contract_name.as_string()).into();
+        let salt = hash_string(env, contract_name.as_string()).into();
         let contract_id = Self::fetch_hash_and_deploy(
             env,
             &wasm_name,
@@ -189,7 +189,7 @@ impl Deployable for Contract {
         owner: Address,
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
-        Self::assert_no_contract_entry(env, &owner, &contract_name)?;
+        Self::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
         Self::claim_contract_name(env, &contract_name, &contract_address, &owner)
     }
 
