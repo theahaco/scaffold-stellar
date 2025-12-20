@@ -43,15 +43,14 @@ build-cli-test-contracts:
     just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
-    cargo nextest run -E 'package(stellar-scaffold-cli)'
-    cargo nextest run -E 'package(stellar-registry-cli)'
-    cargo nextest run
+    cargo t -E 'package(stellar-scaffold-cli)'
+    cargo t
 
 test-integration: build-cli-test-contracts
-    cargo nextest run --verbose --package stellar-scaffold-cli --features integration-tests --no-run
-    cargo nextest run --verbose --package stellar-registry-cli --features integration-tests --no-run
-    cargo nextest run --package stellar-registry-cli --features integration-tests
-    cargo nextest run --package stellar-scaffold-cli --features integration-tests
+    cargo t --verbose --package stellar-scaffold-cli --features integration-tests --no-run
+    cargo t --verbose --package stellar-registry-cli --features integration-tests --no-run
+    cargo t --package stellar-registry-cli --features integration-tests
+    cargo t --package stellar-scaffold-cli --features integration-tests
 
 create: build
     rm -rf .soroban
