@@ -68,14 +68,6 @@ impl Contract {
             )
             .await?
             .to_envelope())
-
-        // {
-        //     TxnEnvelopeResult::TxnEnvelope(transaction_envelope) => {
-        //         println!("{}", transaction_envelope.to_xdr_base64(Limits::none())?);
-        //         std::process::exit(1);
-        //     }
-        //     TxnEnvelopeResult::Res(res) => Ok(res),
-        // }
     }
 
     pub async fn invoke_with_result(
@@ -93,14 +85,6 @@ impl Contract {
             .await?
             .into_result()
             .unwrap())
-
-        // {
-        //     TxnEnvelopeResult::TxnEnvelope(transaction_envelope) => {
-        //         println!("{}", transaction_envelope.to_xdr_base64(Limits::none())?);
-        //         std::process::exit(1);
-        //     }
-        //     TxnEnvelopeResult::Res(res) => Ok(res),
-        // }
     }
 
     pub(crate) fn config(&self) -> &config::Args {
@@ -189,41 +173,3 @@ impl PreHashContractID {
         stellar_strkey::Contract(Sha256::digest(preimage_xdr).into())
     }
 }
-
-// impl NetworkContract for Args {
-//     fn contract_id(
-//         &self,
-//         named_registry: PrefixedName,
-//     ) -> Result<stellar_strkey::Contract, config::Error> {
-//         let Network {
-//             network_passphrase, ..
-//         } = &self.get_network()?;
-//         self.registry_contract_id.as_ref().map_or_else(
-//             || {
-//                 Ok(if self.use_unverified {
-//                     unverified_contract_id(network_passphrase)
-//                 } else {
-//                     verified_contract_id(network_passphrase)
-//                 })
-//             },
-//             |contract| Ok(contract.resolve_contract_id(&self.locator, network_passphrase)?),
-//         )
-//     }
-
-//     async fn invoke_registry(
-//         &self,
-//         slop: &[&str],
-//         fee: Option<&stellar_cli::fee::Args>,
-//         view_only: bool,
-//     ) -> Result<String, invoke::Error> {
-//         self.invoke(slop, fee, view_only).await
-//     }
-
-//     async fn view_registry(&self, slop: &[&str]) -> Result<String, invoke::Error> {
-//         self.invoke(slop, None, true).await
-//     }
-
-//     fn rpc_client(&self) -> Result<rpc::Client, config::Error> {
-//         Ok(rpc::Client::new(&self.config.get_network()?.rpc_url)?)
-//     }
-// }
