@@ -4,8 +4,8 @@ use crate::{error::Error, Contract, ContractArgs, ContractClient as SorobanContr
 use soroban_sdk::{
     self,
     testutils::{Address as _, MockAuth, MockAuthInvoke},
-    vec, Address, Bytes, BytesN, ConversionError, Env, IntoVal, InvokeError, String, Symbol,
-    TryIntoVal, Val, Vec,
+    Address, Bytes, BytesN, ConversionError, Env, InvokeError, String, Symbol, TryIntoVal, Val,
+    Vec,
 };
 
 pub fn default_version(env: &Env) -> soroban_sdk::String {
@@ -37,7 +37,13 @@ impl<'a> Registry<'a> {
         let e = Env::default();
         let env = &e.clone();
         let admin = Address::generate(env);
-        let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        let client = SorobanContractClient::new(
+            env,
+            &env.register(
+                Contract,
+                ContractArgs::__constructor(&admin, &Some(admin.clone())),
+            ),
+        );
         let bytes = Bytes::from_slice(env, registry::WASM);
         let hash = env.deployer().upload_contract_wasm(registry::WASM);
         Registry {
@@ -56,7 +62,13 @@ impl<'a> Registry<'a> {
         let e = Env::default();
         let env = &e.clone();
         let admin = Address::generate(env);
-        let client = SorobanContractClient::new(env, &env.register(Contract, (admin.clone(),)));
+        let client = SorobanContractClient::new(
+            env,
+            &env.register(
+                Contract,
+                ContractArgs::__constructor(&admin, &Some(admin.clone())),
+            ),
+        );
         Registry {
             env: env.clone(),
             client,
@@ -134,7 +146,34 @@ impl<'a> Registry<'a> {
         version: &Option<soroban_sdk::String>,
         bytes: &Bytes,
     ) {
-        self.mock_auth_for(author, "publish", (wasm_name, author, bytes, version));
+        self.mock_auths_for(
+            &[author, self.admin()],
+            "publish",
+            (wasm_name, author, bytes, version),
+        );
+    }
+
+    pub fn mock_auths_for(
+        &self,
+        addresses: &[&Address],
+        fn_name: &str,
+        args: impl TryIntoVal<Env, Vec<Val>>,
+    ) {
+        let env = self.env();
+        let invoke = MockAuthInvoke {
+            contract: &self.client.address,
+            fn_name,
+            args: unsafe { args.try_into_val(env).unwrap_unchecked() },
+            sub_invokes: &[],
+        };
+        let auths: std::vec::Vec<MockAuth<'_>> = addresses
+            .into_iter()
+            .map(|address| MockAuth {
+                address,
+                invoke: &invoke,
+            })
+            .collect();
+        env.mock_auths(&auths);
     }
 
     pub fn mock_auth_for(
@@ -160,29 +199,21 @@ impl<'a> Registry<'a> {
         author: &Address,
         wasm_name: &soroban_sdk::String,
         name: &soroban_sdk::String,
+        deployer: Option<Address>,
+        init: &Option<impl TryIntoVal<Env, Vec<Val>>>,
     ) -> Address {
-        let env = self.env();
         let client = self.client();
-
-        self.mock_auth_for(
-            author,
+        let init = &init
+            .as_ref()
+            .map(|x| x.try_into_val(self.env()))
+            .transpose()
+            .unwrap();
+        self.mock_auths_for(
+            &[author, self.admin()],
             "deploy",
-            ContractArgs::deploy(
-                wasm_name,
-                &None,
-                name,
-                author,
-                &Some(vec![env, author.into_val(env)]),
-            ),
+            ContractArgs::deploy(wasm_name, &None, name, author, init, &deployer),
         );
-
-        client.deploy(
-            wasm_name,
-            &None,
-            name,
-            author,
-            &Some(vec![env, author.into_val(env)]),
-        )
+        client.deploy(wasm_name, &None, name, author, init, &deployer)
     }
 
     pub fn mock_auth_and_try_deploy(
@@ -192,16 +223,15 @@ impl<'a> Registry<'a> {
         wasm_name: &soroban_sdk::String,
         name: &soroban_sdk::String,
         args: &Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: Option<Address>,
     ) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {
         let client = self.client();
-
-        self.mock_auth_for(
-            author,
+        self.mock_auths_for(
+            &[author, self.admin()],
             "deploy",
-            ContractArgs::deploy(wasm_name, version, name, author, args),
+            ContractArgs::deploy(wasm_name, version, name, author, args, &deployer),
         );
-
-        client.try_deploy(wasm_name, version, name, author, args)
+        client.try_deploy(wasm_name, version, name, author, args, &deployer)
     }
 
     pub fn mock_auth_and_try_upgrade(

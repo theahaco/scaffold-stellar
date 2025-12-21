@@ -4,10 +4,10 @@
     clippy::missing_panics_doc
 )]
 pub mod commands;
-pub mod contract;
-
 pub use commands::Root;
 use std::path::Path;
+
+pub use commands::Error;
 
 pub fn parse_cmd<T>(s: &str) -> Result<T, clap::Error>
 where
