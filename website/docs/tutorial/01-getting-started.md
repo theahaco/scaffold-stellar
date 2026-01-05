@@ -129,10 +129,10 @@ In the top right corner, you'll see a big "Connect" button. Click it. You need t
 Once it's installed, we need to connect it to our local network running in Docker. Open the extension, click the menu, and navigate to "Settings," then "Network." Click the "Add custom network" button and enter the following info:
 
 - **Name**: `Local`
-- **HORIZON RPC URL**: `http:localhost:8000`
-- **SOROBAN RPC URL**: `http:localhost:8000/rpc`
+- **HORIZON RPC URL**: `http://localhost:8000`
+- **SOROBAN RPC URL**: `http://localhost:8000/rpc`
 - **Passphrase**: `Standalone Network ; February 2017`
-- **Friendbot URL**: `http:localhost:8000/friendbot`
+- **Friendbot URL**: `http://localhost:8000/friendbot`
 - Check **Allow connecting to non-HTTPS networks**
 
 > ℹ️ The 🌐 icon in the extension lets you switch back and forth between this Local network as well as test and main net.
