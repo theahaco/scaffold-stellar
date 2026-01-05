@@ -71,6 +71,7 @@ impl Deployable for Contract {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     ) -> Result<Address, Error> {
         let contract_name = canonicalize(&contract_name)?;
+        let wasm_name = canonicalize(&wasm_name)?;
         let mut contract_map = Storage::new(env).contract;
         if contract_map.has(&contract_name) {
             return Err(Error::AlreadyDeployed);
