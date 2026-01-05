@@ -121,7 +121,7 @@ impl Cmd {
         let contract_id = &self.config.contract_id()?;
         let spec_entries = self.spec_entries().await?;
         let (args, signers) =
-            util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries)?;
+            util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
 
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
@@ -148,14 +148,14 @@ impl Cmd {
         let sequence: i64 = account_details.seq_num.into();
         let tx =
             util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
-        let assembled = simulate_and_assemble_transaction(&client, &tx).await?;
+        let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
         let mut txn = assembled.transaction().clone();
         txn = config
             .sign_soroban_authorizations(&txn, &signers)
             .await?
             .unwrap_or(txn);
         let return_value = client
-            .send_transaction_polling(&config.sign(txn).await?)
+            .send_transaction_polling(&config.sign(txn, false).await?)
             .await?
             .return_value()?;
         match return_value {
