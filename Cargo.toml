@@ -17,7 +17,7 @@ stellar-registry = { path = "crates/stellar-registry" }
 
 stellar-cli = { version = "23.3.0", package = "soroban-cli", default-features = false  }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
-soroban-spec-tools = "23.1.2"
+soroban-spec-tools = "23.4.0"
 
 soroban-sdk = { git = "https://github.com/stellar/rs-soroban-sdk", rev = "99134976ee1d31fa1fa5db8a63bd1ea66b8abda8" }
 admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "0a33529733d790aa6806e8210c30eba2a2b7dfb0" }
@@ -28,7 +28,7 @@ cargo_metadata = "0.18.1"
 thiserror = "2.0.17"
 sha2 = "0.10.8"
 
-clap = "4.1.8"
+clap = "4.5.54"
 
 [profile.contracts]
 inherits = "release"
