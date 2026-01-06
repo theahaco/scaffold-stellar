@@ -225,13 +225,15 @@ In this case `#[contract]` is an [attribute macro](https://doc.rust-lang.org/ref
 Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-structs.html) (a "structure" to hold values) and applying attributes of a Stellar smart contract. A `struct` also allows defining methods. In this case the structs holds no values but we will still define methods on it.
 
 ```rust
-const THE_NUMBER: Symbol = symbol_short!("n");
+const THE_NUMBER: &Symbol = &symbol_short!("n");
 pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 ```
 
 Now the most important part of our contract: the number! This line creates a key for storing and retrieving contract data. A `Symbol` is a short string type (max 32 characters) that is more optimized for use on the blockchain. And we're using the `symbol_short` macro for an even smaller key (max 9 characters). As a contract author, you want to use tricks like this to lower costs as much as you can.
 
-The second line creates a key for storing the address of this contract's administrator. It's almost the same code as storing our number, but uses the `&` which is called a [reference](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html). Instead of the value, it's a pointer to where the value lives.
+The second line creates a key for storing the address of this contract's administrator. 
+
+Both of these keys use the `&` which is called a [reference](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html). Instead of the value, it's a pointer to where the value lives.
 
 ```rust
 #[contractimpl]
@@ -241,7 +243,7 @@ impl GuessTheNumber {
 Let's `impl`ement our contract's functionality.
 
 ```rust
-pub fn __constructor(env: &Env, admin: &Address) {
+pub fn __constructor(env: &Env, admin: Address) {
     Self::set_admin(env, admin);
 }
 ```
@@ -253,20 +255,20 @@ A contract's `constructor` runs when it is deployed. In this case, we're saying 
 pub fn reset(env: &Env) {
     Self::require_admin(env);
     let new_number: u64 = env.prng().gen_range(1..=10);
-    env.storage().instance().set(&THE_NUMBER, &new_number);
+    env.storage().instance().set(THE_NUMBER, &new_number);
 }
 ```
 
 And here is the reset function. Note that we use `require_admin()` here so only you can run this function. It generates a random number between 1 and 10 and uses our key to store it.
 
 ```rust
-/// Guess a number from 1 to 10
+/// Guess a number between 1 and 10
 pub fn guess(env: &Env, a_number: u64) -> bool {
     a_number
         == env
             .storage()
             .instance()
-            .get::<_, u64>(&THE_NUMBER)
+            .get::<_, u64>(THE_NUMBER)
             .expect("no number set")
 }
 ```
@@ -277,7 +279,7 @@ Finally, we add the `guess` function which accepts a number as the guess and com
 mod test;
 ```
 
-This last line includes the test module into this file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want by defining the module. Note you also need to tell the compile that this is a test module, which is at the top of our file `#![cfg(test)]`.
+This line makes sure to include the test module in the file. It's handy to write unit tests for our code in a separate file (`contracts/guess-the-number/src/test.rs`), but you could also write them inline if you want by defining the module. Note you also need to tell the compile that this is a test module, which is at the top of our file `#![cfg(test)]`.
 
 ```rust
 #[cfg(test)]
@@ -297,7 +299,7 @@ The docstring for our `guess` function says to guess a number "between 1 and 10"
   pub fn guess(env: &Env, a_number: u64) -> bool {
 ```
 
-Save the file and watch your terminal output. The contracts get rebuilt, redeployed, and clients for them get regenerated for your frontend. Then Vite hot-reloads your app and you should see the change in the contract explorer in your browser.
+Save the file and watch your terminal output. The contracts get rebuilt, redeployed, and clients for them get regenerated for your frontend. Then Vite hot-reloads your app and you should see the change in the Debugger in your browser.
 
 Tada!
 
@@ -323,11 +325,14 @@ export const GuessTheNumber = () => {
 We're storing some state for tracking the input's value and whether the guess was successful or not. And we're also using our custom `useWallet` hook to connect to the user's wallet and get their address. This is how we know whether or not you connected to Freighter.
 
 ```ts
-const submitGuess = async () => {
-  if (!theGuess) return;
-  const { result } = await game.guess({ a_number: BigInt(theGuess) });
-  setGuessedIt(result);
-};
+  const submitGuess = async () => {
+    if (!theGuess || !address) return;
+    const { result } = await game.guess({
+      a_number: BigInt(theGuess),
+      guesser: address,
+    });
+    setGuessedIt(result);
+  };
 ```
 
 Next, we create a function to handle the user's submission. Hey! Look at that! It's one of our contract's methods right in our TypeScript code: `game.guess()`. Let's follow that import and look at `src/contracts/guess_the_number.ts`.
