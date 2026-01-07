@@ -113,6 +113,9 @@ impl RegistryTest {
             "--",
             "--admin",
             "alice",
+            "--manager",
+            "alice",
+            "--is-verified",
         ];
         let contract_id =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
