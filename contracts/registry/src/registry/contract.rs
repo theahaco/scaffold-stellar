@@ -38,7 +38,6 @@ impl Contract {
         Storage::new(env)
             .contract
             .get(contract_name)
-            .map(Into::into)
             .ok_or(Error::NoSuchContractDeployed)
     }
 
@@ -82,7 +81,7 @@ impl Contract {
         Ok(contract_id)
     }
 
-    pub(crate) fn claim_contract_name(
+    pub(crate) fn register_contract_name(
         env: &Env,
         contract_name: &NormalizedName,
         contract_id: &Address,
@@ -91,9 +90,12 @@ impl Contract {
         let mut contract_map = Storage::new(env).contract;
         contract_map.set(
             contract_name,
-            &(contract_admin.clone(), contract_id.clone()),
+            &ContractEntry {
+                owner: contract_admin.clone(),
+                contract: contract_id.clone(),
+            },
         );
-        crate::events::Claim {
+        crate::events::Register {
             contract_name: contract_name.to_string(),
             contract_id: contract_id.clone(),
         }
@@ -145,32 +147,24 @@ impl Deployable for Contract {
             init,
             deployer.clone(),
         )?;
-        Self::claim_contract_name(env, &contract_name, &contract_id, &admin);
+        Self::register_contract_name(env, &contract_name, &contract_id, &admin);
         Ok(contract_id)
     }
 
-    fn deploy_without_claiming(
+    fn deploy_unnammed(
         env: &Env,
         wasm_name: soroban_sdk::String,
         version: Option<soroban_sdk::String>,
-        contract_name: Option<soroban_sdk::String>,
         salt: Option<soroban_sdk::BytesN<32>>,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: soroban_sdk::Address,
     ) -> Result<Address, Error> {
         deployer.require_auth();
-        let name_hash = contract_name
-            .map(TryInto::<NormalizedName>::try_into)
-            .transpose()?
-            .as_ref()
-            .map(NormalizedName::hash);
-        let salt: BytesN<32> = salt
-            .or_else(|| name_hash.map(Into::into))
-            .unwrap_or_else(|| env.prng().gen());
+        let salt: BytesN<32> = salt.unwrap_or_else(|| env.prng().gen());
         Self::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
     }
 
-    fn claim_contract_id(
+    fn register_contract(
         env: &Env,
         contract_name: String,
         contract_address: Address,
@@ -178,13 +172,14 @@ impl Deployable for Contract {
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
         Self::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Self::claim_contract_name(env, &contract_name, &contract_address, &owner);
+        Self::register_contract_name(env, &contract_name, &contract_address, &owner);
         Ok(())
     }
 
     fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
         Self::get_contract_id(env, &contract_name.try_into()?)
     }
+
     fn fetch_contract_owner(env: &Env, contract_name: String) -> Result<Address, Error> {
         Self::get_contract_owner(env, &contract_name.try_into()?)
     }

@@ -1,5 +1,5 @@
 use admin_sep::AdministratableExtension;
-use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, Val};
+use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, TryFromVal, Val};
 
 use crate::{
     name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey, Contract,
@@ -9,7 +9,7 @@ mod maps;
 
 pub struct Storage {
     pub wasm: maps::PersistentMap<NormalizedName, PublishedWasm, WasmKey>,
-    pub contract: maps::PersistentMap<NormalizedName, (Address, Address), ContractKey>,
+    pub contract: maps::PersistentMap<NormalizedName, ContractEntry, ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
 }
 
@@ -79,6 +79,21 @@ impl ToStorageKey<BytesN<32>> for HashKey {
 pub struct ContractEntry {
     pub owner: Address,
     pub contract: Address,
+}
+
+impl IntoVal<Env, Val> for ContractEntry {
+    fn into_val(&self, env: &Env) -> Val {
+        ((self.owner.to_val(), self.contract.to_val())).into_val(env)
+    }
+}
+
+impl TryFromVal<Env, Val> for ContractEntry {
+    type Error = soroban_sdk::Error;
+
+    fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
+        let entry: (Address, Address) = TryFromVal::try_from_val(env, v)?;
+        Ok(entry.into())
+    }
 }
 
 impl From<(Address, Address)> for ContractEntry {

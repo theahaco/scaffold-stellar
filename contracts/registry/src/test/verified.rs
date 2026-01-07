@@ -1,5 +1,6 @@
-
-use crate::test::contracts::{self, hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3};
+use crate::test::contracts::{
+    self, hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3,
+};
 use crate::{
     error::Error,
     test::registry::{default_version, to_string, Registry},
@@ -12,7 +13,6 @@ use soroban_sdk::{
     testutils::{Address as _, BytesN as _},
     vec, Address, BytesN, IntoVal,
 };
-
 
 #[test]
 fn use_publish_method() {
@@ -273,7 +273,6 @@ fn returns_most_recent_version() {
     assert_eq!(res, forth_hash);
 }
 
-
 #[test]
 fn publish_to_kebab_case() {
     let registry = &Registry::new();
@@ -388,7 +387,7 @@ fn hello_world_deploy_v2() {
         &None,
         hello_wasm,
         bob_contract,
-        &Some(vec![env, bob.into_val(env)]),
+        &Some(vec![env, bob.to_val()]),
         None,
     );
     let address = res.unwrap().unwrap();
@@ -401,7 +400,7 @@ fn hello_world_deploy_v2() {
         sv0,
         hello_wasm,
         alice_contract,
-        &Some(vec![env, alice.into_val(env)]),
+        &Some(vec![env, alice.to_val()]),
         None,
     );
     let address = res.unwrap().unwrap();
@@ -517,7 +516,7 @@ fn hello_world_deploy_v2() {
 }
 
 #[test]
-fn hello_world_claim_with_publish() {
+fn hello_world_register_with_publish() {
     let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
     let env = registry.env();
     let name = &to_string(env, "hello_world");
@@ -528,7 +527,7 @@ fn hello_world_claim_with_publish() {
         Ok(Error::NoSuchContractDeployed)
     );
 
-    let author = registry.admin();
+    let author = &Address::generate(env);
     registry.mock_initial_publish();
     registry.publish();
 
@@ -538,20 +537,34 @@ fn hello_world_claim_with_publish() {
         .deployer()
         .with_address(author.clone(), wasm_hash.clone())
         .deploy_v2(wasm_hash, (author.clone(),));
+    env.set_auths(&[]);
+    registry.mock_auths_for(
+        &[author],
+        "register_contract",
+        ContractArgs::register_contract(name, &contract_id, author),
+    );
+    assert_eq!(
+        registry
+            .client()
+            .try_register_contract(name, &contract_id, author),
+        Err(Err(InvokeError::Abort))
+    );
+
     registry.mock_auths_for(
         &[author, registry.admin()],
-        "claim_contract_id",
-        ContractArgs::claim_contract_id(name, &contract_id, author),
+        "register_contract",
+        ContractArgs::register_contract(name, &contract_id, author),
     );
+
     registry
         .client()
-        .claim_contract_id(name, &contract_id, author);
+        .register_contract(name, &contract_id, author);
 
     assert_eq!(contract_id, registry.client().fetch_contract_id(name));
 }
 
 #[test]
-fn hello_world_deploy_without_claiming() {
+fn hello_world_deploy_unnamed() {
     let registry = &Registry::new_with_bytes(&hw_bytes, &hw_hash);
     let env = registry.env();
     let name = &to_string(env, "hello_world");
@@ -576,9 +589,8 @@ fn hello_world_deploy_without_claiming() {
 
     let args = vec![env, author.into_val(env)];
     env.mock_all_auths();
-    let contract_id = registry.client().deploy_without_claiming(
+    let contract_id = registry.client().deploy_unnammed(
         name,
-        &None,
         &None,
         &Some(wasm_hash.clone()),
         &Some(args),

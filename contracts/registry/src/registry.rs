@@ -4,6 +4,7 @@ use crate::error::Error;
 
 pub mod contract;
 pub mod wasm;
+
 #[contracttrait]
 pub trait Publishable {
     /// Fetch the hash of a Wasm binary from the registry
@@ -28,7 +29,7 @@ pub trait Publishable {
         version: soroban_sdk::String,
     ) -> Result<(), Error>;
 
-    /// Publish a binary. If contract had been previously published only previous author can publish again
+    /// Publish a hash of a binary. If contract had been previously published only previous author can publish again
     fn publish_hash(
         env: &Env,
         wasm_name: soroban_sdk::String,
@@ -41,9 +42,10 @@ pub trait Publishable {
 #[contracttrait]
 pub trait Deployable {
     /// Deploys a new published contract returning the deployed contract's id
-    /// and claims the contract name.
+    /// and register the contract name.
     /// If no salt provided it will use the current sequence number.
     /// If no deployer is provided it uses the contract as the deployer
+    /// Note: `deployer` is an advanced feature. If you need to resolve contract IDs deterministically without RPC calls, you can set a known Deployer account, which will be used as the `--salt`.
     fn deploy(
         env: &Env,
         wasm_name: soroban_sdk::String,
@@ -54,8 +56,8 @@ pub trait Deployable {
         deployer: Option<soroban_sdk::Address>,
     ) -> Result<soroban_sdk::Address, Error>;
 
-    /// Claim name for an existing contract which wasn't deployed by the registry
-    fn claim_contract_id(
+    /// Register a name for an existing contract which wasn't deployed by the registry
+    fn register_contract(
         env: &Env,
         contract_name: soroban_sdk::String,
         contract_address: soroban_sdk::Address,
@@ -75,14 +77,12 @@ pub trait Deployable {
     ) -> Result<soroban_sdk::Address, Error>;
 
     /// Deploys a new published contract returning the deployed contract's id
-    /// but does not claim the contract name.
-    /// If name is provided it used as the salt.
+    /// but does not register the contract name.
     /// Otherwise if no salt provided it will use a random one.
-    fn deploy_without_claiming(
+    fn deploy_unnammed(
         env: &Env,
         wasm_name: soroban_sdk::String,
         version: Option<soroban_sdk::String>,
-        contract_name: Option<soroban_sdk::String>,
         salt: Option<soroban_sdk::BytesN<32>>,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: soroban_sdk::Address,
