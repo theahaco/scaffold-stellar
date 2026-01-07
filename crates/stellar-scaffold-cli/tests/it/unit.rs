@@ -125,3 +125,35 @@ fn clean_removes_generated_artifacts() {
     });
 }
 
+#[test]
+fn clean_handles_environments_toml() {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        // Create an environments.toml file
+        env.set_environments_toml(
+            r#"
+[development]
+accounts = [
+    { name = "alice" },
+    { name = "bob" }
+]
+
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+hello_world.client = false
+"#,
+        );
+
+        // Run clean command - it should not fail even if stellar keys or alias commands fail
+        let result = env.scaffold("clean").assert().success();
+        let stdout = result.stdout_as_str();
+
+        // Verify command completed
+        assert!(stdout.contains("Cleaning scaffold artifacts"));
+        assert!(stdout.contains("Clean complete"));
+    });
+}
+
+
