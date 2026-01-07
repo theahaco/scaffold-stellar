@@ -80,13 +80,13 @@ impl Command {
         workspace_root: &Path,
         env: &ScaffoldEnv,
     ) -> Result<(), Error> {
-        if let Some(current_env) = env_toml::Environment::get(workspace_root, env)? {
-            if current_env.network.run_locally {
-                docker::start_local_stellar().await.map_err(|e| {
-                    eprintln!("Failed to start Stellar Docker container: {e:?}");
-                    Error::DockerStart
-                })?;
-            }
+        if let Some(current_env) = env_toml::Environment::get(workspace_root, env)?
+            && current_env.network.run_locally
+        {
+            docker::start_local_stellar().await.map_err(|e| {
+                eprintln!("Failed to start Stellar Docker container: {e:?}");
+                Error::DockerStart
+            })?;
         }
         Ok(())
     }
@@ -97,13 +97,13 @@ impl Command {
         let packages = self.list_packages(&metadata)?;
         let workspace_root = metadata.workspace_root.as_std_path();
 
-        if let Some(env) = &self.build_clients_args.env {
-            if env == &ScaffoldEnv::Development {
-                printer.infoln("Starting local Stellar Docker container...");
-                self.start_local_docker_if_needed(workspace_root, env)
-                    .await?;
-                printer.checkln("Local Stellar network is healthy and running.");
-            }
+        if let Some(env) = &self.build_clients_args.env
+            && env == &ScaffoldEnv::Development
+        {
+            printer.infoln("Starting local Stellar Docker container...");
+            self.start_local_docker_if_needed(workspace_root, env)
+                .await?;
+            printer.checkln("Local Stellar network is healthy and running.");
         }
 
         if self.list {
@@ -195,42 +195,41 @@ impl Command {
 
         meta_map.insert("scaffold_version".to_string(), version::pkg().to_string());
 
-        if let Value::Object(map) = &p.metadata {
-            if let Some(val) = &map.get("stellar") {
-                if let Value::Object(stellar_meta) = val {
-                    // When cargo_inherit is set, copy meta from Cargo toml
-                    if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
-                        meta_map.insert("name".to_string(), p.name.clone());
+        if let Value::Object(map) = &p.metadata
+            && let Some(val) = &map.get("stellar")
+            && let Value::Object(stellar_meta) = val
+        {
+            // When cargo_inherit is set, copy meta from Cargo toml
+            if let Some(Value::Bool(true)) = stellar_meta.get("cargo_inherit") {
+                meta_map.insert("name".to_string(), p.name.clone());
 
-                        if !p.version.to_string().is_empty() {
-                            meta_map.insert("binver".to_string(), p.version.to_string());
-                        }
-                        if !p.authors.is_empty() {
-                            meta_map.insert("authors".to_string(), p.authors.join(", "));
-                        }
-                        if let Some(homepage) = p.homepage.clone() {
-                            meta_map.insert("homepage".to_string(), homepage);
-                        }
-                        if let Some(repository) = p.repository.clone() {
-                            meta_map.insert("repository".to_string(), repository);
-                        }
-                    }
-                    Self::rec_add_meta(String::new(), &mut meta_map, val);
-                    // Reserved keys
-                    meta_map.remove("rsver");
-                    meta_map.remove("rssdkver");
-                    meta_map.remove("cargo_inherit");
-                    // Rename some fields
-                    if let Some(version) = meta_map.remove("version") {
-                        meta_map.insert("binver".to_string(), version);
-                    }
-                    if let Some(repository) = meta_map.remove("repository") {
-                        meta_map.insert("source_repo".to_string(), repository);
-                    }
-                    if let Some(homepage) = meta_map.remove("homepage") {
-                        meta_map.insert("home_domain".to_string(), homepage);
-                    }
+                if !p.version.to_string().is_empty() {
+                    meta_map.insert("binver".to_string(), p.version.to_string());
                 }
+                if !p.authors.is_empty() {
+                    meta_map.insert("authors".to_string(), p.authors.join(", "));
+                }
+                if let Some(homepage) = p.homepage.clone() {
+                    meta_map.insert("homepage".to_string(), homepage);
+                }
+                if let Some(repository) = p.repository.clone() {
+                    meta_map.insert("repository".to_string(), repository);
+                }
+            }
+            Self::rec_add_meta(String::new(), &mut meta_map, val);
+            // Reserved keys
+            meta_map.remove("rsver");
+            meta_map.remove("rssdkver");
+            meta_map.remove("cargo_inherit");
+            // Rename some fields
+            if let Some(version) = meta_map.remove("version") {
+                meta_map.insert("binver".to_string(), version);
+            }
+            if let Some(repository) = meta_map.remove("repository") {
+                meta_map.insert("source_repo".to_string(), repository);
+            }
+            if let Some(homepage) = meta_map.remove("homepage") {
+                meta_map.insert("home_domain".to_string(), homepage);
             }
         }
         cmd.meta.extend(meta_map);

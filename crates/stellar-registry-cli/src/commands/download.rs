@@ -47,6 +47,8 @@ impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         let bytes = self.download_bytes().await?;
         if let Some(file) = self.out_file.as_deref() {
+            let parent = file.parent().unwrap();
+            std::fs::create_dir_all(parent)?;
             let mut f = std::fs::File::create(file)?;
             f.write_all(&bytes)?;
         } else {

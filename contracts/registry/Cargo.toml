@@ -2,7 +2,7 @@
 name = "registry"
 description = "A crate for managing and deploying smart contracts on the Soroban blockchain."
 version = "0.1.1"
-authors = ["Aha Labs <hello@theaha.co>"]
+authors = ["The Aha Company <hello@theaha.co>"]
 license = "Apache-2.0"
 rust-version = "1.69"
 edition = "2021"
@@ -13,18 +13,21 @@ crate-type = ["cdylib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { workspace = true, features = ["alloc"]}
-admin-sep = { workspace = true}
+soroban-sdk = { workspace = true, features = ["alloc"] }
+admin-sep = { workspace = true }
 semver = { version = "1.0.27", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 stellar-registry = { workspace = true }
 assert_matches = "1.5.0"
+stellar-xdr = { workspace = true }
 hello_world = { path = "../test/hello_world" }
+rand = { version = "0.9.2", default-features = false, features = [
+    "small_rng",
+    "os_rng",
+] }
 
-[package.metadata.loam]
-contract = true
 
 [package.metadata.stellar]
 cargo_inherit = true

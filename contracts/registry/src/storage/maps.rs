@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 
 use soroban_sdk::{Env, IntoVal, TryFromVal, Val};
 
-pub trait LoamKey<Key: IntoVal<Env, Val> + Clone> {
+pub trait ToStorageKey<Key: IntoVal<Env, Val> + Clone> {
     fn to_key(env: &Env, k: &Key) -> Val;
 }
 
@@ -11,7 +11,7 @@ pub trait LoamKey<Key: IntoVal<Env, Val> + Clone> {
 pub struct PersistentMap<K, V, W>
 where
     K: IntoVal<Env, Val> + Clone,
-    W: LoamKey<K>,
+    W: ToStorageKey<K>,
     V: IntoVal<Env, Val> + TryFromVal<Env, Val>,
 {
     env: Env,
@@ -23,7 +23,7 @@ where
 impl<K, V, W> PersistentMap<K, V, W>
 where
     K: IntoVal<Env, Val> + Clone,
-    W: LoamKey<K>,
+    W: ToStorageKey<K>,
     V: IntoVal<Env, Val> + TryFromVal<Env, Val>,
 {
     pub fn new(env: &Env) -> Self {

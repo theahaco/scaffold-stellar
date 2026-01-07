@@ -6,8 +6,7 @@ authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
 version = "0.0.18"
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
 autobins = false
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-scaffold-cli"
 
@@ -42,7 +41,7 @@ dirs = "6.0.0"
 flate2 = "1.1"
 tar = "0.4"
 cargo_metadata = { workspace = true }
-cargo_toml = "0.20"
+cargo_toml = "0.22"
 sha2 = { workspace = true }
 
 
@@ -56,12 +55,12 @@ serde_json = "1.0.145"
 
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
-itertools = "0.12.1"
+itertools = "0.14.0"
 ignore = "0.4"
 heck = "0.5.0"
 hex = "0.4.3"
 shlex = "1.1.0"
-toml = { version = "0.8.12", features = ["parse", "preserve_order"] }
+toml = { version = "0.9", features = ["parse", "preserve_order"] }
 rand = "0.8.5"
 notify = "8.2.0"
 stellar-strkey = { workspace = true }

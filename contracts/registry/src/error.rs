@@ -20,7 +20,7 @@ pub enum Error {
     /// New version must be greater than the most recent version
     VersionMustBeGreaterThanCurrent = 8,
     /// Invalid name.
-    /// Must be 64 characters or less;
+    /// Must be at most 64 characters and non-empty;
     /// ascii alphanumeric, '-', or '_';
     /// start with a ascii alphabetic character;
     /// and not be a Rust keyword

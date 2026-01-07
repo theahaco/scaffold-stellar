@@ -149,7 +149,7 @@ mod tests {
                 "--wasm-name",
                 "hello",
                 "--version",
-                "0.0.2",
+                "\"0.0.2\"",
                 "--source=alice",
             ])
             .unwrap()
@@ -175,7 +175,7 @@ mod tests {
                 "--wasm-name",
                 "hello",
                 "--version",
-                "0.0.1",
+                "\"0.0.1\"",
                 "--source=alice",
             ])
             .unwrap()

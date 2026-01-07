@@ -7,8 +7,8 @@ use std::{
     sync::Arc,
 };
 use stellar_cli::print::Print;
-use tokio::sync::mpsc;
 use tokio::sync::Mutex;
+use tokio::sync::mpsc;
 use tokio::time;
 
 use crate::commands::build::{self, env_toml};

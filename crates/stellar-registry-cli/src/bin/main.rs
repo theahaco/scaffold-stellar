@@ -34,10 +34,13 @@ fn set_env_value_from_config(name: &str, value: Option<String>) {
         return;
     };
 
-    std::env::remove_var(format!("{name}_SOURCE"));
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::remove_var(format!("{name}_SOURCE")) };
 
     if std::env::var(name).is_err() {
-        std::env::set_var(name, value);
-        std::env::set_var(format!("{name}_SOURCE"), "use");
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var(name, value) };
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var(format!("{name}_SOURCE"), "use") };
     }
 }

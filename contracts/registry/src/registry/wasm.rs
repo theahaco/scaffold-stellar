@@ -52,13 +52,17 @@ impl Contract {
         Ok(Self::registry(env, name)?.current_version)
     }
 
-    pub fn get_version(env: &Env, name: &String, version: Option<String>) -> Result<String, Error> {
+    pub(crate) fn get_version(
+        env: &Env,
+        name: &String,
+        version: Option<String>,
+    ) -> Result<String, Error> {
         version
             .or_else(|| Self::most_recent_version(env, name).ok())
             .ok_or(Error::NoSuchWasmPublished)
     }
 
-    pub fn get_hash(
+    pub(crate) fn get_hash(
         env: &Env,
         name: &String,
         version: Option<String>,
@@ -66,7 +70,7 @@ impl Contract {
         Self::registry(env, name)?.get_hash(version)
     }
 
-    pub fn get_hash_and_bump(
+    pub(crate) fn get_hash_and_bump(
         env: &Env,
         name: &String,
         version: Option<String>,
@@ -78,13 +82,13 @@ impl Contract {
         Ok(hash)
     }
 
-    pub fn set(
+    pub(crate) fn set(
         env: &Env,
         name: &String,
         version: &String,
         hash: &BytesN<32>,
         author: Address,
-    ) -> Result<(), Error> {
+    ) {
         let mut wasm_map = Storage::new(env).wasm;
         let mut registry = wasm_map.get(name).unwrap_or_else(|| PublishedWasm {
             versions: Map::new(env),
@@ -94,10 +98,9 @@ impl Contract {
         registry.versions.set(version.clone(), hash.clone());
         registry.current_version = version.clone();
         wasm_map.set(name, &registry);
-        Ok(())
     }
 
-    pub fn author(env: &Env, name: &String) -> Option<Address> {
+    pub(crate) fn author(env: &Env, name: &String) -> Option<Address> {
         Self::registry(env, name).ok().map(|wasm| wasm.author)
     }
 
@@ -153,7 +156,7 @@ impl Publishable for Contract {
             return Err(Error::AdminOnly);
         }
         Self::validate_version(env, &version, &wasm_name)?;
-        Self::set(env, &wasm_name, &version, &wasm_hash, author.clone())?;
+        Self::set(env, &wasm_name, &version, &wasm_hash, author.clone());
         crate::events::Publish {
             wasm_name,
             wasm_hash,
