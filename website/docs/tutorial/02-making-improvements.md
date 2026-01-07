@@ -466,7 +466,7 @@ As soon as you hit save, watch the Contract Explorer reload with the new text. N
 
 ### How to Write Unit Tests
 
-_Coming soon._
+_🏗️✨ Coming soon._
 
 ## What We've Learned
 
