@@ -1,9 +1,7 @@
-use crate::name;
 use crate::name::NormalizedName;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::Administratable;
 use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
 use crate::{error::Error, util::MAX_BUMP, Contract};
@@ -118,6 +116,22 @@ impl Contract {
         }
         Ok(())
     }
+
+    fn authorize(env: &Env, author: &Address, wasm_name: &NormalizedName) -> Result<(), Error> {
+        // check if already published
+        if let Some(current) = &Self::author(env, &wasm_name) {
+            if author != current {
+                return Err(Error::WasmNameAlreadyTaken);
+            }
+            author.require_auth();
+        } else if let Some(manager) = Storage::manager(env) {
+            // Manager must approve initial Publish
+            manager.require_auth();
+        } else {
+            author.require_auth();
+        }
+        Ok(())
+    }
 }
 
 #[contractimpl]
@@ -149,20 +163,7 @@ impl Publishable for Contract {
         }
         HashMap::add(env, &wasm_hash);
         let wasm_name = wasm_name.try_into()?;
-        if let Some(current) = Self::author(env, &wasm_name) {
-            if author != current {
-                return Err(Error::WasmNameAlreadyTaken);
-            }
-        } else if let Some(manager) = Storage::manager(env) {
-            // Manager must approve initial Publish
-            manager.require_auth();
-        } else {
-            author.require_auth();
-        }
-
-        if wasm_name == name::registry(env) && Self::admin(env) != author {
-            return Err(Error::AdminOnly);
-        }
+        Self::authorize(env, &author, &wasm_name)?;
         Self::validate_version(env, &version, &wasm_name)?;
         Self::set(env, &wasm_name, &version, &wasm_hash, author.clone());
         crate::events::Publish {

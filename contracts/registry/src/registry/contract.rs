@@ -1,11 +1,9 @@
 #![allow(non_upper_case_globals)]
-use crate::name;
 use crate::name::NormalizedName;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
-use admin_sep::Administratable;
 use soroban_sdk::Val;
 use soroban_sdk::Vec;
 use soroban_sdk::{
@@ -27,9 +25,6 @@ impl Contract {
             // Currently require admin for deploying
             manager.require_auth();
         } else {
-            if contract_name == &name::registry(env) && &Self::admin(env) != contract_admin {
-                return Err(Error::AdminOnly);
-            }
             contract_admin.require_auth();
         }
         let is_available = !Storage::new(env).contract.has(contract_name);
@@ -87,7 +82,7 @@ impl Contract {
         Ok(contract_id)
     }
 
-    fn claim_contract_name(
+    pub(crate) fn claim_contract_name(
         env: &Env,
         contract_name: &NormalizedName,
         contract_id: &Address,
@@ -195,7 +190,7 @@ impl Deployable for Contract {
     }
 }
 
-fn deploy_and_init(
+pub(crate) fn deploy_and_init(
     env: &Env,
     salt: impl IntoVal<Env, BytesN<32>>,
     wasm_hash: BytesN<32>,
