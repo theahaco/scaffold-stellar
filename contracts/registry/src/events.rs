@@ -1,8 +1,8 @@
 use soroban_sdk::{contractevent, Address, BytesN, String};
 
-#[contractevent(topics = ["claim"])]
+#[contractevent(topics = ["register"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Claim {
+pub struct Register {
     pub contract_name: String,
     pub contract_id: Address,
 }

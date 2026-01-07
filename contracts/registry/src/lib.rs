@@ -28,15 +28,15 @@ impl Upgradable for Contract {}
 
 #[contractimpl]
 impl Contract {
-    /// Admin account authorizes: upgrade, adding, setting, or removing a manager.
-    /// If contract has a manager account it must authorize initial publishes or claims or deploys
-    pub fn __constructor(env: &Env, admin: Address, manager: Option<Address>, is_verified: bool) {
+    /// - `admin`: account which will: upgrade this Registry itself; add, set, or remove `manager`
+    /// - `manager`: optional. If set, makes this a *managed* registry, meaning `publish`, `register_contract`, & `deploy` must be approved by the manager before caller's account is considered trusted for that contract/wasm name.
+    /// - `is_root`: if true, this registry is the root registry, meaning it has no namespace. Other Registry contracts, like the `unverified` one, are themselves registered in the root Registry. If `is_root` is true, this constructor will also auto-deploy the `unverified` Registry.
+    pub fn __constructor(env: &Env, admin: Address, manager: Option<Address>, is_root: bool) {
         Self::set_admin(env, admin.clone());
         if let Some(manager) = manager.as_ref() {
             Storage::set_manager_no_auth(env, manager);
         }
-
-        if is_verified && manager.is_some() {
+        if is_root && manager.is_some() {
             unsafe {
                 if let Executable::Wasm(wasm_hash) = env
                     .current_contract_address()
@@ -58,13 +58,13 @@ impl Contract {
                         Some(args),
                         env.current_contract_address(),
                     );
-                    Self::claim_contract_name(env, &contract_name, &contract_address, &admin);
+                    Self::register_contract_name(env, &contract_name, &contract_address, &admin);
                 }
             }
         }
     }
 
-    /// The manager account which if set authorizes initial publishes and claiming an contract id
+    /// The manager account which if set authorizes initial publishes and claiming a contract id
     pub fn manager(env: &Env) -> Option<Address> {
         Storage::manager(env)
     }

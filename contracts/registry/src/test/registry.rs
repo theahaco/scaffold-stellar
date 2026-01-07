@@ -40,6 +40,10 @@ impl<'a> Registry<'a> {
         Self::new_with_bytes_internal(&env, bytes, hash)
     }
 
+    pub fn new_unverified() -> Self {
+        Self::new().switch_client_to_unverified()
+    }
+
     fn new_with_bytes_internal(env: &Env, bytes: Bytes, hash: BytesN<32>) -> Self {
         let admin = Address::generate(env);
         let contract_id = registry::WASM.register(
@@ -63,6 +67,14 @@ impl<'a> Registry<'a> {
     ) -> Self {
         let env = &Env::default();
         Self::new_with_bytes_internal(env, bytes(env), hash(env))
+    }
+
+    pub fn switch_client_to_unverified(mut self) -> Self {
+        self.client = SorobanContractClient::new(
+            self.env(),
+            &self.client.fetch_contract_id(&to_string(self.env(), "unverified")),
+        );
+        self
     }
 
     pub fn default_version(&self) -> soroban_sdk::String {
