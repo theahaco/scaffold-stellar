@@ -1,5 +1,7 @@
 use clap::{Args, Parser};
 use degit::degit;
+use dialoguer::Select;
+use dialoguer::theme::ColorfulTheme;
 use std::fs::{copy, metadata, read_dir, remove_dir_all};
 use std::path::PathBuf;
 use std::process::Command;
@@ -116,8 +118,22 @@ impl Cmd {
             }
         }
 
-        // Install npm dependencies
-        let npm_status = npm_install(&absolute_project_path, &printer);
+        let pacman_options = PackageManager::LIST
+            .iter()
+            .map(|pm| pm.label())
+            .collect::<Vec<&str>>();
+
+        let pacman_index = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Pick your package manager")
+            .items(pacman_options)
+            .default(0)
+            .interact()
+            .unwrap();
+
+        let pacman = PackageManager::from_index(pacman_index);
+
+        // Install dependencies
+        let pacman_status = pacman_install(pacman, &absolute_project_path, &printer);
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
@@ -149,10 +165,10 @@ impl Cmd {
         ));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
-        if !npm_status {
-            printer.blankln("\tnpm install");
+        if !pacman_status {
+            printer.blankln(format!("\t{pacman_name} install"));
         }
-        printer.blankln("\tnpm start\n");
+        printer.blankln(format!("\t{pacman_name} start"));
         printer.blankln(" Happy hacking! 🚀");
         Ok(())
     }
@@ -220,20 +236,61 @@ impl Cmd {
     }
 }
 
-// Check if npm is installed and exists in PATH
-fn npm_exists() -> bool {
-    Command::new("npm").arg("--version").output().is_ok()
+enum PackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+    Bun,
+    Deno,
 }
 
-// Install npm dependencies
-fn npm_install(path: &PathBuf, printer: &Print) -> bool {
-    if !npm_exists() {
-        printer.warnln("Failed to install dependencies, npm is not installed");
+impl PackageManager {
+    pub const LIST: &'static [Self] = &[
+        Self::Npm,
+        Self::Pnpm,
+        Self::Yarn,
+        Self::Bun,
+        Self::Deno,
+    ];
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Npm => "npm",
+            Self::Pnpm => "pnpm",
+            Self::Yarn => "yarn",
+            Self::Bun => "bun",
+            Self::Deno => "deno",
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        match index {
+            0 => Self::Npm,
+            1 => Self::Pnpm,
+            2 => Self::Yarn,
+            3 => Self::Bun,
+            4 => Self::Deno,
+            _ => unreachable!("invalid package manager index"),
+        }
+    }
+}
+
+// Check if selected pacman is installed and exists in PATH
+fn pacman_exists(command: &str) -> bool {
+    Command::new(command).arg("--version").output().is_ok()
+}
+
+// Install dependencies
+fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bool {
+    let pacman_name = pacman.label();
+
+    if !pacman_exists(pacman_name) {
+        printer.warnln(format!("Failed to install dependencies, {pacman_name} is not installed"));
         return false;
     }
 
-    printer.infoln("Installing npm dependencies...");
-    match Command::new("npm")
+    printer.infoln("Installing dependencies...");
+    match Command::new(pacman_name)
         .arg("install")
         .current_dir(path)
         .output()
@@ -242,7 +299,7 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
         Ok(output) => {
             // Command ran without panic, but failed for some other reason
             // like network issue or missing dependency, etc.
-            printer.warnln("Failed to install dependencies: Please run 'npm install' manually");
+            printer.warnln(format!("Failed to install dependencies: Please run '{pacman_name} install' manually"));
             if !output.stderr.is_empty()
                 && let Ok(stderr) = String::from_utf8(output.stderr)
             {
@@ -251,7 +308,7 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
             false
         }
         Err(e) => {
-            printer.warnln(format!("Failed to run npm install: {e}"));
+            printer.warnln(format!("Failed to run {pacman_name} install: {e}"));
             false
         }
     }
