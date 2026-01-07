@@ -231,7 +231,7 @@ pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 
 Now the most important part of our contract: the number! This line creates a key for storing and retrieving contract data. A `Symbol` is a short string type (max 32 characters) that is more optimized for use on the blockchain. And we're using the `symbol_short` macro for an even smaller key (max 9 characters). As a contract author, you want to use tricks like this to lower costs as much as you can.
 
-The second line creates a key for storing the address of this contract's administrator. 
+The second line creates a key for storing the address of this contract's administrator.
 
 Both of these keys use the `&` which is called a [reference](https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html). Instead of the value, it's a pointer to where the value lives.
 
@@ -325,14 +325,14 @@ export const GuessTheNumber = () => {
 We're storing some state for tracking the input's value and whether the guess was successful or not. And we're also using our custom `useWallet` hook to connect to the user's wallet and get their address. This is how we know whether or not you connected to Freighter.
 
 ```ts
-  const submitGuess = async () => {
-    if (!theGuess || !address) return;
-    const { result } = await game.guess({
-      a_number: BigInt(theGuess),
-      guesser: address,
-    });
-    setGuessedIt(result);
-  };
+const submitGuess = async () => {
+  if (!theGuess || !address) return;
+  const { result } = await game.guess({
+    a_number: BigInt(theGuess),
+    guesser: address,
+  });
+  setGuessedIt(result);
+};
 ```
 
 Next, we create a function to handle the user's submission. Hey! Look at that! It's one of our contract's methods right in our TypeScript code: `game.guess()`. Let's follow that import and look at `src/contracts/guess_the_number.ts`.
