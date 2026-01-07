@@ -384,7 +384,7 @@ use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Sy
 pub struct GuessTheNumber;
 
 const THE_NUMBER: &Symbol = &symbol_short!("n");
-pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
+const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 
 #[contractimpl]
 impl GuessTheNumber {

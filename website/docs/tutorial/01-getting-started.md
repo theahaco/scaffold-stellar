@@ -226,7 +226,7 @@ Here we're defining a [struct](https://doc.rust-lang.org/book/ch05-01-defining-s
 
 ```rust
 const THE_NUMBER: &Symbol = &symbol_short!("n");
-pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
+const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 ```
 
 Now the most important part of our contract: the number! This line creates a key for storing and retrieving contract data. A `Symbol` is a short string type (max 32 characters) that is more optimized for use on the blockchain. And we're using the `symbol_short` macro for an even smaller key (max 9 characters). As a contract author, you want to use tricks like this to lower costs as much as you can.
