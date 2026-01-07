@@ -99,7 +99,7 @@ impl Contract {
             &(contract_admin.clone(), contract_id.clone()),
         );
         crate::events::Claim {
-            contract_name: contract_name.clone(),
+            contract_name: contract_name.to_string(),
             contract_id: contract_id.clone(),
         }
         .publish(env);
@@ -117,7 +117,7 @@ impl Contract {
         let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         let version = Self::get_version(env, &wasm_name, version)?;
         crate::events::Deploy {
-            wasm_name,
+            wasm_name: wasm_name.to_string(),
             version,
             deployer,
             contract_id: contract_id.clone(),
