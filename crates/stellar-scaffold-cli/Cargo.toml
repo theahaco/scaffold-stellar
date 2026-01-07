@@ -29,7 +29,7 @@ stellar-build = { path = "../stellar-build", version = "0.0.5" }
 stellar-cli = { workspace = true, default-features = false }
 soroban-rpc = { workspace = true }
 soroban-spec-tools = { workspace = true }
-clap = { version = "4.5.51", features = [
+clap = { version = "4.5.54", features = [
     "derive",
     "env",
     "deprecated",
@@ -51,7 +51,7 @@ reqwest = { version = "0.12.9", default-features = false, features = [
 ] }
 thiserror = "2.0.17"
 serde = "1.0.228"
-serde_json = "1.0.145"
+serde_json = "1.0.149"
 
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["io-util"] }
@@ -67,8 +67,8 @@ stellar-strkey = { workspace = true }
 stellar-xdr = { workspace = true }
 regex = "1.12.2"
 toml_edit = "0.22.16"
-indexmap = { version = "2.12", features = ["serde"] }
-tempfile = "3.23"
+indexmap = { version = "2.13", features = ["serde"] }
+tempfile = "3.24"
 fs_extra = "1.3"
 webbrowser = "1.0.6"
 
@@ -77,9 +77,9 @@ assert_cmd = "2.1.1"
 assert_fs = "1.1.3"
 predicates = "3.1.3"
 walkdir = "2.3"
-uuid = { features = ["v4"], version = "1.18.1" }
+uuid = { features = ["v4"], version = "1.19.0" }
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
-tempfile = "3.23"
+tempfile = "3.24"
 mockito = "0.31"
 
 [build-dependencies]
