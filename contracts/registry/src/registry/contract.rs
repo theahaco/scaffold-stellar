@@ -6,7 +6,6 @@ use crate::storage::Storage;
 use crate::ContractArgs;
 use crate::ContractClient;
 use admin_sep::Administratable;
-use soroban_sdk::log;
 use soroban_sdk::Val;
 use soroban_sdk::Vec;
 use soroban_sdk::{
@@ -14,12 +13,7 @@ use soroban_sdk::{
     Symbol,
 };
 
-use crate::{
-    error::Error,
-    name::canonicalize,
-    util::{hash_string, MAX_BUMP},
-    Contract,
-};
+use crate::{error::Error, util::MAX_BUMP, Contract};
 
 use super::{Deployable, Redeployable};
 
@@ -105,7 +99,7 @@ impl Contract {
             &(contract_admin.clone(), contract_id.clone()),
         );
         crate::events::Claim {
-            contract_name: contract_name.to_string(),
+            contract_name: contract_name.clone(),
             contract_id: contract_id.clone(),
         }
         .publish(env);
@@ -113,19 +107,17 @@ impl Contract {
 
     fn fetch_hash_and_deploy(
         env: &Env,
-        wasm_name: &String,
+        wasm_name: NormalizedName,
         version: Option<String>,
-        salt: BytesN<32>,
+        salt: impl IntoVal<Env, BytesN<32>>,
         init: Option<Vec<Val>>,
         deployer: Address,
     ) -> Result<Address, Error> {
-        let wasm_name = wasm_name.try_into()?;
         let hash = Self::get_hash_and_bump(env, &wasm_name, version.clone())?;
         let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         let version = Self::get_version(env, &wasm_name, version)?;
-        // Publish a deploy event
         crate::events::Deploy {
-            wasm_name: wasm_name.to_string(),
+            wasm_name,
             version,
             deployer,
             contract_id: contract_id.clone(),
@@ -147,14 +139,12 @@ impl Deployable for Contract {
         deployer: Option<Address>,
     ) -> Result<Address, Error> {
         let contract_name = contract_name.try_into()?;
-        // signed by admin of contract
-        log!(env, "deploy", admin);
         Self::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
         let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
-        let salt = hash_string(env, contract_name.as_string()).into();
+        let salt = contract_name.hash();
         let contract_id = Self::fetch_hash_and_deploy(
             env,
-            &wasm_name,
+            wasm_name.try_into()?,
             version.clone(),
             salt,
             init,
@@ -163,6 +153,7 @@ impl Deployable for Contract {
         Self::claim_contract_name(env, &contract_name, &contract_id, &admin);
         Ok(contract_id)
     }
+
     fn deploy_without_claiming(
         env: &Env,
         wasm_name: soroban_sdk::String,
@@ -172,15 +163,18 @@ impl Deployable for Contract {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: soroban_sdk::Address,
     ) -> Result<Address, Error> {
-        let contract_name = contract_name.as_ref().map(canonicalize).transpose()?;
         deployer.require_auth();
-        let salt: BytesN<32> = contract_name
+        let name_hash = contract_name
+            .map(TryInto::<NormalizedName>::try_into)
+            .transpose()?
             .as_ref()
-            .map(|name| hash_string(env, name).into())
-            .or(salt)
+            .map(NormalizedName::hash);
+        let salt: BytesN<32> = salt
+            .or_else(|| name_hash.map(Into::into))
             .unwrap_or_else(|| env.prng().gen());
-        Self::fetch_hash_and_deploy(env, &wasm_name, version.clone(), salt, init, deployer)
+        Self::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
     }
+
     fn claim_contract_id(
         env: &Env,
         contract_name: String,
@@ -208,7 +202,7 @@ fn deploy_and_init(
     args: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
     deployer: Address,
 ) -> Address {
-    let deployer = env.deployer().with_address(deployer, salt.into_val(env));
+    let deployer = env.deployer().with_address(deployer, salt);
     if let Some(args) = args {
         deployer.deploy_v2(wasm_hash, args)
     } else {
