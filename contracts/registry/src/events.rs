@@ -1,16 +1,18 @@
 use soroban_sdk::{contractevent, Address, BytesN, String};
 
+use crate::name::NormalizedName;
+
 #[contractevent(topics = ["claim"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Claim {
-    pub contract_name: String,
+    pub contract_name: NormalizedName,
     pub contract_id: Address,
 }
 
 #[contractevent(topics = ["deploy"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Deploy {
-    pub wasm_name: String,
+    pub wasm_name: NormalizedName,
     pub version: String,
     pub deployer: Address,
     pub contract_id: Address,
@@ -19,7 +21,7 @@ pub struct Deploy {
 #[contractevent(topics = ["publish"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Publish {
-    pub wasm_name: String,
+    pub wasm_name: NormalizedName,
     pub wasm_hash: BytesN<32>,
     pub version: String,
     pub author: Address,

@@ -166,7 +166,7 @@ impl Publishable for Contract {
         Self::validate_version(env, &version, &wasm_name)?;
         Self::set(env, &wasm_name, &version, &wasm_hash, author.clone());
         crate::events::Publish {
-            wasm_name: wasm_name.to_string(),
+            wasm_name,
             wasm_hash,
             version,
             author,

@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use soroban_rpc as rpc;
 use stellar_build::Network;
 use stellar_cli::{
-    commands::{NetworkRunnable, contract::invoke, txn_result::TxnEnvelopeResult},
+    commands::{NetworkRunnable, contract::invoke, txn_result::TxnResult},
     config::{self, UnresolvedContract},
     xdr::{self, WriteXdr as _},
 };
@@ -59,15 +59,14 @@ impl Contract {
         slop: &[&str],
         fee: Option<&stellar_cli::fee::Args>,
         view_only: bool,
-    ) -> Result<TxnEnvelopeResult<String>, invoke::Error> {
+    ) -> Result<TxnResult<String>, invoke::Error> {
         Ok(self
             .build_invoke_cmd(slop, fee, view_only)
             .run_against_rpc_server(
                 Some(&stellar_cli::commands::global::Args::default()),
                 Some(&self.config),
             )
-            .await?
-            .to_envelope())
+            .await?)
     }
 
     pub async fn invoke_with_result(
@@ -77,11 +76,7 @@ impl Contract {
         view_only: bool,
     ) -> Result<String, invoke::Error> {
         Ok(self
-            .build_invoke_cmd(slop, fee, view_only)
-            .run_against_rpc_server(
-                Some(&stellar_cli::commands::global::Args::default()),
-                Some(&self.config),
-            )
+            .invoke(slop, fee, view_only)
             .await?
             .into_result()
             .unwrap())
