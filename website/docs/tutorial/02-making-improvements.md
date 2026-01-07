@@ -261,7 +261,7 @@ Notice that this function doesn't have `pub` in front of it - this makes it priv
 Now let's modify the `__constructor` to set an initial number when the contract is deployed:
 
 ```rust
-pub fn __constructor(env: &Env, admin: &Address) {
+pub fn __constructor(env: &Env, admin: Address) {
     Self::set_admin(env, admin);
     Self::set_random_number(env); // Add this line
 }
@@ -429,13 +429,13 @@ impl GuessTheNumber {
         env.storage().instance().get(ADMIN_KEY)
     }
 
-    /// Set a new admin. Only callable by admin.
-    fn set_admin(env: &Env, admin: Address) {
-        // Check if admin is already set
-        if env.storage().instance().has(ADMIN_KEY) {
+    /// set a new admin. only callable by admin.
+    pub fn set_admin(env: &env, admin: address) {
+        // check if admin is already set
+        if env.storage().instance().has(admin_key) {
             panic!("admin already set");
         }
-        env.storage().instance().set(ADMIN_KEY, &admin);
+        env.storage().instance().set(admin_key, &admin);
     }
 
     /// Private helper function to require auth from the admin

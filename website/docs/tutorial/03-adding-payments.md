@@ -31,7 +31,7 @@ First, we need the `import_asset` macro from Stellar Registry. Add the following
  #![no_std]
  use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol};
 +use stellar_registry::import_asset;
-+import_asset!(xlm);
++import_asset!("xlm");
 ```
 
 Stellar Registry integrates with Scaffold Stellar, giving names and versions to contracts and contract Wasms. It also provides helpers like `import_asset` to make it easier to work with [Stellar Asset Contracts](https://developers.stellar.org/docs/tokens/stellar-asset-contract).
