@@ -120,7 +120,7 @@ impl Cmd {
 
         let pacman_options = PackageManager::LIST
             .iter()
-            .map(|pm| pm.label())
+            .map(PackageManager::label)
             .collect::<Vec<&str>>();
 
         let pacman_index = Select::with_theme(&ColorfulTheme::default())
@@ -131,6 +131,7 @@ impl Cmd {
             .unwrap();
 
         let pacman = PackageManager::from_index(pacman_index);
+        let pacman_name = pacman.label();
 
         // Install dependencies
         let pacman_status = pacman_install(pacman, &absolute_project_path, &printer);
@@ -245,13 +246,7 @@ enum PackageManager {
 }
 
 impl PackageManager {
-    pub const LIST: &'static [Self] = &[
-        Self::Npm,
-        Self::Pnpm,
-        Self::Yarn,
-        Self::Bun,
-        Self::Deno,
-    ];
+    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun, Self::Deno];
 
     pub fn label(&self) -> &'static str {
         match self {
@@ -285,7 +280,9 @@ fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bo
     let pacman_name = pacman.label();
 
     if !pacman_exists(pacman_name) {
-        printer.warnln(format!("Failed to install dependencies, {pacman_name} is not installed"));
+        printer.warnln(format!(
+            "Failed to install dependencies, {pacman_name} is not installed"
+        ));
         return false;
     }
 
@@ -299,7 +296,9 @@ fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bo
         Ok(output) => {
             // Command ran without panic, but failed for some other reason
             // like network issue or missing dependency, etc.
-            printer.warnln(format!("Failed to install dependencies: Please run '{pacman_name} install' manually"));
+            printer.warnln(format!(
+                "Failed to install dependencies: Please run '{pacman_name} install' manually"
+            ));
             if !output.stderr.is_empty()
                 && let Ok(stderr) = String::from_utf8(output.stderr)
             {
