@@ -102,11 +102,11 @@ fn clean_removes_generated_artifacts() {
         assert!(src_contracts_dir.join("util.ts").exists()); // git-tracked file should exist
 
         // Run clean command
-        let stdout = env.scaffold("clean").assert().success().stdout_as_str();
+        let stderr = env.scaffold("clean").assert().success().stderr_as_str();
 
         // Verify output contains expected messages
-        assert!(stdout.contains("Cleaning scaffold artifacts"));
-        assert!(stdout.contains("Clean complete"));
+        assert!(stderr.contains("Cleaning scaffold artifacts"));
+        assert!(stderr.contains("Clean complete"));
 
         // Verify target/stellar is removed
         assert!(!target_stellar.exists(), "target/stellar should be removed");
@@ -148,11 +148,11 @@ hello_world.client = false
 
         // Run clean command - it should not fail even if stellar keys or alias commands fail
         let result = env.scaffold("clean").assert().success();
-        let stdout = result.stdout_as_str();
+        let stderr = result.stderr_as_str();
 
         // Verify command completed
-        assert!(stdout.contains("Cleaning scaffold artifacts"));
-        assert!(stdout.contains("Clean complete"));
+        assert!(stderr.contains("Cleaning scaffold artifacts"));
+        assert!(stderr.contains("Clean complete"));
     });
 }
 

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use stellar_cli::commands::global;
 use stellar_cli::config::locator;
+use stellar_cli::print::Print;
 
 use crate::commands::build::clients::ScaffoldEnv;
 use crate::commands::build::env_toml::{self, Environment};
@@ -42,22 +43,23 @@ pub enum Error {
 impl Cmd {
     pub fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         let workspace_root = self.get_workspace_root()?;
+        let printer = Print::new(global_args.quiet);
 
-        println!("🧹 Cleaning scaffold artifacts from {}", workspace_root.display());
+        printer.infoln(format!("🧹 Cleaning scaffold artifacts from {}", workspace_root.display()));
 
         // Clean target/stellar
-        Self::clean_target_stellar(&workspace_root)?;
+        Self::clean_target_stellar(&workspace_root, &printer)?;
 
         // Clean packages/* (keep git-tracked files)
-        Self::clean_packages(&workspace_root)?;
+        Self::clean_packages(&workspace_root, &printer)?;
 
         // Clean src/contracts/* (keep git-tracked files)
-        Self::clean_src_contracts(&workspace_root)?;
+        Self::clean_src_contracts(&workspace_root, &printer)?;
 
         // Clean config (accounts and contract aliases)
-        Self::clean_config(&workspace_root, global_args)?;
+        Self::clean_config(&workspace_root, &printer)?;
 
-        println!("✨ Clean complete!");
+        printer.infoln("✨ Clean complete!");
 
         Ok(())
     }
@@ -82,31 +84,31 @@ impl Cmd {
         Ok(metadata.workspace_root.into_std_path_buf())
     }
 
-    fn clean_target_stellar(workspace_root: &Path) -> Result<(), Error> {
+    fn clean_target_stellar(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         let target_stellar = workspace_root.join("target").join("stellar");
 
         if target_stellar.exists() {
-            println!("  Removing target/stellar/");
+            printer.infoln("  Removing target/stellar/");
             fs::remove_dir_all(&target_stellar)?;
         } else {
-            println!("  target/stellar/ does not exist, skipping");
+            printer.infoln("  target/stellar/ does not exist, skipping");
         }
 
         Ok(())
     }
 
-    fn clean_packages(workspace_root: &Path) -> Result<(), Error> {
+    fn clean_packages(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         let packages_dir = workspace_root.join("packages");
 
         if !packages_dir.exists() {
-            println!("  packages/ does not exist, skipping");
+            printer.infoln("  packages/ does not exist, skipping");
             return Ok(());
         }
 
         // Get list of git-tracked files in packages/
         let git_tracked = Self::get_git_tracked_files(workspace_root, "packages");
 
-        println!("  Cleaning packages/ (preserving git-tracked files)");
+        printer.infoln("  Cleaning packages/ (preserving git-tracked files)");
 
         // Iterate through packages/ directory
         for entry in fs::read_dir(&packages_dir)? {
@@ -131,24 +133,24 @@ impl Cmd {
             } else {
                 fs::remove_file(&path)?;
             }
-            println!("    Removed {relative_str}");
+            printer.infoln(format!("    Removed {relative_str}"));
         }
 
         Ok(())
     }
 
-    fn clean_src_contracts(workspace_root: &Path) -> Result<(), Error> {
+    fn clean_src_contracts(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         let src_contracts_dir = workspace_root.join("src").join("contracts");
 
         if !src_contracts_dir.exists() {
-            println!("  src/contracts/ does not exist, skipping");
+            printer.infoln("  src/contracts/ does not exist, skipping");
             return Ok(());
         }
 
         // Get list of git-tracked files in src/contracts/
         let git_tracked = Self::get_git_tracked_files(workspace_root, "src/contracts");
 
-        println!("  Cleaning src/contracts/ (preserving git-tracked files)");
+        printer.infoln("  Cleaning src/contracts/ (preserving git-tracked files)");
 
         // Iterate through src/contracts/ directory
         for entry in fs::read_dir(&src_contracts_dir)? {
@@ -176,7 +178,7 @@ impl Cmd {
             } else {
                 fs::remove_file(&path)?;
             }
-            println!("    Removed {relative_str}");
+            printer.infoln(format!("    Removed {relative_str}"));
         }
 
         Ok(())
@@ -203,7 +205,7 @@ impl Cmd {
         }
     }
 
-    fn clean_config(workspace_root: &Path, _global_args: &global::Args) -> Result<(), Error> {
+    fn clean_config(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         // Check if .env file has XDG_CONFIG_HOME and remove the file it specifies
         let env_file = workspace_root.join(".env");
         if env_file.exists() {
@@ -214,7 +216,7 @@ impl Cmd {
                     if let Some(path_str) = config_path {
                         let config_dir = PathBuf::from(path_str);
                         if config_dir.exists() {
-                            println!("  Removing config directory from XDG_CONFIG_HOME: {}", config_dir.display());
+                            printer.infoln(format!("  Removing config directory from XDG_CONFIG_HOME: {}", config_dir.display()));
                             fs::remove_dir_all(&config_dir)?;
                         }
                     }
@@ -226,14 +228,14 @@ impl Cmd {
         // Otherwise look at environments.toml file
         let env_toml_path = workspace_root.join(env_toml::ENV_FILE);
         if !env_toml_path.exists() {
-            println!("  No environments.toml found, skipping config cleanup");
+            printer.infoln("  No environments.toml found, skipping config cleanup");
             return Ok(());
         }
 
         // Try to get development environment
         match Environment::get(workspace_root, &ScaffoldEnv::Development) {
             Ok(Some(env)) => {
-                println!("  Cleaning config (accounts and aliases)");
+                printer.infoln("  Cleaning config (accounts and aliases)");
 
                 // Remove accounts using stellar keys rm
                 if let Some(accounts) = &env.accounts {
@@ -244,16 +246,16 @@ impl Cmd {
 
                         match result {
                             Ok(output) if output.status.success() => {
-                                println!("    Removed account: {}", account.name);
+                                printer.infoln(format!("    Removed account: {}", account.name));
                             }
                             Ok(output) => {
                                 let stderr = String::from_utf8_lossy(&output.stderr);
                                 if !stderr.contains("not found") {
-                                    eprintln!("    Warning: Failed to remove account {}: {}", account.name, stderr);
+                                    printer.warnln(format!("    Warning: Failed to remove account {}: {}", account.name, stderr));
                                 }
                             }
                             Err(e) => {
-                                eprintln!("    Warning: Failed to execute stellar keys rm: {e}");
+                                printer.warnln(format!("    Warning: Failed to execute stellar keys rm: {e}"));
                             }
                         }
                     }
@@ -268,26 +270,26 @@ impl Cmd {
 
                         match result {
                             Ok(output) if output.status.success() => {
-                                println!("    Removed contract alias: {contract_name}");
+                                printer.infoln(format!("    Removed contract alias: {contract_name}"));
                             }
                             Ok(output) => {
                                 let stderr = String::from_utf8_lossy(&output.stderr);
                                 if !stderr.contains("not found") && !stderr.contains("No alias") {
-                                    eprintln!("    Warning: Failed to remove contract alias {contract_name}: {stderr}");
+                                    printer.warnln(format!("    Warning: Failed to remove contract alias {contract_name}: {stderr}"));
                                 }
                             }
                             Err(e) => {
-                                eprintln!("    Warning: Failed to execute stellar contract alias remove: {e}");
+                                printer.warnln(format!("    Warning: Failed to execute stellar contract alias remove: {e}"));
                             }
                         }
                     }
                 }
             }
             Ok(None) => {
-                println!("  No development environment found in environments.toml");
+                printer.infoln("  No development environment found in environments.toml");
             }
             Err(e) => {
-                eprintln!("  Warning: Failed to read environments.toml: {e}");
+                printer.warnln(format!("  Warning: Failed to read environments.toml: {e}"));
             }
         }
 
