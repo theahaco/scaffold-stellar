@@ -1,7 +1,7 @@
 use soroban_sdk::Env;
 
 use crate::{
-    name::canonicalize,
+    name::NormalizedName,
     test::{
         registry::to_string,
         util::{invalid_string, valid_string},
@@ -44,20 +44,28 @@ fn invalid() {
 #[test]
 fn normalization() {
     assert_eq!(
-        canonicalize(&to_string(&Env::default(), "ls_test")).unwrap(),
+        NormalizedName::new(&to_string(&Env::default(), "ls_test"))
+            .unwrap()
+            .to_string(),
         to_string(&Env::default(), "ls-test")
     );
     assert_eq!(
-        canonicalize(&to_string(&Env::default(), "ls-test")).unwrap(),
+        NormalizedName::new(&to_string(&Env::default(), "ls-test"))
+            .unwrap()
+            .to_string(),
         to_string(&Env::default(), "ls-test")
     );
 
     assert_eq!(
-        canonicalize(&to_string(&Env::default(), "Test")).unwrap(),
+        NormalizedName::new(&to_string(&Env::default(), "Test"))
+            .unwrap()
+            .to_string(),
         to_string(&Env::default(), "test")
     );
     assert_eq!(
-        canonicalize(&to_string(&Env::default(), "Ls-teSt")).unwrap(),
+        NormalizedName::new(&to_string(&Env::default(), "Ls-teSt"))
+            .unwrap()
+            .to_string(),
         to_string(&Env::default(), "ls-test")
     );
 }

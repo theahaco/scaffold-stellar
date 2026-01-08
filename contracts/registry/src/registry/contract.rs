@@ -1,22 +1,21 @@
 #![allow(non_upper_case_globals)]
+use crate::name;
 use crate::name::NormalizedName;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
-use crate::ContractArgs;
-use crate::ContractClient;
+
+use soroban_sdk::contracttrait;
+use soroban_sdk::Executable;
 use soroban_sdk::Val;
 use soroban_sdk::Vec;
 use soroban_sdk::{
-    self, contractimpl, symbol_short, vec, Address, BytesN, Env, IntoVal, InvokeError, String,
-    Symbol,
+    self, symbol_short, vec, Address, BytesN, Env, IntoVal, InvokeError, String, Symbol,
 };
 
-use crate::{error::Error, util::MAX_BUMP, Contract};
-
-use super::{Deployable, Redeployable};
+use crate::{error::Error, Contract};
 
 impl Contract {
-    fn assert_no_contract_entry_and_authorize(
+    pub(crate) fn assert_no_contract_entry_and_authorize(
         env: &Env,
         contract_admin: &Address,
         contract_name: &NormalizedName,
@@ -41,24 +40,28 @@ impl Contract {
             .ok_or(Error::NoSuchContractDeployed)
     }
 
-    fn get_contract_id(env: &Env, contract_name: &NormalizedName) -> Result<Address, Error> {
+    pub(crate) fn get_contract_id(
+        env: &Env,
+        contract_name: &NormalizedName,
+    ) -> Result<Address, Error> {
         Ok(Self::get_contract_entry(env, contract_name)?.contract)
     }
 
-    fn get_contract_owner(env: &Env, contract_name: &NormalizedName) -> Result<Address, Error> {
+    pub(crate) fn get_contract_owner(
+        env: &Env,
+        contract_name: &NormalizedName,
+    ) -> Result<Address, Error> {
         Ok(Self::get_contract_entry(env, contract_name)?.owner)
     }
 
-    fn upgrade(
+    pub(crate) fn upgrade_internal(
         env: &Env,
         name: &NormalizedName,
         wasm_hash: &BytesN<32>,
         upgrade_fn: Option<Symbol>,
     ) -> Result<Address, Error> {
         let contract_id = Self::get_contract_id(env, name)?;
-        Storage::new(env)
-            .contract
-            .extend_ttl(name, MAX_BUMP, MAX_BUMP);
+        Storage::new(env).contract.extend_ttl_max(name);
         /*
         Here we check if the contract being upgrade supports the admin interface.
         If so we can fetch the admin and call require auth at the top level.
@@ -102,7 +105,7 @@ impl Contract {
         .publish(env);
     }
 
-    fn fetch_hash_and_deploy(
+    pub(crate) fn fetch_hash_and_deploy(
         env: &Env,
         wasm_name: NormalizedName,
         version: Option<String>,
@@ -122,66 +125,38 @@ impl Contract {
         .publish(env);
         Ok(contract_id)
     }
-}
 
-#[contractimpl]
-impl Deployable for Contract {
-    fn deploy(
-        env: &Env,
-        wasm_name: String,
-        version: Option<String>,
-        contract_name: String,
-        admin: Address,
-        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
-        deployer: Option<Address>,
-    ) -> Result<Address, Error> {
-        let contract_name = contract_name.try_into()?;
-        Self::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
-        let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
-        let salt = contract_name.hash();
-        let contract_id = Self::fetch_hash_and_deploy(
-            env,
-            wasm_name.try_into()?,
-            version.clone(),
-            salt,
-            init,
-            deployer.clone(),
-        )?;
-        Self::register_contract_name(env, &contract_name, &contract_id, &admin);
-        Ok(contract_id)
-    }
-
-    fn deploy_unnammed(
-        env: &Env,
-        wasm_name: soroban_sdk::String,
-        version: Option<soroban_sdk::String>,
-        salt: Option<soroban_sdk::BytesN<32>>,
-        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
-        deployer: soroban_sdk::Address,
-    ) -> Result<Address, Error> {
-        deployer.require_auth();
-        let salt: BytesN<32> = salt.unwrap_or_else(|| env.prng().gen());
-        Self::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
-    }
-
-    fn register_contract(
-        env: &Env,
-        contract_name: String,
-        contract_address: Address,
-        owner: Address,
-    ) -> Result<(), Error> {
-        let contract_name = contract_name.try_into()?;
-        Self::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Self::register_contract_name(env, &contract_name, &contract_address, &owner);
-        Ok(())
-    }
-
-    fn fetch_contract_id(env: &Env, contract_name: String) -> Result<Address, Error> {
-        Self::get_contract_id(env, &contract_name.try_into()?)
-    }
-
-    fn fetch_contract_owner(env: &Env, contract_name: String) -> Result<Address, Error> {
-        Self::get_contract_owner(env, &contract_name.try_into()?)
+    pub(crate) fn deploy_unverified_and_claim_registry(env: &Env, admin: &Address) {
+        unsafe {
+            if let Executable::Wasm(wasm_hash) = env
+                .current_contract_address()
+                .executable()
+                .unwrap_unchecked()
+            {
+                let contract_name =
+                    NormalizedName::new_unchecked(String::from_str(env, "unverified"));
+                let args = vec![
+                    env,
+                    *admin.as_val(),
+                    Val::from_void().into(),
+                    false.into_val(env),
+                ];
+                let contract_address = deploy_and_init(
+                    env,
+                    contract_name.hash(),
+                    wasm_hash,
+                    Some(args),
+                    env.current_contract_address(),
+                );
+                Self::register_contract_name(env, &contract_name, &contract_address, admin);
+                Self::register_contract_name(
+                    env,
+                    &name::registry(env),
+                    &env.current_contract_address(),
+                    admin,
+                );
+            }
+        }
     }
 }
 
@@ -200,8 +175,89 @@ pub(crate) fn deploy_and_init(
     }
 }
 
-#[contractimpl]
-impl Redeployable for Contract {
+#[contracttrait]
+pub trait Deployable {
+    /// Deploys a new published contract returning the deployed contract's id
+    /// and register the contract name.
+    /// If no salt provided it will use the current sequence number.
+    /// If no deployer is provided it uses the contract as the deployer
+    /// Note: `deployer` is an advanced feature.
+    /// If you need to resolve contract IDs deterministically without RPC calls,
+    /// you can set a known Deployer account, which will be used as the `--salt`.
+    fn deploy(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+        contract_name: soroban_sdk::String,
+        admin: soroban_sdk::Address,
+        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: Option<soroban_sdk::Address>,
+    ) -> Result<soroban_sdk::Address, Error> {
+        let contract_name = contract_name.try_into()?;
+        Contract::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
+        let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
+        let salt = contract_name.hash();
+        let contract_id = Contract::fetch_hash_and_deploy(
+            env,
+            wasm_name.try_into()?,
+            version.clone(),
+            salt,
+            init,
+            deployer.clone(),
+        )?;
+        Contract::register_contract_name(env, &contract_name, &contract_id, &admin);
+        Ok(contract_id)
+    }
+
+    /// Deploys a new published contract returning the deployed contract's id
+    /// but does not register the contract name.
+    /// Otherwise if no salt provided it will use a random one.
+    fn deploy_unnammed(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+        salt: Option<soroban_sdk::BytesN<32>>,
+        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: soroban_sdk::Address,
+    ) -> Result<soroban_sdk::Address, Error> {
+        deployer.require_auth();
+        let salt: soroban_sdk::BytesN<32> = salt.unwrap_or_else(|| env.prng().gen());
+        Contract::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
+    }
+
+    /// Register a name for an existing contract which wasn't deployed by the registry
+    fn register_contract(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        contract_address: soroban_sdk::Address,
+        owner: soroban_sdk::Address,
+    ) -> Result<(), Error> {
+        let contract_name = contract_name.try_into()?;
+        Contract::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
+        Contract::register_contract_name(env, &contract_name, &contract_address, &owner);
+        Ok(())
+    }
+
+    /// Look up the contract id of a deployed contract
+    fn fetch_contract_id(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+    ) -> Result<soroban_sdk::Address, Error> {
+        Contract::get_contract_id(env, &contract_name.try_into()?)
+    }
+
+    /// Look up the owner of a deployed contract
+    fn fetch_contract_owner(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+    ) -> Result<soroban_sdk::Address, Error> {
+        Contract::get_contract_owner(env, &contract_name.try_into()?)
+    }
+}
+
+#[contracttrait]
+pub trait Redeployable {
+    /// Skips the publish step to deploy a contract directly, keeping the name
     fn dev_deploy(
         env: &Env,
         name: soroban_sdk::String,
@@ -209,17 +265,19 @@ impl Redeployable for Contract {
         upgrade_fn: Option<soroban_sdk::Symbol>,
     ) -> Result<soroban_sdk::Address, Error> {
         let wasm_hash = env.deployer().upload_contract_wasm(wasm);
-        Self::upgrade(env, &name.try_into()?, &wasm_hash, upgrade_fn)
+        Contract::upgrade_internal(env, &name.try_into()?, &wasm_hash, upgrade_fn)
     }
 
+    /// Upgrades a contract by calling the upgrade function.
+    /// Default is 'upgrade' and expects that first arg is the corresponding wasm hash
     fn upgrade_contract(
         env: &Env,
-        name: String,
-        wasm_name: String,
-        version: Option<String>,
-        upgrade_fn: Option<Symbol>,
-    ) -> Result<Address, Error> {
-        let wasm_hash = Self::get_hash_and_bump(env, &wasm_name.try_into()?, version)?;
-        Self::upgrade(env, &name.try_into()?, &wasm_hash, upgrade_fn)
+        name: soroban_sdk::String,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+        upgrade_fn: Option<soroban_sdk::Symbol>,
+    ) -> Result<soroban_sdk::Address, Error> {
+        let wasm_hash = Contract::get_hash_and_bump(env, &wasm_name.try_into()?, version)?;
+        Contract::upgrade_internal(env, &name.try_into()?, &wasm_hash, upgrade_fn)
     }
 }

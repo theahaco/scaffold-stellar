@@ -29,4 +29,6 @@ pub enum Error {
     InvalidVersion = 10,
     /// Hash has aleady been published
     HashAlreadyPublished = 11,
+    /// Root registry requires manager when deploying
+    ManagerRequired = 12,
 }
