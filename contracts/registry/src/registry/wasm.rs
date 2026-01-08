@@ -1,12 +1,9 @@
 use crate::name::NormalizedName;
 use crate::storage::Storage;
-use crate::ContractArgs;
-use crate::ContractClient;
-use soroban_sdk::{self, contractimpl, contracttype, Address, BytesN, Env, Map, String};
 
-use crate::{error::Error, util::MAX_BUMP, Contract};
+use soroban_sdk::{self, contracttrait, contracttype, Address, BytesN, Env, Map, String};
 
-use super::Publishable;
+use crate::{error::Error, Contract};
 
 #[contracttype(export = false)]
 #[derive(Clone)]
@@ -36,7 +33,7 @@ impl HashMap {
     }
 
     pub fn bump(env: &Env, hash: &BytesN<32>) {
-        Storage::new(env).hash.extend_ttl(hash, MAX_BUMP, MAX_BUMP);
+        Storage::new(env).hash.extend_ttl_max(hash);
     }
 }
 
@@ -75,7 +72,7 @@ impl Contract {
         version: Option<String>,
     ) -> Result<BytesN<32>, Error> {
         let registry = Self::registry(env, name)?;
-        Storage::new(env).wasm.extend_ttl(name, MAX_BUMP, MAX_BUMP);
+        Storage::new(env).wasm.extend_ttl_max(name);
         let hash = registry.get_hash(version)?;
         HashMap::bump(env, &hash);
         Ok(hash)
@@ -103,7 +100,7 @@ impl Contract {
         Self::registry(env, name).ok().map(|wasm| wasm.author)
     }
 
-    fn validate_version(
+    pub(crate) fn validate_version(
         env: &Env,
         version: &String,
         wasm_name: &NormalizedName,
@@ -117,7 +114,11 @@ impl Contract {
         Ok(())
     }
 
-    fn authorize(env: &Env, author: &Address, wasm_name: &NormalizedName) -> Result<(), Error> {
+    pub(crate) fn authorize(
+        env: &Env,
+        author: &Address,
+        wasm_name: &NormalizedName,
+    ) -> Result<(), Error> {
         // check if already published
         if let Some(current) = &Self::author(env, wasm_name) {
             if author != current {
@@ -134,38 +135,55 @@ impl Contract {
     }
 }
 
-#[contractimpl]
-impl Publishable for Contract {
-    fn current_version(env: &Env, wasm_name: String) -> Result<String, Error> {
-        Self::most_recent_version(env, &wasm_name.try_into()?)
+#[contracttrait]
+pub trait Publishable {
+    /// Fetch the hash of a Wasm binary from the registry
+    fn fetch_hash(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+    ) -> Result<soroban_sdk::BytesN<32>, Error> {
+        Contract::get_hash(env, &wasm_name.try_into()?, version)
     }
 
+    /// Most recent version of the published Wasm binary
+    fn current_version(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+    ) -> Result<soroban_sdk::String, Error> {
+        Contract::most_recent_version(env, &wasm_name.try_into()?)
+    }
+
+    /// Publish a binary. Contract uploads bytes ensuring hash is correct.
+    /// If contract had been previously published only previous author can publish again
     fn publish(
         env: &Env,
-        wasm_name: String,
-        author: Address,
+        wasm_name: soroban_sdk::String,
+        author: soroban_sdk::Address,
         wasm: soroban_sdk::Bytes,
-        version: String,
+        version: soroban_sdk::String,
     ) -> Result<(), Error> {
         let wasm_hash = env.deployer().upload_contract_wasm(wasm);
-        Self::publish_hash(env, wasm_name, author, wasm_hash, version)
+        Contract::publish_hash(env, wasm_name, author, wasm_hash, version)
     }
 
+    /// Publish a hash of a binary.
+    /// If contract had been previously published only previous author can publish again
     fn publish_hash(
         env: &Env,
-        wasm_name: String,
-        author: Address,
-        wasm_hash: BytesN<32>,
-        version: String,
+        wasm_name: soroban_sdk::String,
+        author: soroban_sdk::Address,
+        wasm_hash: soroban_sdk::BytesN<32>,
+        version: soroban_sdk::String,
     ) -> Result<(), Error> {
         if HashMap::has(env, &wasm_hash) {
             return Err(Error::HashAlreadyPublished);
         }
         HashMap::add(env, &wasm_hash);
         let wasm_name = wasm_name.try_into()?;
-        Self::authorize(env, &author, &wasm_name)?;
-        Self::validate_version(env, &version, &wasm_name)?;
-        Self::set(env, &wasm_name, &version, &wasm_hash, author.clone());
+        Contract::authorize(env, &author, &wasm_name)?;
+        Contract::validate_version(env, &version, &wasm_name)?;
+        Contract::set(env, &wasm_name, &version, &wasm_hash, author.clone());
         crate::events::Publish {
             wasm_name: wasm_name.to_string(),
             wasm_hash,
@@ -174,13 +192,5 @@ impl Publishable for Contract {
         }
         .publish(env);
         Ok(())
-    }
-
-    fn fetch_hash(
-        env: &Env,
-        wasm_name: String,
-        version: Option<String>,
-    ) -> Result<BytesN<32>, Error> {
-        Self::get_hash(env, &wasm_name.try_into()?, version)
     }
 }

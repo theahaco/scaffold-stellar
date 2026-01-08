@@ -1,6 +1,6 @@
 use soroban_sdk::Env;
 
-use crate::{name::canonicalize, test::registry::to_string, Error};
+use crate::{name::NormalizedName, test::registry::to_string, Error};
 pub fn valid_string(s: &str) {
     test_string(s, true);
 }
@@ -10,7 +10,7 @@ pub fn invalid_string(s: &str) {
 }
 
 pub fn test_string(s: &str, result: bool) {
-    let raw_result = canonicalize(&to_string(&Env::default(), s));
+    let raw_result = NormalizedName::new(&to_string(&Env::default(), s));
     if result {
         assert!(raw_result.is_ok(), "should be valid: {s}");
     } else {

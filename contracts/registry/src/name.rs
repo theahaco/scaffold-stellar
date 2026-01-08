@@ -1,6 +1,6 @@
-use soroban_sdk::{crypto::Hash, Env, IntoVal, String, TryFromVal, Val};
+use soroban_sdk::{crypto::Hash, Bytes, Env, IntoVal, String, TryFromVal, Val};
 
-use crate::{error::Error, util::hash_string};
+use crate::error::Error;
 
 mod normalized;
 mod to_str;
@@ -49,7 +49,15 @@ impl NormalizedName {
     }
 
     pub fn hash(&self) -> Hash<32> {
-        hash_string(self.as_ref())
+        let s = &self.0;
+        let env = s.env();
+        let len = s.len() as usize;
+        let mut bytes = [0u8; 100];
+        let bytes = &mut bytes[0..len];
+        s.copy_into_slice(bytes);
+        let mut b = Bytes::new(env);
+        b.copy_from_slice(0, bytes);
+        env.crypto().sha256(&b)
     }
 }
 
@@ -57,7 +65,7 @@ impl TryFrom<&String> for NormalizedName {
     type Error = Error;
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Ok(Self(canonicalize(value)?))
+        Ok(Self(Normalized::canonicalize(value)?))
     }
 }
 
@@ -87,8 +95,4 @@ impl TryFromVal<Env, Val> for NormalizedName {
 #[must_use]
 pub fn registry(env: &Env) -> NormalizedName {
     unsafe { NormalizedName::new_unchecked(String::from_str(env, REGISTRY)) }
-}
-
-pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
-    Normalized::canonicalize(s)
 }
