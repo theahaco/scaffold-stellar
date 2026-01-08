@@ -60,13 +60,12 @@ impl Contract {
         fee: Option<&stellar_cli::fee::Args>,
         view_only: bool,
     ) -> Result<TxnResult<String>, invoke::Error> {
-        Ok(self
-            .build_invoke_cmd(slop, fee, view_only)
+        self.build_invoke_cmd(slop, fee, view_only)
             .run_against_rpc_server(
                 Some(&stellar_cli::commands::global::Args::default()),
                 Some(&self.config),
             )
-            .await?)
+            .await
     }
 
     pub async fn invoke_with_result(

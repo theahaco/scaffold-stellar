@@ -47,11 +47,10 @@ impl Display for PrefixedName {
         write!(
             f,
             "{}{name}",
-            if let Some(channel) = &channel {
-                format!("{channel}/")
-            } else {
-                "".to_owned()
-            }
+            channel
+                .as_ref()
+                .map(|channel| format!("{channel}/"))
+                .unwrap_or_default()
         )
     }
 }
