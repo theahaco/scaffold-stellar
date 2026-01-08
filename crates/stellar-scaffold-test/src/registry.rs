@@ -88,6 +88,7 @@ impl RegistryTest {
                 rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
+                "--fee=10000000",
             ],
         )
         .expect("Failed to parse arguments for upload")
@@ -99,6 +100,13 @@ impl RegistryTest {
         .to_string();
 
         eprintln!("🪞 Deploying registry contract...");
+
+        let alice_key = Self::parse_cmd_internal::<keys::public_key::Cmd>(env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap()
+            .to_string();
 
         // Deploy contract using the Stellar CLI library directly with alice account
         let deploy_args = [
@@ -114,8 +122,8 @@ impl RegistryTest {
             "--admin",
             "alice",
             "--manager",
-            "alice",
-            "--is-verified",
+            &format!("\"{alice_key}\""),
+            "--is-root",
         ];
         let contract_id =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
