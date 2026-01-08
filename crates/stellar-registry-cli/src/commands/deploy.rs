@@ -23,12 +23,14 @@ mod util;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
-    /// Name of contract to be deployed
+    /// Name of contract to be deployed. Can use prefix of not using verified registry.
+    /// E.g. `unverified/<name>`
     #[arg(long, visible_alias = "deploy-as")]
     pub contract_name: PrefixedName,
-    /// Name of published contract to deploy from
+    /// Name of published contract to deploy from. Can use prefix of not using verified registry.
+    /// E.g. `unverified/<name>`
     #[arg(long)]
-    pub wasm_name: String,
+    pub wasm_name: PrefixedName,
     /// Arguments for constructor
     #[arg(last = true, id = "CONSTRUCTOR_ARGS")]
     pub slop: Vec<OsString>,
@@ -106,7 +108,11 @@ impl Cmd {
     pub async fn hash(&self, registry: &Registry) -> Result<xdr::Hash, Error> {
         let res = registry
             .as_contract()
-            .invoke_with_result(&["fetch_hash", "--wasm_name", &self.wasm_name], None, true)
+            .invoke_with_result(
+                &["fetch_hash", "--wasm_name", &self.wasm_name.name],
+                None,
+                true,
+            )
             .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
@@ -149,7 +155,7 @@ impl Cmd {
             contract_address: contract_address.clone(),
             function_name: "deploy".try_into().unwrap(),
             args: [
-                ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
                 self.version.clone().map_or(ScVal::Void, |s| {
                     ScVal::String(ScString(s.try_into().unwrap()))
                 }),

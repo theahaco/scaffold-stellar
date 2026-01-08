@@ -185,4 +185,60 @@ mod tests {
             .assert()
             .success();
     }
+
+    #[tokio::test]
+    async fn unverified() {
+        // Create test environment
+        let registry = RegistryTest::new().await;
+
+        // Path to the hello world contract WASM
+        let wasm_path = registry.hello_wasm_v1();
+
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("unverified/hello")
+            .assert()
+            .success();
+
+        // Then deploy it
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.2")
+            .arg("--wasm-name")
+            .arg("unverified/hello")
+            .assert()
+            .failure();
+
+        let output = registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg("0.0.3")
+            .arg("--wasm-name")
+            .arg("unverified/hello")
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Error(Contract, #11)"));
+
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&registry.hello_wasm_v2())
+            .arg("--binver")
+            .arg("0.0.3")
+            .arg("--wasm-name")
+            .arg("unverified/hello")
+            .assert()
+            .success();
+    }
 }

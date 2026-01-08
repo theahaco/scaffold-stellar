@@ -113,4 +113,36 @@ mod tests {
         let expected = std::fs::read(v1).unwrap();
         assert_eq!(bytes, expected);
     }
+
+    #[tokio::test]
+    async fn unverified() {
+        // Create test environment
+
+        let registry = RegistryTest::new().await;
+        let v1 = registry.hello_wasm_v1();
+        let _test_env = registry.clone().env;
+
+        // Path to the hello world contract WASM
+
+        // First publish the contract
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(v1.to_str().unwrap())
+            .arg("--binver")
+            .arg("0.0.1")
+            .arg("--wasm-name")
+            .arg("unverified/hello")
+            .assert()
+            .success();
+
+        let bytes = registry
+            .parse_cmd::<crate::commands::download::Cmd>(&["unverified/hello"])
+            .unwrap()
+            .download_bytes()
+            .await
+            .unwrap();
+        let expected = std::fs::read(v1).unwrap();
+        assert_eq!(bytes, expected);
+    }
 }

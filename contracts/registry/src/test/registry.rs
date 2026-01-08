@@ -72,7 +72,9 @@ impl<'a> Registry<'a> {
     pub fn switch_client_to_unverified(mut self) -> Self {
         self.client = SorobanContractClient::new(
             self.env(),
-            &self.client.fetch_contract_id(&to_string(self.env(), "unverified")),
+            &self
+                .client
+                .fetch_contract_id(&to_string(self.env(), "unverified")),
         );
         self
     }

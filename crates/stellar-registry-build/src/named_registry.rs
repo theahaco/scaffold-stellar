@@ -1,4 +1,4 @@
-use std::{convert::Infallible, str::FromStr};
+use std::{convert::Infallible, fmt::Display, str::FromStr};
 
 use stellar_cli::{commands::contract::invoke, config};
 
@@ -38,5 +38,20 @@ impl From<PrefixedName> for ContractId {
 impl PrefixedName {
     pub async fn registry(&self, config: &config::Args) -> Result<Registry, invoke::Error> {
         Registry::from_named_registry(config, self).await
+    }
+}
+
+impl Display for PrefixedName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let PrefixedName { channel, name } = &self;
+        write!(
+            f,
+            "{}{name}",
+            if let Some(channel) = &channel {
+                format!("{channel}/")
+            } else {
+                "".to_owned()
+            }
+        )
     }
 }
