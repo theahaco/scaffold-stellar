@@ -121,9 +121,9 @@ impl Cmd {
 
         let pacman = pacman_select();
         if !matches!(pacman.kind, PackageManager::Npm) {
-            remove_file(absolute_project_path.join("package-lock.json"));
+            let _ = remove_file(absolute_project_path.join("package-lock.json"));
         }
-        
+
         // Install dependencies
         let pacman_command = pacman.command();
         let pacman_status = pacman_install(pacman_command, &absolute_project_path, &printer);
@@ -243,13 +243,10 @@ fn pacman_select() -> PackageManagerSpec {
         .interact()
         .unwrap();
 
-    let kind = PackageManager::LIST[pacman_index];
+    let kind = PackageManager::LIST[pacman_index].clone();
     let version = pacman_version(kind.command());
 
-    PackageManagerSpec {
-        kind,
-        version,
-    }    
+    PackageManagerSpec { kind, version }
 }
 
 fn pacman_version(command: &str) -> Option<String> {
@@ -331,7 +328,11 @@ fn git_commit(path: &PathBuf, message: &str) {
 fn extract_version(text: &str) -> Option<String> {
     for token in text.split_whitespace() {
         if is_semver_like(token) {
-            return Some(token.trim_matches(|c: char| !c.is_ascii_digit() && c != '.').to_string());
+            return Some(
+                token
+                    .trim_matches(|c: char| !c.is_ascii_digit() && c != '.')
+                    .to_string(),
+            );
         }
     }
     None
@@ -345,7 +346,10 @@ fn is_semver_like(s: &str) -> bool {
     let minor = parts.next().and_then(|p| p.parse::<u64>().ok());
 
     // patch is optional (yarn classic sometimes omits weirdly)
-    let patch = parts.next().map(|p| p.parse::<u64>().ok()).unwrap_or(Some(0));
+    let patch = parts
+        .next()
+        .map(|p| p.parse::<u64>().ok())
+        .unwrap_or(Some(0));
 
     major.is_some() && minor.is_some() && patch.is_some()
 }

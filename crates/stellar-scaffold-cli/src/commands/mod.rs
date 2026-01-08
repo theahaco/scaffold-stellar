@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{fs::read_to_string, path::PathBuf, str::FromStr};
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
 use stellar_cli;
@@ -121,13 +121,13 @@ impl PackageManagerSpec {
         self.kind.command()
     }
 
-    pub fn from_package_json(workspace_root: &PathBuf) -> Result<Self, ()> {
+    pub fn from_package_json(workspace_root: &PathBuf) -> Option<Self> {
         let pkg_path = workspace_root.join("package.json");
-        let contents = read_to_string(pkg_path)?;
-        let pkg: PackageJson = serde_json::from_str(&contents)?;
-        let raw = pkg.package_manager.ok_or(())?;
-        
-        Ok(PackageManagerSpec::parse_package_manager_field(&raw))
+        let contents = read_to_string(pkg_path).ok()?;
+        let pkg: PackageJson = serde_json::from_str(&contents).ok()?;
+        let raw = pkg.package_manager?;
+
+        Some(PackageManagerSpec::parse_package_manager_field(&raw))
     }
 
     // "pnpm@9.6.0" → ("pnpm", "9.6.0")
@@ -149,7 +149,7 @@ impl PackageManagerSpec {
 }
 
 #[derive(Debug, Clone)]
-enum PackageManager {
+pub enum PackageManager {
     Npm,
     Pnpm,
     Yarn,
@@ -162,15 +162,15 @@ impl PackageManager {
 
     pub fn command(&self) -> &'static str {
         match self {
-            Self::Npm => self.os_specific_command("npm"),
-            Self::Pnpm => self.os_specific_command("pnpm"),
-            Self::Yarn => self.os_specific_command("yarn"),
+            Self::Npm => Self::os_specific_command("npm"),
+            Self::Pnpm => Self::os_specific_command("pnpm"),
+            Self::Yarn => Self::os_specific_command("yarn"),
             Self::Bun => "bun",
             Self::Deno => "deno",
         }
     }
 
-    fn os_specfic_command(base: &'static str) -> &'static str {
+    fn os_specific_command(base: &'static str) -> &'static str {
         if cfg!(target_os = "windows") {
             match base {
                 "npm" => "npm.cmd",

@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
-use std::fs::read_to_string;
 use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
@@ -308,7 +307,9 @@ export default new Client.Client({{
         let pacman_command = self.pacman.command();
 
         // Run `npm i` in the temp directory
-        printer.infoln(format!("Running '{pacman_command} install' in {temp_dir_display:?}"));
+        printer.infoln(format!(
+            "Running '{pacman_command} install' in {temp_dir_display:?}"
+        ));
         let output = std::process::Command::new(pacman_command)
             .current_dir(&temp_dir)
             .arg("install")
@@ -951,8 +952,9 @@ impl Args {
             ([candidate], _) => candidate.clone(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
-        
-        let pacman = PackageManagerSpec::from_package_json(workspace_root).expect("Must be declared in the init phase");
+
+        let pacman = PackageManagerSpec::from_package_json(workspace_root)
+            .expect("Must be declared in the init phase");
 
         let builder = Builder::new(
             global_args,
