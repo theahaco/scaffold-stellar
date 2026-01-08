@@ -4,11 +4,12 @@ use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml::{self, Environment};
-use crate::commands::npm_cmd;
+use crate::commands::{PackageManager, PackageManagerSpec};
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
 use shlex::split;
+use std::fs::read_to_string;
 use std::hash::Hash;
 use std::path::Path;
 use std::process::Command;
@@ -143,6 +144,7 @@ pub struct Builder {
     printer: Print,
     pub(crate) out_dir: Option<PathBuf>,
     env: Environment,
+    pacman: PackageManager,
 }
 
 impl Builder {
@@ -154,6 +156,7 @@ impl Builder {
         scaffold_env: ScaffoldEnv,
         out_dir: Option<PathBuf>,
         env: Environment,
+        pacman: PackageManager,
     ) -> Self {
         Self {
             printer: Print::new(global_args.quiet),
@@ -164,6 +167,7 @@ impl Builder {
             workspace_root,
             out_dir,
             env,
+            pacman,
         }
     }
 
@@ -301,9 +305,11 @@ export default new Client.Client({{
         ])?)
         .await?;
 
+        let pacman_command = self.pacman.command();
+
         // Run `npm i` in the temp directory
-        printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
-        let output = std::process::Command::new(npm_cmd())
+        printer.infoln(format!("Running '{pacman_command} install' in {temp_dir_display:?}"));
+        let output = std::process::Command::new(pacman_command)
             .current_dir(&temp_dir)
             .arg("install")
             .arg("--loglevel=error") // Reduce noise from warnings
@@ -325,7 +331,7 @@ export default new Client.Client({{
         printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
 
         printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
-        let output = std::process::Command::new(npm_cmd())
+        let output = std::process::Command::new(pacman_command)
             .current_dir(&temp_dir)
             .arg("run")
             .arg("build")
@@ -361,7 +367,7 @@ export default new Client.Client({{
             std::fs::rename(&temp_dir, &final_output_dir)?;
             printer.checkln(format!("Client {name:?} created successfully"));
             // Run npm install in the final output directory to ensure proper linking
-            let output = std::process::Command::new(npm_cmd())
+            let output = std::process::Command::new(pacman_command)
                 .current_dir(&final_output_dir)
                 .arg("install")
                 .arg("--loglevel=error")
@@ -945,6 +951,9 @@ impl Args {
             ([candidate], _) => candidate.clone(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
+        
+        let pacman = PackageManagerSpec::from_package_json(workspace_root).expect("Must be declared in the init phase");
+
         let builder = Builder::new(
             global_args,
             network,
@@ -953,6 +962,7 @@ impl Args {
             env,
             self.out_dir.clone(),
             current_env,
+            pacman.kind,
         );
         Ok(builder)
     }

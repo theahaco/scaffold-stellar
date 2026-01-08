@@ -8,6 +8,7 @@ use std::process::Command;
 use std::{env, io};
 
 use super::{build, generate};
+use crate::commands::{PackageManager, PackageManagerSpec};
 use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
@@ -119,13 +120,12 @@ impl Cmd {
         }
 
         let pacman = pacman_select();
-        let pacman_command = pacman.label();
-
-        if (pacman_command != "npm") {
+        if !matches!(pacman.kind, PackageManager::Npm) {
             remove_file(absolute_project_path.join("package-lock.json"));
         }
-
+        
         // Install dependencies
+        let pacman_command = pacman.command();
         let pacman_status = pacman_install(pacman_command, &absolute_project_path, &printer);
 
         // Build contracts and create contract clients
@@ -229,44 +229,11 @@ impl Cmd {
     }
 }
 
-enum PackageManager {
-    Npm,
-    Pnpm,
-    Yarn,
-    Bun,
-    Deno,
-}
-
-impl PackageManager {
-    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun, Self::Deno];
-
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::Npm => "npm",
-            Self::Pnpm => "pnpm",
-            Self::Yarn => "yarn",
-            Self::Bun => "bun",
-            Self::Deno => "deno",
-        }
-    }
-
-    fn from_index(index: usize) -> Self {
-        match index {
-            0 => Self::Npm,
-            1 => Self::Pnpm,
-            2 => Self::Yarn,
-            3 => Self::Bun,
-            4 => Self::Deno,
-            _ => unreachable!("invalid package manager index"),
-        }
-    }
-}
-
 // Select package manager
-fn pacman_select() -> PackageManager {
+fn pacman_select() -> PackageManagerSpec {
     let pacman_options = PackageManager::LIST
         .iter()
-        .map(PackageManager::label)
+        .map(PackageManager::command)
         .collect::<Vec<&str>>();
 
     let pacman_index = Select::with_theme(&ColorfulTheme::default())
@@ -276,7 +243,23 @@ fn pacman_select() -> PackageManager {
         .interact()
         .unwrap();
 
-    PackageManager::from_index(pacman_index)
+    let kind = PackageManager::LIST[pacman_index];
+    let version = pacman_version(kind.command());
+
+    PackageManagerSpec {
+        kind,
+        version,
+    }    
+}
+
+fn pacman_version(command: &str) -> Option<String> {
+    let output = Command::new(command).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    extract_version(&stdout)
 }
 
 // Check if selected pacman is installed and exists in PATH
@@ -343,4 +326,26 @@ fn git_commit(path: &PathBuf, message: &str) {
         .args(["commit", "-m", message])
         .current_dir(path)
         .output();
+}
+
+fn extract_version(text: &str) -> Option<String> {
+    for token in text.split_whitespace() {
+        if is_semver_like(token) {
+            return Some(token.trim_matches(|c: char| !c.is_ascii_digit() && c != '.').to_string());
+        }
+    }
+    None
+}
+
+fn is_semver_like(s: &str) -> bool {
+    let s = s.trim_matches(|c: char| !c.is_ascii_digit() && c != '.');
+    let mut parts = s.split('.');
+
+    let major = parts.next().and_then(|p| p.parse::<u64>().ok());
+    let minor = parts.next().and_then(|p| p.parse::<u64>().ok());
+
+    // patch is optional (yarn classic sometimes omits weirdly)
+    let patch = parts.next().map(|p| p.parse::<u64>().ok()).unwrap_or(Some(0));
+
+    major.is_some() && minor.is_some() && patch.is_some()
 }

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
 use stellar_cli;
@@ -71,7 +71,7 @@ pub enum Cmd {
     /// Version of the scaffold-stellar-cli
     Version(version::Cmd),
 
-    /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (NPM dependencies).
+    /// Build contracts, resolving dependencies in the correct order. If you have an `environments.toml` file, it will also follow its instructions to configure the environment set by the `STELLAR_SCAFFOLD_ENV` environment variable, turning your contracts into frontend packages (JS dependencies).
     Build(build::Command),
 
     /// generate contracts
@@ -104,10 +104,82 @@ pub enum Error {
     Watch(#[from] watch::Error),
 }
 
-pub fn npm_cmd() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "npm.cmd"
-    } else {
-        "npm"
+#[derive(serde::Deserialize)]
+struct PackageJson {
+    #[serde(rename = "packageManger")]
+    package_manager: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PackageManagerSpec {
+    pub kind: PackageManager,
+    pub version: Option<String>,
+}
+
+impl PackageManagerSpec {
+    pub fn command(&self) -> &'static str {
+        self.kind.command()
+    }
+
+    pub fn from_package_json(workspace_root: &PathBuf) -> Result<Self, ()> {
+        let pkg_path = workspace_root.join("package.json");
+        let contents = read_to_string(pkg_path)?;
+        let pkg: PackageJson = serde_json::from_str(&contents)?;
+        let raw = pkg.package_manager.ok_or(())?;
+        
+        Ok(PackageManagerSpec::parse_package_manager_field(&raw))
+    }
+
+    // "pnpm@9.6.0" → ("pnpm", "9.6.0")
+    fn parse_package_manager_field(value: &str) -> Self {
+        let mut parts = value.split('@');
+        let name = parts.next().unwrap_or(value);
+        let version = parts.next().map(|v| v.to_string());
+
+        let kind = match name {
+            "pnpm" => PackageManager::Pnpm,
+            "yarn" => PackageManager::Yarn,
+            "bun" => PackageManager::Bun,
+            "deno" => PackageManager::Deno,
+            _ => PackageManager::Npm,
+        };
+
+        Self { kind, version }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum PackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+    Bun,
+    Deno,
+}
+
+impl PackageManager {
+    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun, Self::Deno];
+
+    pub fn command(&self) -> &'static str {
+        match self {
+            Self::Npm => self.os_specific_command("npm"),
+            Self::Pnpm => self.os_specific_command("pnpm"),
+            Self::Yarn => self.os_specific_command("yarn"),
+            Self::Bun => "bun",
+            Self::Deno => "deno",
+        }
+    }
+
+    fn os_specfic_command(base: &'static str) -> &'static str {
+        if cfg!(target_os = "windows") {
+            match base {
+                "npm" => "npm.cmd",
+                "pnpm" => "pnpm.cmd",
+                "yarn" => "yarn.cmd",
+                _ => base,
+            }
+        } else {
+            base
+        }
     }
 }
