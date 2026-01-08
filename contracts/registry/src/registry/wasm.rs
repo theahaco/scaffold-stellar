@@ -119,7 +119,7 @@ impl Contract {
 
     fn authorize(env: &Env, author: &Address, wasm_name: &NormalizedName) -> Result<(), Error> {
         // check if already published
-        if let Some(current) = &Self::author(env, &wasm_name) {
+        if let Some(current) = &Self::author(env, wasm_name) {
             if author != current {
                 return Err(Error::WasmNameAlreadyTaken);
             }

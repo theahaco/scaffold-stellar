@@ -47,7 +47,7 @@ impl Contract {
                         NormalizedName::new_unchecked(String::from_str(env, "unverified"));
                     let args = vec![
                         env,
-                        admin.as_val().clone(),
+                        *admin.as_val(),
                         Val::from_void().into(),
                         false.into_val(env),
                     ];

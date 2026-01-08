@@ -83,7 +83,7 @@ pub struct ContractEntry {
 
 impl IntoVal<Env, Val> for ContractEntry {
     fn into_val(&self, env: &Env) -> Val {
-        ((self.owner.to_val(), self.contract.to_val())).into_val(env)
+        (self.owner.to_val(), self.contract.to_val()).into_val(env)
     }
 }
 
