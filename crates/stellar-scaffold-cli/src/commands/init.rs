@@ -2,7 +2,7 @@ use clap::{Args, Parser};
 use degit::degit;
 use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
-use std::fs::{copy, metadata, read_dir, remove_dir_all};
+use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, io};
@@ -118,23 +118,15 @@ impl Cmd {
             }
         }
 
-        let pacman_options = PackageManager::LIST
-            .iter()
-            .map(PackageManager::label)
-            .collect::<Vec<&str>>();
+        let pacman = pacman_select();
+        let pacman_command = pacman.label();
 
-        let pacman_index = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Pick your package manager")
-            .items(pacman_options)
-            .default(0)
-            .interact()
-            .unwrap();
-
-        let pacman = PackageManager::from_index(pacman_index);
-        let pacman_name = pacman.label();
+        if (pacman_command != "npm") {
+            remove_file(absolute_project_path.join("package-lock.json"));
+        }
 
         // Install dependencies
-        let pacman_status = pacman_install(pacman, &absolute_project_path, &printer);
+        let pacman_status = pacman_install(pacman_command, &absolute_project_path, &printer);
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
@@ -167,9 +159,9 @@ impl Cmd {
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
         if !pacman_status {
-            printer.blankln(format!("\t{pacman_name} install"));
+            printer.blankln(format!("\t{pacman_command} install"));
         }
-        printer.blankln(format!("\t{pacman_name} start"));
+        printer.blankln(format!("\t{pacman_command} start"));
         printer.blankln(" Happy hacking! 🚀");
         Ok(())
     }
@@ -270,24 +262,39 @@ impl PackageManager {
     }
 }
 
+// Select package manager
+fn pacman_select() -> PackageManager {
+    let pacman_options = PackageManager::LIST
+        .iter()
+        .map(PackageManager::label)
+        .collect::<Vec<&str>>();
+
+    let pacman_index = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Pick your package manager")
+        .items(pacman_options)
+        .default(0)
+        .interact()
+        .unwrap();
+
+    PackageManager::from_index(pacman_index)
+}
+
 // Check if selected pacman is installed and exists in PATH
 fn pacman_exists(command: &str) -> bool {
     Command::new(command).arg("--version").output().is_ok()
 }
 
 // Install dependencies
-fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bool {
-    let pacman_name = pacman.label();
-
-    if !pacman_exists(pacman_name) {
+fn pacman_install(pacman_command: &str, path: &PathBuf, printer: &Print) -> bool {
+    if !pacman_exists(pacman_command) {
         printer.warnln(format!(
-            "Failed to install dependencies, {pacman_name} is not installed"
+            "Failed to install dependencies, {pacman_command} is not installed"
         ));
         return false;
     }
 
     printer.infoln("Installing dependencies...");
-    match Command::new(pacman_name)
+    match Command::new(pacman_command)
         .arg("install")
         .current_dir(path)
         .output()
@@ -297,7 +304,7 @@ fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bo
             // Command ran without panic, but failed for some other reason
             // like network issue or missing dependency, etc.
             printer.warnln(format!(
-                "Failed to install dependencies: Please run '{pacman_name} install' manually"
+                "Failed to install dependencies: Please run '{pacman_command} install' manually"
             ));
             if !output.stderr.is_empty()
                 && let Ok(stderr) = String::from_utf8(output.stderr)
@@ -307,7 +314,7 @@ fn pacman_install(pacman: PackageManager, path: &PathBuf, printer: &Print) -> bo
             false
         }
         Err(e) => {
-            printer.warnln(format!("Failed to run {pacman_name} install: {e}"));
+            printer.warnln(format!("Failed to run {pacman_command} install: {e}"));
             false
         }
     }
