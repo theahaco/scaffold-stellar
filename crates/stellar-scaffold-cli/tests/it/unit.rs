@@ -73,3 +73,38 @@ fn init_copies_frontend_template() {
     assert!(project_path.join("src").exists());
     assert!(project_path.join("tsconfig.json").exists());
 }
+
+#[tokio::test]
+async fn clean_removes_scaffold_artifacts() {
+    let env = TestEnv::new("soroban-init-boilerplate");
+
+    // ensure we have a target/stellar dir before running clean
+    env.scaffold("build").assert().success();
+    let target_stellar = env.cwd.join("target").join("stellar");
+    assert!(target_stellar.exists(), "target/stellar should exist");
+
+    // when cleaning from current dir
+    env.scaffold("clean").assert().success();
+
+    // verify target/stellar is removed
+    assert!(!target_stellar.exists(), "target/stellar should be removed");
+
+    // Verify output contains expected messages
+    // assert!(stderr.contains("Cleaning scaffold artifacts"));
+    // assert!(stderr.contains("Clean complete"));
+
+    // Verify target/stellar is removed
+    // assert!(!target_stellar.exists(), "target/stellar should be removed");
+
+    // // Verify generated package is removed
+    // assert!(!test_package.exists(), "generated package should be removed");
+
+    // // Verify .gitkeep is preserved
+    // assert!(packages_dir.join(".gitkeep").exists(), ".gitkeep should be preserved");
+
+    // // Verify generated file in src/contracts is removed
+    // assert!(!src_contracts_dir.join("generated.ts").exists(), "generated.ts should be removed");
+
+    // // Verify git-tracked file is preserved
+    // assert!(src_contracts_dir.join("util.ts").exists(), "util.ts should be preserved");
+}
