@@ -2,31 +2,41 @@
 
 ## Smart contract
 
-When you are ready for testnet/mainnet, we recommend to deploy your contract using `stellar registry`. Some commands to get you started.
+When you are ready for testnet/mainnet, we recommend to deploy your contract using `stellar registry`. The registry has two namespaces:
+
+- **Verified registry** (default) - Requires manager approval for initial publishes
+- **Unverified registry** - Open for anyone to publish (use `unverified/` prefix)
+
+Some commands to get you started:
 
 ```bash
 #  Note --source-account argument is omitted for clarity
 
-# First publish your contract to the registry
-stellar registry publish
+# First publish your contract to the unverified registry
+stellar registry publish \
+  --wasm target/stellar/local/my_contract.wasm \
+  --wasm-name unverified/my-contract \
+  --binver "1.0.0"
 
 # Then deploy an instance with constructor parameters
 stellar registry deploy \
-  --deployed-name my-contract \
-  --published-name my-contract \
+  --contract-name unverified/my-contract-instance \
+  --wasm-name unverified/my-contract \
   -- \
   --param1 value1
 
 # Can access the help docs with --help
 stellar registry deploy \
-  --deployed-name my-contract \
-  --published-name my-contract \
+  --contract-name unverified/my-contract-instance \
+  --wasm-name unverified/my-contract \
   -- \
   --help
 
 # Install the deployed contract locally
-stellar registry create-alias my-contract
+stellar registry create-alias unverified/my-contract-instance
 ```
+
+**Note:** Names are normalized - underscores become hyphens and uppercase becomes lowercase.
 
 Additionally, you might want to have a look into registering your contract with [Stellar.Expert](https://stellar.expert/explorer/public/contract/validation).
 

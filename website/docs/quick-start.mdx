@@ -51,26 +51,28 @@ You should see your React frontend at http://localhost:5173.
 
 ### 6. For testnet/mainnet deployment:
 
+The registry has two namespaces: **verified** (requires manager approval) and **unverified** (open to all). Use the `unverified/` prefix for the unverified registry:
+
 ```
-# First publish your contract to the registry
-stellar registry publish --wasm path/to/contract.wasm --wasm-name my-contract
+# First publish your contract to the unverified registry
+stellar registry publish --wasm path/to/contract.wasm --wasm-name unverified/my-contract --binver "1.0.0"
 
 # Then deploy an instance with constructor parameters
 stellar registry deploy \
-  --contract-name my-contract-instance \
-  --wasm-name my-contract \
+  --contract-name unverified/my-contract-instance \
+  --wasm-name unverified/my-contract \
   -- \
   --param1 value1
 
 # Can access the help docs for constructor parameters
 stellar registry deploy \
-  --contract-name my-contract-instance \
-  --wasm-name my-contract \
+  --contract-name unverified/my-contract-instance \
+  --wasm-name unverified/my-contract \
   -- \
   --help
 
 # Install the deployed contract locally for use with stellar-cli
-stellar registry create-alias my-contract-instance
+stellar registry create-alias unverified/my-contract-instance
 ```
 
 ## Project Layout
@@ -112,27 +114,33 @@ stellar scaffold build
 **stellar-registry** Manage contract deployment and versions:
 
 ```
-stellar registry publish --wasm contract.wasm --wasm-name my-contract    # Publish contract to the registry
-stellar registry deploy --contract-name instance --wasm-name my-contract # Deploy a contract instance
-stellar registry create-alias my-contract-instance                       # Install deployed contracts locally
+# Publish to unverified registry (no approval needed)
+stellar registry publish --wasm contract.wasm --wasm-name unverified/my-contract --binver "1.0.0"
+
+# Deploy a contract instance
+stellar registry deploy --contract-name unverified/instance --wasm-name unverified/my-contract
+
+# Install deployed contracts locally
+stellar registry create-alias unverified/instance
 ```
 
-> Use `--help` on any command for usage instructions.
+> Use `--help` on any command for usage instructions. Use the `unverified/` prefix for open publishing.
 
 ---
 
 ## Smart Contract Deployment
 
+The registry supports two namespaces:
+- **Verified registry** (default) - Requires manager approval for initial publishes
+- **Unverified registry** - Open for anyone to publish (use `unverified/` prefix)
+
 ### 1. Publish Your Contract
 
 ```bash
-# Publish with automatic metadata extraction
-stellar registry publish --wasm target/stellar/my_contract.wasm
-
-# Or specify details manually
+# Publish to the unverified registry (no approval needed)
 stellar registry publish \
   --wasm target/stellar/my_contract.wasm \
-  --wasm-name my-contract \
+  --wasm-name unverified/my-contract \
   --binver "1.0.0"
 ```
 
@@ -141,13 +149,13 @@ stellar registry publish \
 ```bash
 # Deploy without initialization
 stellar registry deploy \
-  --contract-name my-contract-instance \
-  --wasm-name my-contract
+  --contract-name unverified/my-contract-instance \
+  --wasm-name unverified/my-contract
 
 # Deploy with constructor parameters
 stellar registry deploy \
-  --contract-name my-token \
-  --wasm-name token \
+  --contract-name unverified/my-token \
+  --wasm-name unverified/token \
   --version "1.0.0" \
   -- \
   --name "My Token" \
@@ -158,7 +166,7 @@ stellar registry deploy \
 ### 3. Install the Deployed Contract
 
 ```bash
-stellar registry create-alias my-contract-instance
+stellar registry create-alias unverified/my-contract-instance
 ```
 
 After installation, you can interact with the contract using `stellar-cli`:
@@ -167,6 +175,6 @@ After installation, you can interact with the contract using `stellar-cli`:
 stellar contract invoke --id my-contract-instance -- --help
 ```
 
-> You can deploy to testnet or mainnet depending on your `.env` and `environments.toml`.
+> You can deploy to testnet or mainnet depending on your `.env` and `environments.toml`. Names are normalized (underscores → hyphens, lowercase).
 
 Happy hacking!
