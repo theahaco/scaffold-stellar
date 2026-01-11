@@ -7,6 +7,7 @@ use std::{
 };
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
+use serde_json::Value;
 use stellar_cli;
 
 pub mod build;
@@ -112,7 +113,7 @@ pub enum Error {
 
 #[derive(serde::Deserialize)]
 struct PackageJson {
-    #[serde(rename = "packageManger")]
+    #[serde(rename = "packageManager")]
     package_manager: Option<String>,
 }
 
@@ -127,9 +128,31 @@ impl PackageManagerSpec {
         self.kind.command()
     }
 
+    pub fn write_to_package_json(&self, workspace_root: &Path) -> io::Result<()> {
+        let pkg_path = workspace_root.join("package.json");
+        let contents = read_to_string(pkg_path).ok()?;
+        
+        let mut value: Value = serde_json::from_str(&contents)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        let pacman_value = match &self.version {
+            Some(version) => format!("{}@{}", self.kind.command(), version),
+            None => self.kind.command().to_string(),
+        };
+        
+        value["packageManager"] = Value::String(pacman_value);
+
+        let updated = serde_json::to_string_pretty(&value)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        std::fs::write(pkg_path, updated)?;
+        Ok(())
+    }
+
     pub fn from_package_json(workspace_root: &Path) -> Option<Self> {
         let pkg_path = workspace_root.join("package.json");
         let contents = read_to_string(pkg_path).ok()?;
+        
         let pkg: PackageJson = serde_json::from_str(&contents).ok()?;
         let raw = pkg.package_manager?;
 
@@ -152,6 +175,8 @@ impl PackageManagerSpec {
 
         Self { kind, version }
     }
+
+
 }
 
 #[derive(Debug, Clone)]

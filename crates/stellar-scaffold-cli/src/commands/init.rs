@@ -146,6 +146,8 @@ impl Cmd {
             }
         }
 
+        pacman.write_to_package_json(&absolute_project_path);
+
         // Install dependencies
         let pacman_command = pacman.command();
         let pacman_status = pacman_install(pacman_command, &absolute_project_path, &printer);
