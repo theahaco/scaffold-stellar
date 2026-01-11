@@ -1,4 +1,10 @@
-use std::{fs::read_to_string, path::PathBuf, str::FromStr};
+use std::{
+    fs::read_to_string,
+    io,
+    path::{Path, PathBuf},
+    process::{Command, Output},
+    str::FromStr,
+};
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
 use stellar_cli;
@@ -121,7 +127,7 @@ impl PackageManagerSpec {
         self.kind.command()
     }
 
-    pub fn from_package_json(workspace_root: &PathBuf) -> Option<Self> {
+    pub fn from_package_json(workspace_root: &Path) -> Option<Self> {
         let pkg_path = workspace_root.join("package.json");
         let contents = read_to_string(pkg_path).ok()?;
         let pkg: PackageJson = serde_json::from_str(&contents).ok()?;
@@ -134,7 +140,7 @@ impl PackageManagerSpec {
     fn parse_package_manager_field(value: &str) -> Self {
         let mut parts = value.split('@');
         let name = parts.next().unwrap_or(value);
-        let version = parts.next().map(|v| v.to_string());
+        let version = parts.next().map(std::string::ToString::to_string);
 
         let kind = match name {
             "pnpm" => PackageManager::Pnpm,
@@ -181,5 +187,39 @@ impl PackageManager {
         } else {
             base
         }
+    }
+
+    fn install_silent(&self, dir: &PathBuf) -> io::Result<Output> {
+        let mut cmd = Command::new(self.command());
+        cmd.current_dir(dir);
+
+        match self {
+            Self::Npm => cmd.args(["install", "--loglevel=error"]),
+            Self::Pnpm | Self::Yarn => cmd.args(["install", "--silent"]),
+            _ => cmd.args(["install"]),
+        };
+
+        cmd.output()
+    }
+
+    fn install_no_workspace(&self, dir: &PathBuf) -> io::Result<Output> {
+        let mut cmd = Command::new(self.command());
+        cmd.current_dir(dir);
+
+        match self {
+            Self::Npm => cmd.args(["install", "--no-workspaces", "--loglevel=error"]),
+            Self::Pnpm | Self::Yarn => cmd.args(["install", "--silent"]),
+            _ => cmd.args(["install"]),
+        };
+
+        cmd.output()
+    }
+
+    fn build(&self, dir: &PathBuf) -> io::Result<Output> {
+        Command::new(self.command())
+            .current_dir(dir)
+            .arg("run")
+            .arg("build")
+            .output()
     }
 }

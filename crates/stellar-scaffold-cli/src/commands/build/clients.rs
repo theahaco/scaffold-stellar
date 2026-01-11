@@ -118,8 +118,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
-    NpmCommandFailure(std::path::PathBuf, String),
+    #[error("⛔ ️Failed to run package manager command in {0:?}: {1:?}")]
+    PacmanCommandFailure(std::path::PathBuf, String),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
     #[error("Failed to get upgrade operator: {0:?}")]
@@ -306,52 +306,48 @@ export default new Client.Client({{
 
         let pacman_command = self.pacman.command();
 
-        // Run `npm i` in the temp directory
+        // Run `install` in the temp directory
         printer.infoln(format!(
             "Running '{pacman_command} install' in {temp_dir_display:?}"
         ));
-        let output = std::process::Command::new(pacman_command)
-            .current_dir(&temp_dir)
-            .arg("install")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
-            .output()?;
+        let output = self.pacman.install_no_workspace(&temp_dir)?;
 
         if !output.status.success() {
             // Clean up temp directory on failure
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
+            return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "npm install failed with status: {:?}\nError: {}",
+                    "{pacman_command} install failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
-        printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
+        printer.checkln(format!(
+            "'{pacman_command} install' succeeded in {temp_dir_display}"
+        ));
 
-        printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
-        let output = std::process::Command::new(pacman_command)
-            .current_dir(&temp_dir)
-            .arg("run")
-            .arg("build")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .output()?;
+        printer.infoln(format!(
+            "Running '{pacman_command} run build' in {temp_dir_display}"
+        ));
+        let output = self.pacman.build(&temp_dir)?;
 
         if !output.status.success() {
             // Clean up temp directory on failure
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
+            return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "npm run build failed with status: {:?}\nError: {}",
+                    "{pacman_command} run build failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
-        printer.checkln(format!("'npm run build' succeeded in {temp_dir_display}"));
+        printer.checkln(format!(
+            "'{pacman_command} run build' succeeded in {temp_dir_display}"
+        ));
 
         // Now atomically replace the old directory with the new one
         if final_output_dir.exists() {
@@ -367,18 +363,14 @@ export default new Client.Client({{
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
             printer.checkln(format!("Client {name:?} created successfully"));
-            // Run npm install in the final output directory to ensure proper linking
-            let output = std::process::Command::new(pacman_command)
-                .current_dir(&final_output_dir)
-                .arg("install")
-                .arg("--loglevel=error")
-                .output()?;
+            // Run pacman install in the final output directory to ensure proper linking
+            let output = self.pacman.install_silent(&final_output_dir)?;
 
             if !output.status.success() {
-                return Err(Error::NpmCommandFailure(
+                return Err(Error::PacmanCommandFailure(
                     final_output_dir.clone(),
                     format!(
-                        "npm install in final directory failed with status: {:?}\nError: {}",
+                        "{pacman_command} install in final directory failed with status: {:?}\nError: {}",
                         output.status.code(),
                         String::from_utf8_lossy(&output.stderr)
                     ),

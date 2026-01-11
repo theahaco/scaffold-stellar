@@ -2,7 +2,7 @@ use clap::{Args, Parser};
 use degit::degit;
 use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
-use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file};
+use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file, write};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, io};
@@ -13,6 +13,9 @@ use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
 const TUTORIAL_BRANCH: &str = "tutorial";
+const PNPM_WORKSPACE: &str = r#"packages:
+  - "packages/*"
+"#;
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -120,8 +123,27 @@ impl Cmd {
         }
 
         let pacman = pacman_select();
-        if !matches!(pacman.kind, PackageManager::Npm) {
-            let _ = remove_file(absolute_project_path.join("package-lock.json"));
+        match pacman.kind {
+            PackageManager::Pnpm => {
+                if let Err(e) = write(
+                    absolute_project_path.join("pnpm-workspace.yaml"),
+                    PNPM_WORKSPACE,
+                ) {
+                    printer.warnln(format!(
+                        "Failed to create pnpm-workspace.yaml when pnpm was selected: {e}"
+                    ));
+                }
+            }
+            PackageManager::Npm => {
+                // npm owns package-lock.json → do nothing
+            }
+            _ => {
+                if let Err(e) = remove_file(absolute_project_path.join("package-lock.json")) {
+                    printer.warnln(format!(
+                        "Failed to remove package-lock.json when non-npm pacman selected: {e}"
+                    ));
+                }
+            }
         }
 
         // Install dependencies
@@ -346,10 +368,7 @@ fn is_semver_like(s: &str) -> bool {
     let minor = parts.next().and_then(|p| p.parse::<u64>().ok());
 
     // patch is optional (yarn classic sometimes omits weirdly)
-    let patch = parts
-        .next()
-        .map(|p| p.parse::<u64>().ok())
-        .unwrap_or(Some(0));
+    let patch = parts.next().map_or(Some(0), |p| p.parse::<u64>().ok());
 
     major.is_some() && minor.is_some() && patch.is_some()
 }
