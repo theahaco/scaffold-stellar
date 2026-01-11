@@ -146,7 +146,11 @@ impl Cmd {
             }
         }
 
-        pacman.write_to_package_json(&absolute_project_path);
+        if let Err(_) = pacman.write_to_package_json(&absolute_project_path) {
+            printer.warnln(format!(
+                "Failed to write the selected pacman to package.json"
+            ));
+        }
 
         // Install dependencies
         let pacman_command = pacman.command();
@@ -265,7 +269,7 @@ fn pacman_select() -> PackageManagerSpec {
         .items(pacman_options)
         .default(0)
         .interact()
-        .unwrap();
+        .unwrap_or(0);
 
     let kind = PackageManager::LIST[pacman_index].clone();
     let version = pacman_version(kind.command());

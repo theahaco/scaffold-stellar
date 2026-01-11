@@ -130,7 +130,8 @@ impl PackageManagerSpec {
 
     pub fn write_to_package_json(&self, workspace_root: &Path) -> io::Result<()> {
         let pkg_path = workspace_root.join("package.json");
-        let contents = read_to_string(pkg_path).ok()?;
+        let contents =
+            read_to_string(&pkg_path).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let mut value: Value = serde_json::from_str(&contents)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
@@ -145,7 +146,7 @@ impl PackageManagerSpec {
         let updated = serde_json::to_string_pretty(&value)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-        std::fs::write(pkg_path, updated)?;
+        std::fs::write(&pkg_path, updated)?;
         Ok(())
     }
 
