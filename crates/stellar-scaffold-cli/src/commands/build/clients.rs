@@ -304,11 +304,11 @@ export default new Client.Client({{
         ])?)
         .await?;
 
-        let pacman_command = self.pacman.command();
+        let pacman_label = self.pacman.as_str();
 
         // Run `install` in the temp directory
         printer.infoln(format!(
-            "Running '{pacman_command} install' in {temp_dir_display:?}"
+            "Running '{pacman_label} install' in {temp_dir_display:?}"
         ));
         let output = self.pacman.install_no_workspace(&temp_dir)?;
 
@@ -318,18 +318,18 @@ export default new Client.Client({{
             return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "{pacman_command} install failed with status: {:?}\nError: {}",
+                    "{pacman_label} install failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
         printer.checkln(format!(
-            "'{pacman_command} install' succeeded in {temp_dir_display}"
+            "'{pacman_label} install' succeeded in {temp_dir_display}"
         ));
 
         printer.infoln(format!(
-            "Running '{pacman_command} run build' in {temp_dir_display}"
+            "Running '{pacman_label} run build' in {temp_dir_display}"
         ));
         let output = self.pacman.build(&temp_dir)?;
 
@@ -339,14 +339,14 @@ export default new Client.Client({{
             return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "{pacman_command} run build failed with status: {:?}\nError: {}",
+                    "{pacman_label} run build failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
         printer.checkln(format!(
-            "'{pacman_command} run build' succeeded in {temp_dir_display}"
+            "'{pacman_label} run build' succeeded in {temp_dir_display}"
         ));
 
         // Now atomically replace the old directory with the new one
@@ -370,7 +370,7 @@ export default new Client.Client({{
                 return Err(Error::PacmanCommandFailure(
                     final_output_dir.clone(),
                     format!(
-                        "{pacman_command} install in final directory failed with status: {:?}\nError: {}",
+                        "{pacman_label} install in final directory failed with status: {:?}\nError: {}",
                         output.status.code(),
                         String::from_utf8_lossy(&output.stderr)
                     ),
