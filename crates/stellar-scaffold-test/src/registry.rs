@@ -198,7 +198,7 @@ impl RandomizedWasm {
         wasm_gen::write_custom_section(
             &mut wasm_bytes,
             "test_section",
-            format!("{temp_dir:?}{}", uuid::Uuid::new_v4()).as_bytes(),
+            format!("{}{}", uuid::Uuid::new_v4(), temp_dir.display()).as_bytes(),
         );
         let out_file = temp_dir.join(&self.0);
         fs::write(&out_file, wasm_bytes).expect("Failed to write wasm file with custom section");
