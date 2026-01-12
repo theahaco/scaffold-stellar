@@ -4,7 +4,7 @@
 
 When you are ready for testnet/mainnet, we recommend to deploy your contract using `stellar registry`. The registry has two namespaces:
 
-- **Verified registry** (default) - Requires manager approval for initial publishes
+- **Verified registry** (default) - Requires manager approval for initial publishes and deploys
 - **Unverified registry** - Open for anyone to publish (use `unverified/` prefix)
 
 Some commands to get you started:

@@ -31,6 +31,7 @@ All names are normalized before storage:
 - Names must start with an alphabetic character
 - Names can only contain alphanumeric characters, hyphens, or underscores
 - Rust keywords are not allowed as names
+- Names have a maximum length of 64 characters
 
 ## Prerequisites
 
