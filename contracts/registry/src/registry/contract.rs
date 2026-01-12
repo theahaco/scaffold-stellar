@@ -212,16 +212,15 @@ pub trait Deployable {
     /// Deploys a new published contract returning the deployed contract's id
     /// but does not register the contract name.
     /// Otherwise if no salt provided it will use a random one.
-    fn deploy_unnammed(
+    fn deploy_unnamed(
         env: &Env,
         wasm_name: soroban_sdk::String,
         version: Option<soroban_sdk::String>,
-        salt: Option<soroban_sdk::BytesN<32>>,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        salt: soroban_sdk::BytesN<32>,
         deployer: soroban_sdk::Address,
     ) -> Result<soroban_sdk::Address, Error> {
         deployer.require_auth();
-        let salt: soroban_sdk::BytesN<32> = salt.unwrap_or_else(|| env.prng().gen());
         Contract::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
     }
 
