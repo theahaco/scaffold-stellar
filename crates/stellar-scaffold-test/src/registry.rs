@@ -94,7 +94,7 @@ impl RegistryTest {
                 rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
-                "--fee=10000000",
+                "--fee=1000000000",
             ],
         )
         .expect("Failed to parse arguments for upload")
@@ -198,7 +198,7 @@ impl RandomizedWasm {
         wasm_gen::write_custom_section(
             &mut wasm_bytes,
             "test_section",
-            uuid::Uuid::new_v4().as_bytes(),
+            format!("{temp_dir:?}{}", uuid::Uuid::new_v4()).as_bytes(),
         );
         let out_file = temp_dir.join(&self.0);
         fs::write(&out_file, wasm_bytes).expect("Failed to write wasm file with custom section");

@@ -46,22 +46,21 @@ impl Cmd {
             self.config.source_account().await?.to_string()
         };
 
-        let args = vec![
-            "register_contract".to_string(),
-            format!("--contract_name={}", self.contract_name.name),
-            format!("--contract_address={}", self.contract_address),
-            format!("--owner={owner}"),
+        let args = [
+            "register_contract",
+            "--contract_name",
+            &self.contract_name.name,
+            "--contract_address",
+            &self.contract_address,
+            "--owner",
+            &owner,
         ];
 
         let registry = Registry::new(&self.config, self.contract_name.channel.as_deref()).await?;
 
         registry
             .as_contract()
-            .invoke(
-                &args.iter().map(String::as_str).collect::<Vec<_>>(),
-                Some(&self.fee),
-                self.dry_run,
-            )
+            .invoke(&args, Some(&self.fee), self.dry_run)
             .await?;
 
         eprintln!(

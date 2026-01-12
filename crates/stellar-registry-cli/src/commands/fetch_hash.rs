@@ -99,7 +99,7 @@ mod tests {
             .success();
 
         let hash_v1 = registry
-            .parse_cmd::<super::Cmd>(&["hello", "--version", "\"0.0.1\""])
+            .parse_cmd::<super::Cmd>(&["hello", "--version", "0.0.1"])
             .unwrap()
             .fetch_hash()
             .await
@@ -118,7 +118,7 @@ mod tests {
             .success();
 
         let hash_v2 = registry
-            .parse_cmd::<super::Cmd>(&["hello", "--version", "\"0.0.2\""])
+            .parse_cmd::<super::Cmd>(&["hello", "--version", "0.0.2"])
             .unwrap()
             .fetch_hash()
             .await

@@ -49,23 +49,23 @@ impl Cmd {
             self.config.source_account().await?.to_string()
         };
 
-        let args = vec![
-            "publish_hash".to_string(),
-            format!("--wasm_name={}", self.wasm_name.name),
-            format!("--author={author}"),
-            format!("--wasm_hash={}", self.wasm_hash),
-            format!("--version=\"{}\"", self.version),
+        let args = [
+            "publish_hash",
+            "--wasm_name",
+            &self.wasm_name.name,
+            "--author",
+            &author,
+            "--wasm_hash",
+            &self.wasm_hash,
+            "--version",
+            &self.version,
         ];
 
         let registry = Registry::new(&self.config, self.wasm_name.channel.as_deref()).await?;
 
         registry
             .as_contract()
-            .invoke(
-                &args.iter().map(String::as_str).collect::<Vec<_>>(),
-                Some(&self.fee),
-                self.dry_run,
-            )
+            .invoke(&args, Some(&self.fee), self.dry_run)
             .await?;
 
         eprintln!(
