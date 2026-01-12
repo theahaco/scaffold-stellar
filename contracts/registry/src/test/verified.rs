@@ -589,13 +589,10 @@ fn hello_world_deploy_unnamed() {
 
     let args = vec![env, author.into_val(env)];
     env.mock_all_auths();
-    let contract_id = registry.client().deploy_unnammed(
-        name,
-        &None,
-        &Some(wasm_hash.clone()),
-        &Some(args),
-        author,
-    );
+    let contract_id =
+        registry
+            .client()
+            .deploy_unnamed(name, &None, &Some(args), &wasm_hash.clone(), author);
 
     assert_eq!(
         contract_id,
