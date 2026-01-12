@@ -14,6 +14,7 @@ repository = "https://github.com/theahaco/scaffold-stellar"
 [workspace.dependencies]
 stellar-scaffold-macro = { path = "crates/stellar-scaffold-macro" }
 stellar-registry = { path = "crates/stellar-registry" }
+stellar-scaffold-test = { path = "crates/stellar-scaffold-test" }
 
 stellar-cli = { version = "23.3.0", package = "soroban-cli", default-features = false  }
 soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
