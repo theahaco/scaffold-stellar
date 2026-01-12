@@ -19,7 +19,7 @@ use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
 use crate::commands::global;
 
-mod util;
+pub mod util;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
