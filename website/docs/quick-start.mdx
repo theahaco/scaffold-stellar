@@ -71,7 +71,7 @@ stellar registry deploy \
   -- \
   --help
 
-# Install the deployed contract locally for use with stellar-cli
+# Create an alias the deployed contract locally for use with stellar-cli
 stellar registry create-alias unverified/my-contract-instance
 ```
 
@@ -115,7 +115,7 @@ stellar scaffold build
 
 ```
 # Publish to unverified registry (no approval needed)
-stellar registry publish --wasm contract.wasm --wasm-name unverified/my-contract --binver "1.0.0"
+stellar registry publish --wasm contract.wasm --wasm-name unverified/my-contract
 
 # Deploy a contract instance
 stellar registry deploy --contract-name unverified/instance --wasm-name unverified/my-contract
