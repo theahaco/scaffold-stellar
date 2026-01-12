@@ -136,8 +136,8 @@ impl ContractId {
 
 #[derive(Clone, Debug)]
 pub struct PreHashContractID {
-    salt: Salt,
-    deployer: stellar_strkey::ed25519::PublicKey,
+    pub salt: Salt,
+    pub deployer: stellar_strkey::ed25519::PublicKey,
 }
 
 impl PreHashContractID {

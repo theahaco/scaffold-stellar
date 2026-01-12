@@ -15,6 +15,7 @@ use crate::common::{TestEnv, find_stellar_wasm_dir};
 pub struct RegistryTest {
     pub env: TestEnv,
     pub registry_address: String,
+    pub alice_address: stellar_strkey::ed25519::PublicKey,
 }
 
 impl RegistryTest {
@@ -54,10 +55,15 @@ impl RegistryTest {
         unsafe {
             env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
         }
-
+        let alice_address = Self::parse_cmd_internal::<keys::public_key::Cmd>(&env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap();
         Self {
             env,
             registry_address,
+            alice_address,
         }
     }
 
