@@ -26,6 +26,7 @@ Names in the registry support namespace prefixes. The CLI resolves names using t
 ### Name Normalization
 
 All names are normalized before storage:
+
 - Underscores (`_`) are converted to hyphens (`-`)
 - Uppercase letters are converted to lowercase
 - Names must start with an alphabetic character
