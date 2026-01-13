@@ -1,4 +1,4 @@
-# stellar-build
+# stellar-registry-build
 
 It will find all these dependencies and builds them in the correct order.
 
