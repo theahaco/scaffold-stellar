@@ -92,19 +92,52 @@ Note: Use `--` to separate CLI options from constructor arguments.
 
 **Note:** For the verified registry, the manager must approve deploying with a registered name. For the unverified registry, use the `unverified/` prefix.
 
+### Deploy Unnamed Contract
+
+Deploy a published contract without registering a name in the registry. This is useful when you want to deploy a contract but don't need name resolution:
+
+```bash
+stellar registry deploy-unnamed \
+  --wasm-name <PUBLISHED_NAME> \
+  [--version <VERSION>] \
+  [--salt <HEX_SALT>] \
+  [--deployer <DEPLOYER_ADDRESS>] \
+  -- \
+  [CONSTRUCTOR_ARGS...]
+```
+
+Options:
+
+- `--wasm-name`: The name of the previously published contract to deploy, supports prefix notation like `unverified/my-contract` (required)
+- `--version`: Specific version of the published contract to deploy (optional, defaults to most recent version)
+- `--salt`: Optional hex-encoded 32-byte salt for deterministic contract ID. If not provided, a random salt is used
+- `--deployer`: Deployer account for deterministic contract ID resolution (optional)
+- `CONSTRUCTOR_ARGS`: Optional arguments for the constructor function
+
+Note: Use `--` to separate CLI options from constructor arguments.
+
 ### Register Existing Contract
 
 Register a name for an existing contract that wasn't deployed through the registry:
 
 ```bash
-stellar contract invoke --id <REGISTRY_CONTRACT_ID> -- \
-  register_contract \
+stellar registry register-contract \
   --contract-name <NAME> \
   --contract-address <CONTRACT_ADDRESS> \
-  --owner <OWNER_ADDRESS>
+  [--owner <OWNER_ADDRESS>] \
+  [--dry-run]
 ```
 
+Options:
+
+- `--contract-name`: Name to register for the contract, supports prefix notation like `unverified/my-contract` (required)
+- `--contract-address`: The contract address to register (required)
+- `--owner`: Owner of the contract registration (optional, defaults to source account)
+- `--dry-run`: Simulate the operation without executing (optional)
+
 This allows you to add existing contracts to the registry for name resolution without redeploying them.
+
+**Note:** For the verified registry, the manager must approve name registrations. Use the `unverified/` prefix for the unverified registry.
 
 ### Install Contract
 
@@ -117,6 +150,64 @@ stellar registry create-alias <CONTRACT_NAME>
 Options:
 
 - `CONTRACT_NAME`: Name of the deployed contract to install, supports prefix notation like `unverified/my-contract` (required)
+
+### Publish Hash
+
+Publish an already-uploaded Wasm hash to the registry. This is useful when you've already uploaded a Wasm binary using `stellar contract upload` and want to register it in the registry:
+
+```bash
+stellar registry publish-hash \
+  --wasm-hash <HASH> \
+  --wasm-name <NAME> \
+  --version <VERSION> \
+  [--author <AUTHOR_ADDRESS>] \
+  [--dry-run]
+```
+
+Options:
+
+- `--wasm-hash`: The hex-encoded 32-byte hash of the already-uploaded Wasm (required)
+- `--wasm-name`: Name for the published contract, supports prefix notation like `unverified/my-contract` (required)
+- `--version`: Version string, e.g., "1.0.0" (required)
+- `--author (-a)`: Author address (optional, defaults to source account)
+- `--dry-run`: Simulate the operation without executing (optional)
+
+### Fetch Contract ID
+
+Look up the contract ID of a deployed contract by its registered name:
+
+```bash
+stellar registry fetch-contract-id <CONTRACT_NAME>
+```
+
+Options:
+
+- `CONTRACT_NAME`: Name of the deployed contract, supports prefix notation like `unverified/my-contract` (required)
+
+### Fetch Hash
+
+Fetch the Wasm hash of a published contract:
+
+```bash
+stellar registry fetch-hash <WASM_NAME> [--version <VERSION>]
+```
+
+Options:
+
+- `WASM_NAME`: Name of the published Wasm, supports prefix notation like `unverified/my-contract` (required)
+- `--version`: Specific version to fetch (optional, defaults to latest version)
+
+### Current Version
+
+Get the current (latest) version of a published Wasm:
+
+```bash
+stellar registry current-version <WASM_NAME>
+```
+
+Options:
+
+- `WASM_NAME`: Name of the published Wasm, supports prefix notation like `unverified/my-contract` (required)
 
 ### Fetch Contract Owner
 
