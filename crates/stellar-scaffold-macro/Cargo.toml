@@ -16,5 +16,5 @@ syn = { version = "2", features = ["full"] }
 quote = "1.0"
 stellar-strkey = "0.0.13"
 regex = "1.12.2"
-stellar-xdr = "23.0.0"
+stellar-xdr = "24.0.1"
 sha2 = "0.10.9"
