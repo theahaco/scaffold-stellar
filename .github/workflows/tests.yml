@@ -62,7 +62,7 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
-      - uses: stellar/stellar-cli@v23.3.0
+      - uses: stellar/stellar-cli@v23.4.1
       - run: just create
       - run: just test-integration
       - name: Always Save Cache
