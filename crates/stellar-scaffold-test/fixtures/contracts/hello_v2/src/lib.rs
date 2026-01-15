@@ -5,10 +5,10 @@ use soroban_sdk::{Address, Env, String, contract, contractimpl};
 #[contract]
 pub struct Contract;
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl Administratable for Contract {}
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl Upgradable for Contract {}
 
 #[contractimpl]
