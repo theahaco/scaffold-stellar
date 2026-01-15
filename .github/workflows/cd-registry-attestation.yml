@@ -16,7 +16,7 @@ jobs:
       release_name: ${{ github.ref_name }} # use git tag as unique release name
       release_description: "Contract release" # some boring placeholder text to attach
       home_domain: "theaha.co" # home domain for the contract
-      relative_path: '["contracts/registry"]' # relative path to your really awesome contract
+      # relative_path: '["contracts/registry"]' # relative path to your really awesome contract
       package: "registry" # package name to build
     secrets: # the authentication token will be automatically created by GitHub
       release_token: ${{ secrets.GITHUB_TOKEN }} # don't modify this line
