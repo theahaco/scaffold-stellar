@@ -166,7 +166,7 @@ jobs:
             pkg_version=""
           fi
 
-          TAG_NAME="${{ inputs.release_name }}${relative_path}_${PACKAGE_NAME}${pkg_version}_cli${CLI_VERSION}"
+          TAG_NAME="${{ inputs.release_name }}"
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Create release
