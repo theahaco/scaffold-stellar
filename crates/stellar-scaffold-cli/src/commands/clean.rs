@@ -1,12 +1,15 @@
 use clap::Parser;
-use std::{fs, path::PathBuf, process::Command};
+use std::{fs, io, path::PathBuf, process::Command};
 use stellar_cli::{commands::global, print::Print};
 /// A command to clean the scaffold-generated artifacts from a project
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {}
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {}
+pub enum Error {
+    #[error(transparent)]
+    IO(#[from] io::Error),
+}
 
 // cleans up scaffold artifacts
 // - target/stellar ✅
@@ -14,7 +17,6 @@ pub enum Error {}
 // - src/contracts/* (but not checked-into-git files like util.ts) ✅
 // - contract aliases (for local and test)
 // - identity aliases (for local and test)
-
 
 // - should this be deleting target/stellar/local and target/stellar/testnet specifically to avoid deleting mainnet?
 // - what about target/packages?
@@ -40,88 +42,53 @@ impl Cmd {
         }
 
         // clean packages/
-        let workspace_root = cargo_metadata.workspace_root;
-        let packages_path = workspace_root.join("packages");
-        let src_contracts_path = workspace_root.join("src").join("contracts");
+        let workspace_root: PathBuf = cargo_metadata.workspace_root.into();
 
-        let packages_git_tracked =
-            self.git_tracked_entries(workspace_root.clone().into(), "packages");
-        if packages_path.exists() {
-            for entry in fs::read_dir(&packages_path).unwrap() {
-                let entry = entry.unwrap();
-                let path = entry.path();
-                let relative_path = path.strip_prefix(&workspace_root).unwrap_or(&path);
-                let relative_str = relative_path.as_os_str().to_str().unwrap().to_owned();
+        self.clean_packages(&workspace_root, &printer)?;
 
-                // Skip if this is a git-tracked file
-                if packages_git_tracked.contains(&relative_str) {
-                    continue;
-                }
-
-                // Preserve common template files regardless of git status
-                let filename = path.file_name().and_then(|n| n.to_str());
-                if let Some(name) = filename
-                    && (name == "util.ts" || name == ".gitkeep")
-                {
-                    continue;
-                }
-
-                // Remove the file or directory
-                if path.is_dir() {
-                    fs::remove_dir_all(&path).unwrap();
-                } else {
-                    fs::remove_file(&path).unwrap();
-                }
-                printer.infoln(format!("Removed {relative_str}"));
-            }
-        } else {
-            println!("Skipping packages clean: {packages_path} does not exist");
-        }
-
-        // clean src/contracts
-        let src_contracts_path = Path::new("src/contracts");
-        let src_contract_git_tracked =
-            self.git_tracked_entries(workspace_root.clone().into(), src_contracts_path); // fix this - is this compatible with windows ?
-        if src_contracts_path.exists() {
-            for entry in fs::read_dir(&src_contracts_path).unwrap() {
-                let entry = entry.unwrap();
-                println!("entry in src contracts path {:?}", entry);
-                let path = entry.path();
-                let relative_path = path.strip_prefix(&workspace_root).unwrap_or(&path);
-                let relative_str = relative_path.as_os_str().to_str().unwrap().to_owned();
-
-                // Skip if this is a git-tracked file
-                if src_contract_git_tracked.contains(&relative_str) {
-                    continue;
-                }
-
-                // Preserve common template files regardless of git status
-                let filename = path.file_name().and_then(|n| n.to_str());
-                if let Some(name) = filename
-                    && (name == "util.ts" || name == ".gitkeep")
-                {
-                    continue;
-                }
-
-                // Remove the file or directory
-                if path.is_dir() {
-                    fs::remove_dir_all(&path).unwrap();
-                } else {
-                    fs::remove_file(&path).unwrap();
-                }
-                printer.infoln(format!("Removed {relative_str}"));
-            }
-        } else {
-            println!("Skipping src/contracts clean: {src_contracts_path} does not exist");
-        }
+        self.clean_src_contracts(&workspace_root, &printer)?;
 
         Ok(())
     }
 
-    // does it makes sense to rely on the `git` cli command? or would it be worth using git2 or gitoxide crates?
-    fn git_tracked_entries(&self, workspace_root: PathBuf, subdir: PathBuf) -> Vec<String> {
+    fn clean_packages(&self, workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+        let packages_path: PathBuf = workspace_root.join("packages").into();
+        let git_tracked_packages_entries =
+            self.git_tracked_entries(workspace_root.clone().into(), "packages");
+        self.clean_dir(
+            &workspace_root,
+            &packages_path,
+            git_tracked_packages_entries,
+            printer,
+        )
+    }
+
+    fn clean_src_contracts(&self, workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+        let src_contracts_path = workspace_root.join("src").join("contracts");
+        let git_tracked_src_contract_entries: Vec<String> =
+            self.git_tracked_entries(workspace_root.clone().into(), "src/contracts");
+        self.clean_dir(
+            &workspace_root,
+            &src_contracts_path,
+            git_tracked_src_contract_entries,
+            printer,
+        )
+    }
+
+    // clean aliases
+    //     if the .env file has XDG_CONFIG_HOME remove the file it specifies
+    // otherwise look at the environments.toml file
+    // i think that XDG_CONFIG_HOME is defaulting to .confg...
+    // so, can we just always delete what is in XDG_CONFIG_HOME/stellar?
+
+    // or should we really do the following?
+
+    // for all development.accounts remove each with the stellar cli command stellar keys rm.
+    // for all development.contracts remove each contract alias with the stellar cli command stellar contract alias remove
+
+    fn git_tracked_entries(&self, workspace_root: PathBuf, subdir: &str) -> Vec<String> {
         let output = Command::new("git")
-            .args(["ls-files", subdir.as_os_str().to_str().unwrap()])
+            .args(["ls-files", subdir])
             .current_dir(workspace_root)
             .output();
 
@@ -138,5 +105,48 @@ impl Cmd {
                 Vec::new()
             }
         }
+    }
+
+    // cleans the given directory while preserving git tracked files, as well as some common template files: utils.js and .gitkeep
+    fn clean_dir(
+        &self,
+        workspace_root: &PathBuf,
+        dir_to_clean: &PathBuf,
+        git_tracked_entries: Vec<String>,
+        printer: &Print,
+    ) -> Result<(), Error> {
+        if dir_to_clean.exists() {
+            for entry in fs::read_dir(&dir_to_clean)? {
+                let entry = entry?;
+                let path = entry.path();
+                let relative_path = path.strip_prefix(&workspace_root).unwrap_or(&path);
+                let relative_str = relative_path.to_string_lossy().replace('\\', "/");
+
+                // Skip if this is a git-tracked file
+                if git_tracked_entries.contains(&relative_str) {
+                    continue;
+                }
+
+                // Preserve common template files regardless of git status
+                let filename = path.file_name().and_then(|n| n.to_str());
+                if let Some(name) = filename
+                    && (name == "util.ts" || name == ".gitkeep")
+                {
+                    continue;
+                }
+
+                // Remove the file or directory
+                if path.is_dir() {
+                    fs::remove_dir_all(&path).unwrap();
+                } else {
+                    fs::remove_file(&path).unwrap();
+                }
+                printer.infoln(format!("Removed {relative_str}"));
+            }
+        } else {
+            println!("Skipping clean: {dir_to_clean:?} does not exist");
+        }
+
+        Ok(())
     }
 }
