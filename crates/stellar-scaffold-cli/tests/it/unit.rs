@@ -75,36 +75,85 @@ fn init_copies_frontend_template() {
 }
 
 #[tokio::test]
-async fn clean_removes_scaffold_artifacts() {
+async fn clean_removes_scaffold_artifacts_when_run_from_workspace_dir() {
+    // when cleaning from current dir
     let env = TestEnv::new("soroban-init-boilerplate");
+    env.set_environments_toml(
+        r#"
+development.accounts = [
+    { name = "alice" },
+]
 
-    // ensure we have a target/stellar dir before running clean
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+hello_world.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+    );
     env.scaffold("build").assert().success();
+
     let target_stellar = env.cwd.join("target").join("stellar");
+
+    let packages_path = env.cwd.join("packages");
+    let hello_world_package_path = packages_path.join("soroban_hello_world_contract");
+
+    let src_contracts_path = env.cwd.join("src").join("contracts");
+
+    // Ensure we have expected files before running scaffold clean
+    // target/stellar dir
     assert!(target_stellar.exists(), "target/stellar should exist");
 
-    // when cleaning from current dir
-    env.scaffold("clean").assert().success();
+    // packages/ with soroban_hello_world_contract package
+    assert!(packages_path.exists(), "packages should exist");
+    assert!(
+        hello_world_package_path.exists(),
+        "packages/soroban_hello_world_contract should exist"
+    );
 
-    // verify target/stellar is removed
+    // src/contracts with soroban_hello_world_contract.ts
+    assert!(
+        src_contracts_path
+            .join("soroban_hello_world_contract.ts")
+            .exists(),
+        "soroban_hello_world_contract.ts should exist"
+    );
+
+    // Run scaffold clean
+    env.scaffold("clean").assert().success().stdout_as_str();
+
+    // Verify target/stellar is removed
     assert!(!target_stellar.exists(), "target/stellar should be removed");
+
+    // Verify generated package is removed but the packages dir should still exist
+    assert!(packages_path.exists(), "packages should exist");
+    assert!(
+        packages_path.join(".gitkeep").exists(),
+        ".gitkeep should still exist"
+    );
+    assert!(
+        !hello_world_package_path.exists(),
+        "packages/soroban_hello_world_contract should be removed"
+    );
+
+    // Verify generated file in src/contracts is removed and git-tracked ones are kept
+    assert!(
+        !src_contracts_path
+            .join("soroban_hello_world_contract.ts")
+            .exists(),
+        "soroban_hello_world_contract.ts should be removed"
+    );
+    assert!(
+        src_contracts_path.join("util.ts").exists(),
+        "util.ts should be preserved"
+    );
 
     // Verify output contains expected messages
     // assert!(stderr.contains("Cleaning scaffold artifacts"));
     // assert!(stderr.contains("Clean complete"));
-
-    // Verify target/stellar is removed
-    // assert!(!target_stellar.exists(), "target/stellar should be removed");
-
-    // // Verify generated package is removed
-    // assert!(!test_package.exists(), "generated package should be removed");
-
-    // // Verify .gitkeep is preserved
-    // assert!(packages_dir.join(".gitkeep").exists(), ".gitkeep should be preserved");
-
-    // // Verify generated file in src/contracts is removed
-    // assert!(!src_contracts_dir.join("generated.ts").exists(), "generated.ts should be removed");
-
-    // // Verify git-tracked file is preserved
-    // assert!(src_contracts_dir.join("util.ts").exists(), "util.ts should be preserved");
 }
