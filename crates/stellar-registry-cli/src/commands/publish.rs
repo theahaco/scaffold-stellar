@@ -10,21 +10,24 @@ use stellar_cli::{
 };
 use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
-use crate::commands::global;
+use crate::{commands::global, github::Fetcher};
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
     /// Path to compiled wasm
+    #[arg(long, required_unless_present = "from_github")]
+    pub wasm: Option<PathBuf>,
+    /// Optionally can provide a github repo (<org>/<repo>) which hosts a contract with attestation
     #[arg(long)]
-    pub wasm: PathBuf,
+    pub from_github: Option<String>,
     /// Optional author address, if not provided, the default keypair will be used
     #[arg(long, short = 'a')]
     pub author: Option<String>,
     /// Wasm name, if not provided, will try to extract from contract metadata
-    #[arg(long)]
+    #[arg(long, requires = "from_github")]
     pub wasm_name: Option<PrefixedName>,
     /// Wasm binary version, if not provided, will try to extract from contract metadata
-    #[arg(long)]
+    #[arg(long, requires = "from_github")]
     pub binver: Option<String>,
     /// Prepares and simulates publishing with invoking
     #[arg(long)]
@@ -52,21 +55,57 @@ pub enum Error {
     MissingFileArg(PathBuf),
     #[error(transparent)]
     Config(#[from] config::Error),
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
 }
 
 impl Cmd {
+    pub async fn fetch_from_github(&self) -> Result<Vec<u8>, Error> {
+        let from_github = self.from_github.as_ref().unwrap();
+        let wasm_name = &self.wasm_name.as_ref().unwrap().name;
+        let bin_ver = self.binver.as_ref().unwrap();
+        let url = format!(
+            "https://github.com/{from_github}/releases/download/{wasm_name}-v{bin_ver}/{wasm_name}_v{bin_ver}.wasm"
+        );
+        let client = reqwest::Client::new();
+        let response = client
+            .get(url)
+            .header("User-Agent", "stellar-registry-cli")
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(Error::Reqwest(response.error_for_status().unwrap_err()));
+        }
+        Ok(response.bytes().await?.to_vec())
+    }
+
+    pub async fn get_wasm_bytes(&self) -> Result<Vec<u8>, Error> {
+        if let Some(github) = &self.from_github {
+            Ok(Fetcher::new(
+                github,
+                &self.wasm_name.as_ref().unwrap().name,
+                self.binver.as_ref().unwrap(),
+            )
+            .fetch()
+            .await?)
+        } else if let Some(wasm) = &self.wasm {
+            std::fs::read(&wasm).map_err(|_| Error::MissingFileArg(wasm.clone()))
+        } else {
+            unreachable!()
+        }
+    }
+
     pub async fn run(&self) -> Result<(), Error> {
         // Read the Wasm file from the path
-        let wasm_bytes =
-            std::fs::read(&self.wasm).map_err(|_| Error::MissingFileArg(self.wasm.clone()))?;
+        let wasm_bytes = self.get_wasm_bytes().await?;
         let spec =
             contract_spec::Spec::new(&wasm_bytes).map_err(|_| Error::CannotParseContractSpec);
-
         // Prepare a mutable vector for the base arguments
         let mut args = vec![
             "publish".to_string(),
-            "--wasm-file-path".to_string(),
-            self.wasm.to_string_lossy().to_string(),
+            "--wasm".to_string(),
+            hex::encode(wasm_bytes),
         ];
 
         // Use `filter_map` to extract relevant metadata and format as arguments
@@ -128,7 +167,7 @@ impl Cmd {
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    use stellar_scaffold_test::RegistryTest;
+    use stellar_scaffold_test::{AssertExt, RegistryTest};
 
     #[tokio::test]
     async fn test_run() {
@@ -240,5 +279,32 @@ mod tests {
             .arg("unverified/hello")
             .assert()
             .success();
+    }
+
+    #[tokio::test]
+    async fn github() {
+        // Create test environment
+        let registry = RegistryTest::new().await;
+
+        registry
+            .registry_cli("publish")
+            .arg("--from-github")
+            .arg("theahaco/scaffold-stellar")
+            .arg("--binver")
+            .arg("0.3.1")
+            .arg("--wasm-name")
+            .arg("registry")
+            .assert()
+            .success();
+
+        assert_eq!(
+            "cbd955f16a026c6658b3f28bc205240db580424433d3ac85ccc55062f015add6",
+            &registry
+                .registry_cli("fetch-hash")
+                .arg("registry")
+                .assert()
+                .success()
+                .stdout_as_str()
+        );
     }
 }
