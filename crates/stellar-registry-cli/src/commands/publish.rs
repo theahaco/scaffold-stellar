@@ -1,6 +1,6 @@
 use std::{ffi::OsString, path::PathBuf};
 
-use clap::Parser;
+use clap::{Args, Parser};
 
 pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
@@ -12,14 +12,21 @@ use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
 use crate::{commands::global, github::Fetcher};
 
-#[derive(Parser, Debug, Clone)]
-pub struct Cmd {
+#[derive(Args, Debug, Clone)]
+#[group(required = true, multiple = false)]
+pub struct WasmArgs {
     /// Path to compiled wasm
-    #[arg(long, required_unless_present = "from_github")]
+    #[arg(long)]
     pub wasm: Option<PathBuf>,
     /// Optionally can provide a github repo (<org>/<repo>) which hosts a contract with attestation
     #[arg(long)]
     pub from_github: Option<String>,
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct Cmd {
+    #[command(flatten)]
+    pub wasm_args: WasmArgs,
     /// Optional author address, if not provided, the default keypair will be used
     #[arg(long, short = 'a')]
     pub author: Option<String>,
@@ -61,7 +68,7 @@ pub enum Error {
 
 impl Cmd {
     pub async fn fetch_from_github(&self) -> Result<Vec<u8>, Error> {
-        let from_github = self.from_github.as_ref().unwrap();
+        let from_github = self.wasm_args.from_github.as_ref().unwrap();
         let wasm_name = &self.wasm_name.as_ref().unwrap().name;
         let bin_ver = self.binver.as_ref().unwrap();
         let url = format!(
@@ -81,7 +88,7 @@ impl Cmd {
     }
 
     pub async fn get_wasm_bytes(&self) -> Result<Vec<u8>, Error> {
-        if let Some(github) = &self.from_github {
+        if let Some(github) = &self.wasm_args.from_github {
             Ok(Fetcher::new(
                 github,
                 &self.wasm_name.as_ref().unwrap().name,
@@ -89,8 +96,8 @@ impl Cmd {
             )
             .fetch()
             .await?)
-        } else if let Some(wasm) = &self.wasm {
-            std::fs::read(&wasm).map_err(|_| Error::MissingFileArg(wasm.clone()))
+        } else if let Some(wasm) = &self.wasm_args.wasm {
+            std::fs::read(wasm).map_err(|_| Error::MissingFileArg(wasm.clone()))
         } else {
             unreachable!()
         }
