@@ -89,15 +89,15 @@ rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
 [development.contracts]
-hello_world.client = false
+soroban_hello_world_contract.client = true
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
-soroban_auth_contract.client = false
+soroban-auth-contract.client = false
 soroban_token_contract.client = false
 "#,
     );
-    env.scaffold("build").assert().success();
 
+    env.scaffold("build").assert().success();
     let target_stellar = env.cwd.join("target").join("stellar");
 
     let packages_path = env.cwd.join("packages");
@@ -123,6 +123,15 @@ soroban_token_contract.client = false
             .exists(),
         "soroban_hello_world_contract.ts should exist"
     );
+
+    let key_aliases = std::process::Command::new("stellar")
+        .env("XDG_CONFIG_HOME", ".config")
+        .args(["keys", "ls"])
+        .current_dir(&env.cwd)
+        .output()
+        .unwrap()
+        .stdout;
+    assert!(String::from_utf8_lossy(&key_aliases).contains("alice"));
 
     // Run scaffold clean
     env.scaffold("clean").assert().success().stdout_as_str();
@@ -152,6 +161,30 @@ soroban_token_contract.client = false
         src_contracts_path.join("util.ts").exists(),
         "util.ts should be preserved"
     );
+
+    // Verify aliases have been cleaned
+    let key_aliases = std::process::Command::new("stellar")
+        .env("XDG_CONFIG_HOME", ".config")
+        .args(["keys", "ls"])
+        .current_dir(&env.cwd)
+        .output()
+        .unwrap()
+        .stdout;
+    assert!(!String::from_utf8_lossy(&key_aliases).contains("alice"));
+    // i think that there is not a .env file
+    // but i think that XDG_CONFIG_HOME is still defaulting to something, ~/.config - not sure though
+    // so i think we can avoid the check, and just assume that value is set to _something_ and idk remove all the things in it for local? and testnet?
+    // or should we rely on stellar contract alias rm?
+
+    // but i think we should just rely on stellar contract alias rm becaue then we wont have to worry about removing things from other projects... or other network environments
+
+    // let env_file = env.cwd.join(".env");
+    // assert!(env_file.exists(), "it doesnt");
+    // if env_file.exists() {
+    //     let env_content = fs::read_to_string(&env_file).unwrap();
+    //     println!("env content {:?}", env_content);
+    //     assert_eq!("", env_content, "what?");
+    // };
 
     // Verify output contains expected messages
     // assert!(stderr.contains("Cleaning scaffold artifacts"));
