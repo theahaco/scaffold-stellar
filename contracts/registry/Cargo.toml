@@ -7,6 +7,8 @@ license = "Apache-2.0"
 rust-version = "1.69"
 edition = "2021"
 publish = false
+repository = "https://github.com/theahaco/scaffold-stellar/tree/main/contracts/registry"
+
 
 [lib]
 crate-type = ["cdylib"]
