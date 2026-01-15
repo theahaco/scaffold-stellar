@@ -11,7 +11,7 @@ permissions: # required permissions for the workflow
 
 jobs:
   release-contract-a:
-    uses: ./.github/workflows/actions/release-contract.yml
+    uses: ./.github/workflows/release-contract.yml
     with:
       release_name: ${{ github.ref_name }} # use git tag as unique release name
       release_description: "Contract release" # some boring placeholder text to attach
