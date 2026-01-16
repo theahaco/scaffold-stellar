@@ -1,9 +1,13 @@
+use crate::commands::build::clients::ScaffoldEnv;
+use crate::commands::build::env_toml::{self, Account, Environment};
 use cargo_metadata::Metadata;
 use clap::Parser;
-use std::{fs, io, path::PathBuf, process::Command};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+    process::Command,
+};
 use stellar_cli::{commands::global, print::Print};
-use crate::commands::build::clients::ScaffoldEnv;
-use crate::commands::build::env_toml::Environment;
 /// A command to clean the scaffold-generated artifacts from a project
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
@@ -16,17 +20,20 @@ pub struct Cmd {
 pub enum Error {
     #[error(transparent)]
     IO(#[from] io::Error),
-    
+
     #[error("network config is not sufficient: need name or url and passphrase")]
-    NetworkConfig
+    NetworkConfig,
+
+    #[error(transparent)]
+    EnvToml(#[from] env_toml::Error),
 }
 
 // cleans up scaffold artifacts
 // - target/stellar ✅
 // - packages/* (but not checked-into-git files like .gitkeep) ✅
 // - src/contracts/* (but not checked-into-git files like util.ts) ✅
-// - contract aliases (for local and test)
-// - identity aliases (for local and test)
+// - contract aliases (for local and test) ✅
+// - identity aliases (for local and test) ✅
 
 // - should this be deleting target/stellar/local and target/stellar/testnet specifically to avoid deleting mainnet?
 // - what about target/packages?
@@ -58,6 +65,8 @@ impl Cmd {
         Self::clean_src_contracts(&workspace_root, &printer)?;
 
         Self::clean_contract_aliases(&workspace_root, &printer)?;
+
+        Self::clean_identities(&workspace_root, &printer);
 
         Ok(())
     }
@@ -97,7 +106,7 @@ impl Cmd {
         )
     }
 
-    fn clean_contract_aliases(workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+    fn clean_contract_aliases(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         match Environment::get(workspace_root, &ScaffoldEnv::Development) {
             Ok(Some(env)) => {
                 let network_args = Self::get_network_args(&env)?;
@@ -107,10 +116,11 @@ impl Cmd {
                             .args(["contract", "alias", "remove", contract_name])
                             .args(&network_args)
                             .output();
-                            
+
                         match result {
                             Ok(output) if output.status.success() => {
-                                printer.infoln(format!("    Removed contract alias: {contract_name}"));
+                                printer
+                                    .infoln(format!("    Removed contract alias: {contract_name}"));
                             }
                             Ok(output) => {
                                 let stderr = String::from_utf8_lossy(&output.stderr);
@@ -136,35 +146,109 @@ impl Cmd {
         Ok(())
     }
 
-    fn get_network_args(env: &Environment) -> Result<Vec<&str>, Error>{
+    fn clean_identities(workspace_root: &Path, printer: &Print) {
+        match Environment::get(workspace_root, &ScaffoldEnv::Development) {
+            Ok(Some(env)) => {
+                // only clean the alias if it is only configured for Development, otherwise warn
+                if let Some(accounts) = &env.accounts {
+                    for account in accounts {
+                        let other_envs = Self::account_in_other_envs(workspace_root, account);
+                        if !other_envs.is_empty() {
+                            printer.warnln(format!("Skipping cleaning identity {:?}. It is being used in other environments: {:?}.", account.name, other_envs));
+                            return;
+                        }
+
+                        let result = std::process::Command::new("stellar")
+                            .args(["keys", "rm", &account.name])
+                            .output();
+
+                        match result {
+                            Ok(output) if output.status.success() => {
+                                printer.infoln(format!("Removed account: {}", &account.name));
+                            }
+                            Ok(output) => {
+                                let stderr = String::from_utf8_lossy(&output.stderr);
+                                if !stderr.contains("not found") && !stderr.contains("No alias") {
+                                    printer.warnln(format!(
+                                        "Warning: Failed to remove account {}: {stderr}",
+                                        &account.name
+                                    ));
+                                }
+                            }
+                            Err(e) => {
+                                printer.warnln(format!("    Warning: Failed to execute stellar contract alias remove: {e}"));
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(None) => {
+                printer.infoln("No development environment found in environments.toml");
+            }
+            Err(e) => {
+                printer.warnln(format!("Warning: Failed to read environments.toml: {e}"));
+            }
+        }
+    }
+
+    fn account_in_other_envs(workspace_root: &Path, current_account: &Account) -> Vec<ScaffoldEnv> {
+        let mut other_envs: Vec<ScaffoldEnv> = vec![];
+
+        if let Some(testing) = Environment::get(workspace_root, &ScaffoldEnv::Testing)
+            .ok()
+            .flatten()
+        {
+            let found = testing
+                .accounts
+                .as_ref()
+                .is_some_and(|accts| accts.iter().any(|acct| acct.name == current_account.name));
+            if found {
+                other_envs.push(ScaffoldEnv::Testing);
+            }
+        }
+
+        if let Some(staging) = Environment::get(workspace_root, &ScaffoldEnv::Staging)
+            .ok()
+            .flatten()
+        {
+            let found = staging
+                .accounts
+                .as_ref()
+                .is_some_and(|accts| accts.iter().any(|acct| acct.name == current_account.name));
+            if found {
+                other_envs.push(ScaffoldEnv::Staging);
+            }
+        }
+
+        if let Some(production) = Environment::get(workspace_root, &ScaffoldEnv::Production)
+            .ok()
+            .flatten()
+        {
+            let found = production
+                .accounts
+                .as_ref()
+                .is_some_and(|accts| accts.iter().any(|acct| acct.name == current_account.name));
+            if found {
+                other_envs.push(ScaffoldEnv::Production);
+            }
+        }
+
+        other_envs
+    }
+
+    fn get_network_args(env: &Environment) -> Result<Vec<&str>, Error> {
         match (
             &env.network.name,
             &env.network.rpc_url,
             &env.network.network_passphrase,
         ) {
-            (Some(name), _, _) => {
-                Ok(vec!["--network", name])
-            },
+            (Some(name), _, _) => Ok(vec!["--network", name]),
             (None, Some(url), Some(passphrase)) => {
                 Ok(vec!["--rpc-url", url, "--network-passphrase", passphrase])
-            },
-            _ => Err(Error::NetworkConfig)
+            }
+            _ => Err(Error::NetworkConfig),
         }
     }
-
-
-    // clean aliases
-    //     if the .env file has XDG_CONFIG_HOME remove the file it specifies
-    // otherwise look at the environments.toml file
-    // i think that XDG_CONFIG_HOME is defaulting to .confg...
-    // so, can we just always delete what is in XDG_CONFIG_HOME/stellar?
-
-    // or should we really do the following?
-    // i think that XDG_CONFIG_HOME is alwasy set wheter is it .config or ~/.config.
-    // and i wonder if we should do the followin regardless because that would make sure we didnt remove procution stuff
-
-    // for all development.accounts remove each with the stellar cli command stellar keys rm.
-    // for all development.contracts remove each contract alias with the stellar cli command stellar contract alias remove
 
     fn git_tracked_entries(workspace_root: PathBuf, subdir: &str) -> Vec<String> {
         let output = Command::new("git")
