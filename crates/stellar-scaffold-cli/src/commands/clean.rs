@@ -77,7 +77,9 @@ impl Cmd {
         if stellar_dir.exists() {
             fs::remove_dir_all(&stellar_dir)?; //todo handle unwrap
         } else {
-            printer.infoln("Skipping target clean: {stellar_dir} does not exist");
+            printer.infoln(format!(
+                "Skipping target clean: {stellar_dir} does not exist"
+            ));
         }
         Ok(())
     }
@@ -119,8 +121,7 @@ impl Cmd {
 
                         match result {
                             Ok(output) if output.status.success() => {
-                                printer
-                                    .infoln(format!("    Removed contract alias: {contract_name}"));
+                                printer.infoln(format!("Removed contract alias: {contract_name}"));
                             }
                             Ok(output) => {
                                 let stderr = String::from_utf8_lossy(&output.stderr);
