@@ -1,3 +1,4 @@
+use cargo_metadata::Metadata;
 use clap::Parser;
 use std::{fs, io, path::PathBuf, process::Command};
 use stellar_cli::{commands::global, print::Print};
@@ -43,43 +44,46 @@ impl Cmd {
                 .unwrap(),
         };
 
-        // clean target/stellar
-        let target_dir = cargo_meta.target_directory;
-        let stellar_dir = target_dir.join("stellar");
-        if stellar_dir.exists() {
-            fs::remove_dir_all(&stellar_dir).unwrap(); //todo handle unwrap
-        } else {
-            println!("Skipping target clean: {stellar_dir} does not exist");
-        }
+        Self::clean_target_stellar(&cargo_meta, &printer)?;
 
-        // clean packages/
         let workspace_root: PathBuf = cargo_meta.workspace_root.into();
 
-        self.clean_packages(&workspace_root, &printer)?;
+        Self::clean_packages(&workspace_root, &printer)?;
 
-        self.clean_src_contracts(&workspace_root, &printer)?;
+        Self::clean_src_contracts(&workspace_root, &printer)?;
 
         Ok(())
     }
 
-    fn clean_packages(&self, workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
-        let packages_path: PathBuf = workspace_root.join("packages").into();
+    fn clean_target_stellar(cargo_meta: &Metadata, printer: &Print) -> Result<(), Error> {
+        let target_dir = &cargo_meta.target_directory;
+        let stellar_dir = target_dir.join("stellar");
+        if stellar_dir.exists() {
+            fs::remove_dir_all(&stellar_dir)?; //todo handle unwrap
+        } else {
+            printer.infoln("Skipping target clean: {stellar_dir} does not exist");
+        }
+        Ok(())
+    }
+
+    fn clean_packages(workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+        let packages_path: PathBuf = workspace_root.join("packages");
         let git_tracked_packages_entries =
-            self.git_tracked_entries(workspace_root.clone().into(), "packages");
-        self.clean_dir(
-            &workspace_root,
+            Self::git_tracked_entries(workspace_root.clone(), "packages");
+        Self::clean_dir(
+            workspace_root,
             &packages_path,
             git_tracked_packages_entries,
             printer,
         )
     }
 
-    fn clean_src_contracts(&self, workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+    fn clean_src_contracts(workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
         let src_contracts_path = workspace_root.join("src").join("contracts");
         let git_tracked_src_contract_entries: Vec<String> =
-            self.git_tracked_entries(workspace_root.clone().into(), "src/contracts");
-        self.clean_dir(
-            &workspace_root,
+            Self::git_tracked_entries(workspace_root.clone(), "src/contracts");
+        Self::clean_dir(
+            workspace_root,
             &src_contracts_path,
             git_tracked_src_contract_entries,
             printer,
@@ -97,7 +101,7 @@ impl Cmd {
     // for all development.accounts remove each with the stellar cli command stellar keys rm.
     // for all development.contracts remove each contract alias with the stellar cli command stellar contract alias remove
 
-    fn git_tracked_entries(&self, workspace_root: PathBuf, subdir: &str) -> Vec<String> {
+    fn git_tracked_entries(workspace_root: PathBuf, subdir: &str) -> Vec<String> {
         let output = Command::new("git")
             .args(["ls-files", subdir])
             .current_dir(workspace_root)
@@ -120,18 +124,16 @@ impl Cmd {
 
     // cleans the given directory while preserving git tracked files, as well as some common template files: utils.js and .gitkeep
     fn clean_dir(
-        &self,
         workspace_root: &PathBuf,
         dir_to_clean: &PathBuf,
         git_tracked_entries: Vec<String>,
         printer: &Print,
     ) -> Result<(), Error> {
-        println!("cleaning dir_to_clean {dir_to_clean:?}");
         if dir_to_clean.exists() {
-            for entry in fs::read_dir(&dir_to_clean)? {
+            for entry in fs::read_dir(dir_to_clean)? {
                 let entry = entry?;
                 let path = entry.path();
-                let relative_path = path.strip_prefix(&workspace_root).unwrap_or(&path);
+                let relative_path = path.strip_prefix(workspace_root).unwrap_or(&path);
                 let relative_str = relative_path.to_string_lossy().replace('\\', "/");
 
                 // Skip if this is a git-tracked file
@@ -156,7 +158,7 @@ impl Cmd {
                 printer.infoln(format!("Removed {relative_str}"));
             }
         } else {
-            println!("Skipping clean: {dir_to_clean:?} does not exist");
+            println!("Skipping clean: {} does not exist", dir_to_clean.display());
         }
 
         Ok(())
