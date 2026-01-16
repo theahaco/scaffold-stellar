@@ -154,7 +154,7 @@ Let's walk through this line by line:
   1.  The Wasm gets uploaded to the blockchain, so that many contracts could use it.
   2.  A contract gets deployed (aka "instantiated", in the current parlance of this output) so that there is an actual smart contract that refers to, or points to, that Wasm.
 
-- `after_deploy`: calls to the contract to make after it gets deployed. Kind of like the `constructor_args`, these are specified using _only_ the part that comes after the `--`. The setting above tells Scaffold CLI to make the following call, after deploying the contract:
+- `after_deploy`: method calls to make to the contract after it gets deployed. Kind of like the `constructor_args`, but, these are specified using _only_ the part that comes after the `--`. The setting above tells Scaffold CLI to make call the `reset` method, after deploying the contract:
 
   ```bash
   stellar contract deploy \
@@ -192,9 +192,9 @@ If you already tried re-running the `guess` logic in the app, you'll see...
 
 Nothing. Nothing happens. At least not yet.
 
-The contract didn't change, so Scaffold CLI didn't re-deploy the contract. You're still using the one that had the `reset` method called right after deploy.
+The contract didn't change, so Scaffold CLI didn't re-deploy the contract. You're still using the instance that had the `reset` method called right after deploy.
 
-Once [theahaco/scaffold-stellar#259](https://github.com/theahaco/scaffold-stellar/issues/259) is complete, you will be able to run `stellar scaffold reset`. Until then, you can remove the alias that Scaffold Stellar uses to keep track of this contract. Stop the `npm run start` process, then run:
+Once [theahaco/scaffold-stellar#259](https://github.com/theahaco/scaffold-stellar/issues/259) is complete, you will be able to run `stellar scaffold reset`. Until then, you can remove the alias that Scaffold Stellar uses to keep track of this contract, which allows us to re-deploy a new `guess_the_number` contract. Stop the `npm run start` process, then run:
 
 ```bash
 stellar contract alias remove guess_the_number --network local
@@ -242,7 +242,7 @@ impl GuessTheNumber {
     /// Private helper function to generate and store a new random number
     fn set_random_number(env: &Env) {
         let new_number: u64 = env.prng().gen_range(1..=10);
-        env.storage().instance().set(&THE_NUMBER, &new_number);
+        env.storage().instance().set(THE_NUMBER, &new_number);
     }
 }
 ```
@@ -261,7 +261,7 @@ Notice that this function doesn't have `pub` in front of it - this makes it priv
 Now let's modify the `__constructor` to set an initial number when the contract is deployed:
 
 ```rust
-pub fn __constructor(env: &Env, admin: &Address) {
+pub fn __constructor(env: &Env, admin: Address) {
     Self::set_admin(env, admin);
     Self::set_random_number(env); // Add this line
 }
@@ -291,7 +291,7 @@ Much cleaner! The logic is now centralized in our helper function. Note that thi
 $ npm start
 ```
 
-Click over to `&lt;/&gt; Debugger` if you're not there already and select the `guess_the_number` contract. You'll see that `reset` is listed here, but `set_random_number` is not.
+Click over to the Debugger if you're not there already and select the `guess_the_number` contract. You'll see that `reset` is listed here, but `set_random_number` is not.
 
 Our `reset` method is available to be called by code _outside_ our contract because we opted in to it being a public method with the `pub` keyword. Our `set_random_number` is private by default, it's not visible to the outside world. It's not listed in the Contract Explorer. It's not listed in the CLI help either:
 
@@ -315,7 +315,7 @@ error: unrecognized subcommand 'set_random_number'
 
 Nope! Just because we made it public, we still require authentication so only admins can call it. Rust's idea of public vs private handles "where" the functions can be called. You still need to handle "who" calls it. That's why we set the contract admin in it's constructor method and check it with `Self::require_admin(env);`.
 
-You can try this out by invoking it from the Contract Explorer in your browser. The admin is `me`, but you didn't import that account into your browser wallet. Go ahead and hit `Submit` on the `reset` function.
+You can try this out by invoking it from the Debugger in your browser. The admin is `me`, but you didn't import that account into your browser wallet. Go ahead and hit `Submit` on the `reset` function. You should see the transaction fail.
 
 You could also try this out in the CLI. Create a non-admin identity to see how it fails:
 
@@ -383,12 +383,13 @@ use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Sy
 #[contract]
 pub struct GuessTheNumber;
 
-const THE_NUMBER: Symbol = symbol_short!("n");
-pub const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
+const THE_NUMBER: &Symbol = &symbol_short!("n");
+const ADMIN_KEY: &Symbol = &symbol_short!("ADMIN");
 
 #[contractimpl]
 impl GuessTheNumber {
-    pub fn __constructor(env: &Env, admin: &Address) {
+    /// Constructor to initialize the contract with an admin and a random number
+    pub fn __constructor(env: &Env, admin: Address) {
         Self::set_admin(env, admin);
         Self::set_random_number(env);
     }
@@ -399,7 +400,7 @@ impl GuessTheNumber {
         Self::set_random_number(env);
     }
 
-    /// Guess a number between 1 and 10
+    /// Guess a number between 1 and 10, inclusive
     pub fn guess(env: &Env, a_number: u64) -> bool {
         a_number == Self::number(env)
     }
@@ -407,14 +408,14 @@ impl GuessTheNumber {
     /// Private helper function to generate and store a new random number
     fn set_random_number(env: &Env) {
         let new_number: u64 = env.prng().gen_range(1..=10);
-        env.storage().instance().set(&THE_NUMBER, &new_number);
+        env.storage().instance().set(THE_NUMBER, &new_number);
     }
 
     /// readonly function to get the current number
     fn number(env: &Env) -> u64 {
         // We can unwrap because the number is set in the constructor
         // and then only reset by the admin
-        unsafe { env.storage().instance().get(THE_NUMBER).unwrap_unchecked() }
+        unsafe { env.storage().instance().get::<_, u64>(THE_NUMBER).unwrap_unchecked() }
     }
 
     /// Upgrade the contract to new wasm. Only callable by admin.
@@ -428,13 +429,13 @@ impl GuessTheNumber {
         env.storage().instance().get(ADMIN_KEY)
     }
 
-    /// Set a new admin. Only callable by admin.
-    fn set_admin(env: &Env, admin: &Address) {
-        // Check if admin is already set
-        if env.storage().instance().has(ADMIN_KEY) {
+    /// set a new admin. only callable by admin.
+    pub fn set_admin(env: &env, admin: address) {
+        // check if admin is already set
+        if env.storage().instance().has(admin_key) {
             panic!("admin already set");
         }
-        env.storage().instance().set(ADMIN_KEY, admin);
+        env.storage().instance().set(admin_key, &admin);
     }
 
     /// Private helper function to require auth from the admin
@@ -454,7 +455,7 @@ Let's test that our improvements work. You should still have the `npm start` pro
 1. `stellar scaffold watch --build-clients`: watches for any changes in your `contracts/` folders, then rebuilds and redeploys them
 2. `vite`: watches for any changes in your `src/` folder and hot-reloads the UI
 
-That means any time you add a method, tweak arguments, or even add documentation, everything is immediately reflected on the local network, your application in the browser, and in the Contract Explorer. Let's add some info to the `guess` method's documentation:
+That means any time you add a method, tweak arguments, or even add documentation, everything is immediately reflected on the local network, your application in the browser, and in the Debugger. Let's add some info to the `guess` method's documentation:
 
 ```rust
     /// Guess a number between 1 and 10, inclusive. Returns a boolean.
@@ -465,7 +466,7 @@ As soon as you hit save, watch the Contract Explorer reload with the new text. N
 
 ### How to Write Unit Tests
 
-TODO
+_🏗️✨ Coming soon._
 
 ## What We've Learned
 
