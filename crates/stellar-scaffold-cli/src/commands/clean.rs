@@ -3,7 +3,11 @@ use std::{fs, io, path::PathBuf, process::Command};
 use stellar_cli::{commands::global, print::Print};
 /// A command to clean the scaffold-generated artifacts from a project
 #[derive(Parser, Debug, Clone)]
-pub struct Cmd {}
+pub struct Cmd {
+    /// Path to Cargo.toml
+    #[arg(long)]
+    pub manifest_path: Option<PathBuf>,
+}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -27,13 +31,20 @@ impl Cmd {
         let printer = Print::new(global_args.quiet);
         printer.infoln("Starting workspace cleanup");
 
-        let cargo_metadata = cargo_metadata::MetadataCommand::new()
-            .no_deps()
-            .exec()
-            .unwrap();
+        let cargo_meta = match &self.manifest_path {
+            Some(manifest_path) => cargo_metadata::MetadataCommand::new()
+                .manifest_path(manifest_path)
+                .no_deps()
+                .exec()
+                .unwrap(),
+            _ => cargo_metadata::MetadataCommand::new()
+                .no_deps()
+                .exec()
+                .unwrap(),
+        };
 
         // clean target/stellar
-        let target_dir = cargo_metadata.target_directory;
+        let target_dir = cargo_meta.target_directory;
         let stellar_dir = target_dir.join("stellar");
         if stellar_dir.exists() {
             fs::remove_dir_all(&stellar_dir).unwrap(); //todo handle unwrap
@@ -42,7 +53,7 @@ impl Cmd {
         }
 
         // clean packages/
-        let workspace_root: PathBuf = cargo_metadata.workspace_root.into();
+        let workspace_root: PathBuf = cargo_meta.workspace_root.into();
 
         self.clean_packages(&workspace_root, &printer)?;
 
@@ -115,6 +126,7 @@ impl Cmd {
         git_tracked_entries: Vec<String>,
         printer: &Print,
     ) -> Result<(), Error> {
+        println!("cleaning dir_to_clean {dir_to_clean:?}");
         if dir_to_clean.exists() {
             for entry in fs::read_dir(&dir_to_clean)? {
                 let entry = entry?;
@@ -148,5 +160,115 @@ impl Cmd {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    use tempfile::TempDir;
+
+    fn create_test_workspace(temp_dir: &Path) -> PathBuf {
+        let manifest_path = temp_dir.join("Cargo.toml");
+        fs::write(
+            &manifest_path,
+            r#"[package]
+name = "soroban-hello-world-contract"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+"#,
+        )
+        .unwrap();
+
+        let src_dir = temp_dir.join("src");
+        fs::create_dir_all(&src_dir).unwrap();
+        fs::write(src_dir.join("lib.rs"), "// dummy lib").unwrap();
+
+        manifest_path
+    }
+
+    #[test]
+    fn test_clean_target_stellar() {
+        let global_args = global::Args::default();
+        let temp_dir = TempDir::new().unwrap();
+        let manifest_path = create_test_workspace(&temp_dir.path());
+
+        let target_stellar_path = temp_dir.path().join("target").join("stellar");
+        std::fs::create_dir_all(&target_stellar_path).unwrap();
+
+        let cmd = Cmd {
+            manifest_path: Some(manifest_path),
+        };
+        assert!(cmd.run(&global_args).is_ok());
+
+        assert!(
+            !target_stellar_path.exists(),
+            "target/stellar should be removed"
+        );
+    }
+
+    #[test]
+    fn test_clean_packages() {
+        let global_args = global::Args::default();
+        let temp_dir = TempDir::new().unwrap();
+        let manifest_path = create_test_workspace(&temp_dir.path());
+
+        let packages_path = temp_dir.path().join("packages");
+        let test_package_path = packages_path.join("test_contract_package");
+        std::fs::create_dir_all(&test_package_path).unwrap();
+
+        let gitkeep_path = packages_path.join(".gitkeep");
+        fs::write(&gitkeep_path, "").unwrap();
+
+        let cmd = Cmd {
+            manifest_path: Some(manifest_path),
+        };
+
+        assert!(cmd.run(&global_args).is_ok());
+
+        assert!(
+            !test_package_path.exists(),
+            "packages/test_contract_package/ should be removed"
+        );
+        assert!(
+            gitkeep_path.exists(),
+            "packages/.gitkeep should be preserved"
+        );
+    }
+
+    #[test]
+    fn test_clean_src_contracts() {
+        let global_args = global::Args::default();
+        let temp_dir = TempDir::new().unwrap();
+        let manifest_path = create_test_workspace(&temp_dir.path());
+
+        let src_contracts_path = temp_dir.path().join("src").join("contracts");
+        std::fs::create_dir_all(&src_contracts_path).unwrap();
+
+        let test_contract_path = src_contracts_path.join("test_contract_client.js");
+        fs::write(&test_contract_path, "").unwrap();
+
+        let util_path = src_contracts_path.join("util.ts");
+        fs::write(&util_path, "").unwrap();
+
+        let cmd = Cmd {
+            manifest_path: Some(manifest_path),
+        };
+
+        assert!(cmd.run(&global_args).is_ok());
+
+        assert!(
+            !test_contract_path.exists(),
+            "src/contracts/test_contract_client.js should be removed"
+        );
+        assert!(
+            util_path.exists(),
+            "src/contracts/util.js should be preserved"
+        );
     }
 }
