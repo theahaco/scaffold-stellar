@@ -75,7 +75,7 @@ impl Cmd {
         let target_dir = &cargo_meta.target_directory;
         let stellar_dir = target_dir.join("stellar");
         if stellar_dir.exists() {
-            fs::remove_dir_all(&stellar_dir)?; //todo handle unwrap
+            fs::remove_dir_all(&stellar_dir)?;
         } else {
             printer.infoln(format!(
                 "Skipping target clean: {stellar_dir} does not exist"
@@ -126,11 +126,15 @@ impl Cmd {
                             Ok(output) => {
                                 let stderr = String::from_utf8_lossy(&output.stderr);
                                 if !stderr.contains("not found") && !stderr.contains("No alias") {
-                                    printer.warnln(format!("    Warning: Failed to remove contract alias {contract_name}: {stderr}"));
+                                    printer.warnln(format!(
+                                        "Failed to remove contract alias {contract_name}: {stderr}"
+                                    ));
                                 }
                             }
                             Err(e) => {
-                                printer.warnln(format!("    Warning: Failed to execute stellar contract alias remove: {e}"));
+                                printer.warnln(format!(
+                                    "Failed to execute stellar contract alias remove: {e}"
+                                ));
                             }
                         }
                     }
@@ -140,7 +144,7 @@ impl Cmd {
                 printer.infoln("No development environment found in environments.toml");
             }
             Err(e) => {
-                printer.warnln(format!("Warning: Failed to read environments.toml: {e}"));
+                printer.warnln(format!("Failed to read environments.toml: {e}"));
             }
         }
 
@@ -308,7 +312,10 @@ impl Cmd {
                 printer.infoln(format!("Removed {relative_str}"));
             }
         } else {
-            println!("Skipping clean: {} does not exist", dir_to_clean.display());
+            printer.infoln(format!(
+                "Skipping clean: {} does not exist",
+                dir_to_clean.display()
+            ));
         }
 
         Ok(())
