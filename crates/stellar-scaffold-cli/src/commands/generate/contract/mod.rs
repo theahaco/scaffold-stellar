@@ -223,12 +223,11 @@ impl Cmd {
         let example_toml_path = dest_path.join("Cargo.toml");
 
         let workspace_cargo_path = Self::get_workspace_root(&example_toml_path);
-        if workspace_cargo_path.is_err() {
+        let Ok(workspace_cargo_path) = workspace_cargo_path else {
             printer.warnln("Warning: No workspace Cargo.toml found in current directory.");
             printer.println("You'll need to manually add contracts to your workspace.");
             return Ok(());
-        }
-        let workspace_cargo_path = workspace_cargo_path.ok().unwrap();
+        };
 
         self.write_new_manifest(
             &workspace_cargo_path,
@@ -410,9 +409,7 @@ impl Cmd {
                 }),
             ));
         }
-        for (dependency_name, dependency) in new_dependencies {
-            dependencies.insert(dependency_name.clone(), dependency);
-        }
+        dependencies.extend(new_dependencies);
         Ok(())
     }
 
@@ -847,15 +844,11 @@ members = []
     fn get_latest_known_tag(example_cache_path: &Path) -> Result<String, Error> {
         let rd = example_cache_path.read_dir()?;
         let max_tag = rd
-            .filter_map(std::result::Result::ok)
+            .filter_map(Result::ok)
             .filter(|x| x.path().is_dir())
-            .filter_map(|x| x.file_name().to_str().map(std::string::ToString::to_string))
+            .filter_map(|x| x.file_name().to_str().map(ToString::to_string))
             .max();
-        if let Some(tag) = max_tag {
-            Ok(tag)
-        } else {
-            Err(Error::UpdateExamplesCache)
-        }
+        max_tag.ok_or(Error::UpdateExamplesCache)
     }
 
     fn copy_directory_contents(source: &Path, dest: &Path) -> Result<(), Error> {
