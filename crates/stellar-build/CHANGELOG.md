@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/theahaco/scaffold-stellar/compare/stellar-build-v0.0.5...stellar-build-v0.0.6) - 2026-01-20
+
+### Other
+
+- Update editions to 2024 across crates ([#292](https://github.com/theahaco/scaffold-stellar/pull/292))
+
 ## [0.0.5](https://github.com/theahaco/scaffold-stellar/compare/stellar-build-v0.0.4...stellar-build-v0.0.5) - 2025-11-10
 
 ### Other

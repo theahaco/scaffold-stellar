@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.19](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.18...stellar-scaffold-cli-v0.0.19) - 2026-01-20
+
+### Added
+
+- update stellar-cli and fix breaking changes ([#324](https://github.com/theahaco/scaffold-stellar/pull/324))
+
+### Fixed
+
+- use stellar-cli action instead of just setup ([#323](https://github.com/theahaco/scaffold-stellar/pull/323))
+- handle npm install errors ([#312](https://github.com/theahaco/scaffold-stellar/pull/312))
+
+### Other
+
+- *(deps)* bump cargo_toml from 0.20.5 to 0.22.3 ([#295](https://github.com/theahaco/scaffold-stellar/pull/295))
+- Update editions to 2024 across crates ([#292](https://github.com/theahaco/scaffold-stellar/pull/292))
+- *(deps)* bump itertools from 0.12.1 to 0.14.0 ([#296](https://github.com/theahaco/scaffold-stellar/pull/296))
+
 ## [0.0.18](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.17...stellar-scaffold-cli-v0.0.18) - 2025-11-11
 
 ### Fixed
