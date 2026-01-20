@@ -46,12 +46,36 @@ export type TagType =
 // prettier-ignore
 const Users: User[] = [
   {
+    title: 'SAMPLED',
+    description: 'The Decentralized Sample Marketplace Where Producers Get Paid Instantly on Stellar',
+    preview: require('./showcase/sampled.png'),
+    website: 'https://www.stellarsampled.com/',
+    source: 'https://github.com/osas2211/sampled/',
+    tags: ['frontend', 'hackathon'],
+  },
+  {
+    title: 'SecureFlow',
+    description: 'Create a secure, transparent, and fair platform for freelancers and clients to collaborate with built-in payment protection and dispute resolution.',
+    preview: require('./showcase/secureflow.png'),
+    website: 'https://secure-flow-scaffold.vercel.app/',
+    source: 'https://github.com/Gbangbolaoluwagbemiga/SecureFlow-scaffold',
+    tags: ['hackathon'],
+  },
+  {
     title: 'Splicers',
     description: 'The surface world is lost. In subterranean bunkers, survivors fuse genes and print monsters — the ultimate fighters, born to reclaim the world that once was.',
     preview: require('./showcase/splicers.png'),
     website: 'https://splicers.net',
     source: 'https://github.com/AshFrancis/splicers',
     tags: ['favorite', 'contract', 'hackathon'],
+  },
+  {
+    title: 'Sudoku Proof Generator',
+    description: 'Verify Noir Ultrahonk Zero Knowledge proof with Stellar smart contract.',
+    preview: require('./showcase/noir-stellar.png'),
+    website: 'https://noir-stellar.netlify.app',
+    source: 'https://github.com/tupui/ultrahonk_soroban_contract',
+    tags: ['favorite', 'contract'],
   },
 
   /*

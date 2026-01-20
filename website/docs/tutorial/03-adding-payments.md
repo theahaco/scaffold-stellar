@@ -25,16 +25,16 @@ This creates real stakes and makes the game much more engaging!
 
 ## Step 1: 🪙 Add Asset Import
 
-First, we need the `import_asset` macro from Stellar Registry. Add the following to your imports at the top of `lib.rs`:
+First, we need the `import_asset` macro from Stellar Registry. Add the following to your imports at the top of your contract `lib.rs` file:
 
 ```diff
  #![no_std]
  use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol};
 +use stellar_registry::import_asset;
-+import_asset!(xlm);
++import_asset!("xlm");
 ```
 
-Stellar Registry integrates with Scaffold Stellar, giving names & versions to contracts & contract Wasms. It also provides helpers like `import_asset` to make it easier to work with [Stellar Asset Contracts](https://developers.stellar.org/docs/tokens/stellar-asset-contract).
+Stellar Registry integrates with Scaffold Stellar, giving names and versions to contracts and contract Wasms. It also provides helpers like `import_asset` to make it easier to work with [Stellar Asset Contracts](https://developers.stellar.org/docs/tokens/stellar-asset-contract).
 
 ## Step 2: 💰 Add Funds to the Contract
 
@@ -46,9 +46,9 @@ Whenever the admin resets the number, we need to transfer some funds to the cont
         env.storage().instance().set(&THE_NUMBER, &new_number);
 
         // Seed the initial pot
-        let x = xlm::client(env);
+        let x = xlm::token_client(env);
         let admin = Self::admin(env).expect("admin not set");
-        x.transfer(10_000_000_0, &admin, env.current_contract_address());
+        x.transfer(&admin, env.current_contract_address(), &10_000_000_0);
     }
 ```
 
@@ -75,21 +75,15 @@ pub fn guess(env: &Env, guesser: Address, a_number: u64) -> bool {
       }
 
       // pay full pot to `guesser`, whether they sent the transaction or not
-      let tx = xlm_client.transfer(
+      xlm_client.transfer(
+        &guesser,
         env.current_contract_address(),
-        guesser,
-        xlm_client.balance(env.current_contract_address()),
+        &xlm_client.balance(&env.current_contract_address()),
       );
-      if tx.is_err() {
-        panic!("transfer failed!");
-      }
   } else {
     // Before transferring their funds, make sure guesser is actually the one calling this function
     guesser.require_auth();
-    let tx = xlm_client.transfer(guesser, env.current_contract_address(), 1_000_000_0);
-    if tx.is_err() {
-      panic!("transfer failed!");
-    }
+    xlm_client.transfer(&guesser, &env.current_contract_address(), &1_000_000_0);
   }
 
   guessed_it
