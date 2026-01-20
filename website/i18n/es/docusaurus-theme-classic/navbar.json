@@ -1,0 +1,26 @@
+{
+  "title": {
+    "message": "Scaffold Stellar",
+    "description": "El título en la barra de navegación"
+  },
+  "logo.alt": {
+    "message": "Scaffold Stellar Logo",
+    "description": "Texto alternativo del logo de la barra de navegación"
+  },
+  "item.label.Documentation": {
+    "message": "Documentación",
+    "description": "Elemento de la barra de navegación con la etiqueta Documentación"
+  },
+  "item.label.Blog": {
+    "message": "Blog",
+    "description": "Elemento de la barra de navegación con la etiqueta Blog"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Elemento de la barra de navegación con la etiqueta GitHub"
+  },
+  "item.label.Showcase": {
+    "message": "Proyectos",
+    "description": "Elemento de la barra de navegación con la etiqueta Proyectos"
+  }
+}

@@ -13,7 +13,7 @@ impl Upgradable for Contract {}
 
 #[contractimpl]
 impl Contract {
-    pub fn __constructor(env: &Env, admin: &Address) {
+    pub fn __constructor(env: &Env, admin: Address) {
         Self::set_admin(env, admin);
     }
     pub fn hi(_: &Env, to: String) -> String {

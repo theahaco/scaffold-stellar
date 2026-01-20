@@ -1,7 +1,8 @@
 use std::process::Stdio;
-use stellar_scaffold_test::{rpc_url, TestEnv};
+use stellar_scaffold_cli::commands::npm_cmd;
+use stellar_scaffold_test::{TestEnv, rpc_url};
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio_stream::{wrappers::LinesStream, StreamExt};
+use tokio_stream::{StreamExt, wrappers::LinesStream};
 
 #[ignore]
 #[tokio::test]
@@ -200,7 +201,7 @@ async fn watch_and_vite_integration_test() {
             env.update_package_json_to_use_built_binary()
                 .expect("Package json should be editable");
             // Install npm dependencies
-            let npm_install_output = tokio::process::Command::new("npm")
+            let npm_install_output = tokio::process::Command::new(npm_cmd())
                 .args(&["install"])
                 .current_dir(&env.cwd)
                 .output()
@@ -214,7 +215,7 @@ async fn watch_and_vite_integration_test() {
             );
 
             // Start npm run dev (which runs watch and vite concurrently)
-            let mut dev_process = tokio::process::Command::new("npm")
+            let mut dev_process = tokio::process::Command::new(npm_cmd())
                 .args(&["run", "dev"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())

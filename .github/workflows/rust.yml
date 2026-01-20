@@ -8,8 +8,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths:
-      - '!website/**'
+    paths-ignore:
+      - 'website/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -23,7 +23,7 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Restore cache
         id: cache-restore
         uses: actions/cache/restore@v4
@@ -47,7 +47,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
-      - run: just setup
+      - uses: stellar/stellar-cli@v23.3.0
       - name: build since clippy needs contracts to be built
         run: just build
       - name: Run cargo clippy

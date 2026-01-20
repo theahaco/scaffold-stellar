@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.15](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.14...stellar-registry-cli-v0.0.15) - 2025-11-10
+
+### Added
+
+- remove openssl dependency by using rustls-tls feature in reqwest ([#282](https://github.com/theahaco/scaffold-stellar/pull/282))
+
+### Other
+
+- *(deps)* bump the cargo-minor group across 1 directory with 17 updates ([#284](https://github.com/theahaco/scaffold-stellar/pull/284))
+- *(deps)* bump predicates from 2.1.5 to 3.1.3 ([#233](https://github.com/theahaco/scaffold-stellar/pull/233))
+- *(deps)* bump thiserror from 1.0.69 to 2.0.12 ([#232](https://github.com/theahaco/scaffold-stellar/pull/232))
+
+## [0.0.14](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.13...stellar-registry-cli-v0.0.14) - 2025-10-29
+
+### Fixed
+
+- update stellar-cli; remove unneeded features for smaller binaries ([#237](https://github.com/theahaco/scaffold-stellar/pull/237))
+
+## [0.0.13](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.12...stellar-registry-cli-v0.0.13) - 2025-10-20
+
+### Other
+
+- recommend to use --locked when installing binary crates ([#235](https://github.com/theahaco/scaffold-stellar/pull/235))
+- Add website ([#212](https://github.com/theahaco/scaffold-stellar/pull/212))
+
 ## [0.0.12](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.11...stellar-registry-cli-v0.0.12) - 2025-10-03
 
 ### Added
@@ -100,3 +125,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 
 - docs ([#39](https://github.com/theahaco/scaffold-stellar/pull/39))
+

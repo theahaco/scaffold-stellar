@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{rpc_url, AssertExt, TestEnv};
+use stellar_scaffold_test::{AssertExt, TestEnv, rpc_url};
 
 #[test]
 fn run_network_from_rpc_and_passphrase() {
@@ -62,6 +62,6 @@ soroban_token_contract.client = false
         );
 
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
-        assert!(stderr.contains("Using lol network\n"));
+        assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
     });
 }

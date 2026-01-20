@@ -37,6 +37,8 @@ Before you begin, make sure you have the following installed:
 | [Stellar CLI](https://github.com/stellar/stellar-cli)   | For building, deploying, and interacting with smart contracts | [`Link for the repo`](https://github.com/stellar/stellar-cli) |
 | [Docker](https://docs.docker.com/get-started/)          | For running a Stellar node locally                            | Download from official site                                   |
 
+For Windows users, please refer to the additional setup instructions [here](./WINDOWS.md).
+
 ---
 
 ## **Quickstart** (New Developers Welcome!)
@@ -46,7 +48,7 @@ This section walks you through setting up Scaffold Stellar from scratch.
 ### 1. Install the Scaffold Stellar CLI
 
 ```
-cargo install stellar-scaffold-cli
+cargo install --locked stellar-scaffold-cli
 ```
 
 The Scaffold Stellar CLI is installed as a plugin under the `stellar` CLI.

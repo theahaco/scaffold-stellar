@@ -1,4 +1,4 @@
-use stellar_scaffold_test::{find_binary, rpc_url, TestEnv};
+use stellar_scaffold_test::{TestEnv, rpc_url};
 
 #[test]
 fn build_command_runs_init() {
@@ -33,15 +33,17 @@ mint --amount 2000000 --to alice
         ));
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .scaffold_build("development", true)
             .output()
             .expect("Failed to execute command");
 
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains(" -- mint --amount 2000000 --to alice"));
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains(" -- mint --amount 2000000 --to alice")
+        );
         assert!(String::from_utf8_lossy(&output.stderr).contains(
             "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
@@ -75,15 +77,17 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
             rpc_url()
         ));
         let output = env
-            .stellar_scaffold_env("development", true)
+            .scaffold_build("development", true)
             .output()
             .expect("Failed to execute command");
 
         println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure the invoke commands are run with the proper source account
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("--source-account bob -- mint --amount 2000000 --to bob"));
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .contains("--source-account bob -- mint --amount 2000000 --to bob")
+        );
         assert!(String::from_utf8_lossy(&output.stderr).contains(
             "✅ After deploy script for \"soroban_token_contract\" completed successfully"
         ));
@@ -93,10 +97,6 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
 #[test]
 fn init_handles_quotations_and_subcommands_in_script() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        let binary_path =
-            find_binary("stellar").expect("Stellar binary not found. Test cannot proceed.");
-
-        let binary_path_str = binary_path.to_string_lossy();
         env.set_environments_toml(format!(
             r#"
     development.accounts = [
@@ -116,13 +116,13 @@ fn init_handles_quotations_and_subcommands_in_script() {
     [development.contracts.soroban_custom_types_contract]
     client = true
     after_deploy = """
-    test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
+    test_init --resolution 300000 --assets '[{{"Stellar": "$(stellar contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$(stellar contract id asset --asset native)"}}'
     """
     "#, rpc_url()
         ));
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .scaffold_build("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -146,9 +146,6 @@ fn init_handles_quotations_and_subcommands_in_script() {
 #[test]
 fn init_scripts_run_in_specified_order() {
     TestEnv::from("soroban-init-boilerplate", |env| {
-        let binary_path =
-            find_binary("stellar").expect("Stellar binary not found. Test cannot proceed.");
-        let binary_path_str = binary_path.to_string_lossy();
         // First configuration: custom_types then token
         env.set_environments_toml(format!(
             r#"
@@ -169,7 +166,7 @@ soroban_auth_contract.client = false
 [development.contracts.soroban_custom_types_contract]
 client = true
 after_deploy = """
-test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
+test_init --resolution 300000 --assets '[{{"Stellar": "$(stellar contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$(stellar contract id asset --asset native)"}}'
 """
 
 [development.contracts.soroban_token_contract]
@@ -184,7 +181,7 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         ));
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .scaffold_build("development", true)
             .output()
             .expect("Failed to execute command");
 
@@ -232,12 +229,12 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
 [development.contracts.soroban_custom_types_contract]
 client = true
 after_deploy = """
-test_init --resolution 300000 --assets '[{{"Stellar": "$({binary_path_str} contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$({binary_path_str} contract id asset --asset native)"}}'
+test_init --resolution 300000 --assets '[{{"Stellar": "$(stellar contract id asset --asset native)"}} ]' --decimals 14 --base '{{"Stellar":"$(stellar contract id asset --asset native)"}}'
 """
 "#, rpc_url()));
 
         let output = env
-            .stellar_scaffold_env("development", true)
+            .scaffold_build("development", true)
             .output()
             .expect("Failed to execute command");
 

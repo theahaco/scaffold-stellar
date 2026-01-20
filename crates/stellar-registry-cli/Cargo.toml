@@ -5,9 +5,8 @@ homepage = "https://github.com/theahaco/scaffold-stellar"
 authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.12"
-edition = "2021"
-rust-version = "1.70"
+version = "0.0.15"
+edition = "2024"
 autobins = false
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-registry-cli"
 
@@ -26,7 +25,6 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-openssl = { version = "0.10", features = ["vendored"] }
 clap = { workspace = true, features = [
     "derive",
     "env",
@@ -39,20 +37,20 @@ soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
 stellar-strkey = { workspace = true }
 
-thiserror = "1.0.31"
+thiserror = "2.0.17"
 tokio = { version = "1", features = ["full"] }
 shlex = "1.1.0"
 heck = "0.4.1"
-ed25519-dalek = "2.0.0"
+ed25519-dalek = "2.2.0"
 sha2 = { workspace = true }
 
 dotenvy = "0.15.7"
 # soroban-rpc = "=20.3.3"
 
 [dev-dependencies]
-assert_cmd = "2.0.4"
-assert_fs = "1.0.7"
-predicates = "2.1.5"
+assert_cmd = "2.1.1"
+assert_fs = "1.1.3"
+predicates = "3.1.3"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 
 [build-dependencies]

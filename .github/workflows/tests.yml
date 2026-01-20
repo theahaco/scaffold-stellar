@@ -8,8 +8,8 @@ on:
   push:
     branches: [main, release/**]
   pull_request:
-    paths:
-      - '!website/**'
+    paths-ignore:
+      - 'website/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -40,7 +40,7 @@ jobs:
           --health-timeout 5s
           --health-retries 50
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -62,12 +62,12 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
-      - run: just setup
+      - uses: stellar/stellar-cli@v23.3.0
       - run: just create
       - run: just test-integration
       - name: Always Save Cache
         id: cache-save
-        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -76,5 +76,4 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-            target/
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}

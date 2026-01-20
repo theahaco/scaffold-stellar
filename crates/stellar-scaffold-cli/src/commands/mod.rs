@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use clap::{command, CommandFactory, FromArgMatches, Parser};
+use clap::{CommandFactory, FromArgMatches, Parser, command};
 use stellar_cli;
 
 pub mod build;
@@ -102,4 +102,12 @@ pub enum Error {
     UpdateEnv(#[from] update_env::Error),
     #[error(transparent)]
     Watch(#[from] watch::Error),
+}
+
+pub fn npm_cmd() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "npm.cmd"
+    } else {
+        "npm"
+    }
 }
