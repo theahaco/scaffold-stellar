@@ -31,7 +31,7 @@
     "@docusaurus/tsconfig": "3.9.2",
     "@docusaurus/types": "3.9.2",
     "@stellar/prettier-config": "^1.2.0",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.0",
     "typescript": "~5.9.3"
   },
   "browserslist": {
