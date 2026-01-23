@@ -90,7 +90,7 @@ impl Cmd {
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         // Get the latest release tag we're using
-        let Release { tag_name } = Self::fetch_latest_release().await?;
+        let Release { tag_name } = Self::fetch_latest_supported_oz_version().await?;
 
         // Read and update workspace Cargo.toml
         let workspace_cargo_path = Path::new("Cargo.toml");
@@ -258,6 +258,26 @@ members = []
         printer.println("   Example: stellar-scaffold contract generate --from nft-royalties");
 
         Ok(())
+    }
+
+    fn fetch_latest_supported_oz_version() -> Result<Release, Error> {
+        let manifest_dir_str = env!("CARGO_MANIFEST_DIR");
+        let manifest_path = Path::new(manifest_dir_str).join("Cargo.toml");
+        let metadata = cargo_metadata::MetadataCommand::new()
+            .manifest_path(manifest_path)
+            .exec()
+            .unwrap();
+        let packages = metadata.packages;
+        for p in &packages {
+            if p.name == "stellar-contract-utils" {
+                println!("stellar contract utils {}", p.version);
+                return Ok(Release {
+                    tag_name: p.version.to_string(),
+                });
+            }
+        }
+
+        todo!()
     }
 
     async fn fetch_latest_release() -> Result<Release, Error> {
