@@ -19,7 +19,9 @@ use tar::Archive;
 use toml::Value::Table;
 
 const SOROBAN_EXAMPLES_REPO: &str = "https://github.com/stellar/soroban-examples";
+const STELLAR_PREFIX: &str = "stellar/";
 const OZ_EXAMPLES_REPO: &str = "https://github.com/OpenZeppelin/stellar-contracts/examples";
+const OZ_PREFIX: &str = "oz/";
 
 #[derive(Deserialize)]
 struct Release {
@@ -121,7 +123,7 @@ impl Cmd {
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
 
-        if example_name.starts_with("oz/") {
+        if example_name.starts_with(OZ_PREFIX) {
             let (_, example_name) = example_name.split_at(3);
             Self::generate_oz_example(
                 example_name,
@@ -131,7 +133,7 @@ impl Cmd {
                 global_args,
                 printer,
             )
-        } else if example_name.starts_with("stellar/") {
+        } else if example_name.starts_with(STELLAR_PREFIX) {
             let (_, example_name) = example_name.split_at(8);
             self.generate_soroban_example(
                 example_name,
@@ -591,14 +593,14 @@ members = []
         printer.println(format!("From {SOROBAN_EXAMPLES_REPO}:"));
 
         for example in &soroban_examples {
-            printer.println(format!("  📁 stellar/{example}"));
+            printer.println(format!("  📁 {STELLAR_PREFIX}{example}"));
         }
 
         printer.println("────────────────────────────────");
         printer.println(format!("From {OZ_EXAMPLES_REPO}"));
 
         for example in &oz_examples {
-            printer.println(format!("  📁 oz/{example}"));
+            printer.println(format!("  📁 {OZ_PREFIX}{example}"));
         }
 
         printer.println("\nUsage:");
