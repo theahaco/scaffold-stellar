@@ -91,6 +91,8 @@ pub enum Error {
         "Dependency version mismatch for {0}: example version {1} doesn't match manifest version {2}"
     )]
     DependencyVersionMismatch(String, u32, u32),
+    #[error("Missing workspace package")]
+    MissingWorkspacePackage,
 }
 
 impl Cmd {
@@ -261,17 +263,14 @@ impl Cmd {
         printer: &Print,
     ) -> Result<(), Error> {
         let workspace_manifest = Manifest::from_path(workspace_toml_path)?;
-        let workspace = workspace_manifest.workspace.as_ref();
-        if workspace.is_none() {
-            return Err(Error::InvalidWorkspaceCargoToml("[workspace]".to_string()));
-        }
-        let workspace = workspace.unwrap();
-        if workspace.package.is_none() {
+        let Some(workspace) = workspace_manifest.workspace.as_ref() else {
             return Err(Error::InvalidWorkspaceCargoToml(
                 "[workspace.package]".to_string(),
             ));
-        }
-        let workspace_package = workspace.clone().package.unwrap();
+        };
+        let Some(workspace_package) = &workspace.package else {
+            return Err(Error::MissingWorkspacePackage);
+        };
 
         // Parse the Cargo.toml
         let manifest = cargo_toml::Manifest::from_path(example_toml_path)?;
