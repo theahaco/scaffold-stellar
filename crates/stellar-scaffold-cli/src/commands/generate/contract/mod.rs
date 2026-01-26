@@ -599,7 +599,7 @@ members = []
         printer.println(
             "   Example (soroban-examples): stellar-scaffold contract generate --from hello-world",
         );
-        printer.println("   Example (OpenZeppelin exampls): stellar-scaffold contract generate --from oz/nft-royalties");
+        printer.println("   Example (OpenZeppelin examples): stellar-scaffold contract generate --from oz/nft-royalties");
 
         Ok(())
     }
@@ -775,10 +775,10 @@ members = []
             ))
         })?;
 
-        let cil_cache_path = cache_dir.join("stellar-scaffold-cli");
+        let cli_cache_path = cache_dir.join("stellar-scaffold-cli");
 
-        let oz_cache_path = cil_cache_path.join("openzeppelin-stellar-contracts");
-        let soroban_examples_cache_path = cil_cache_path.join("soroban_examples");
+        let oz_cache_path = cli_cache_path.join("openzeppelin-stellar-contracts");
+        let soroban_examples_cache_path = cli_cache_path.join("soroban_examples");
 
         match Self::update_cache(&oz_cache_path, &soroban_examples_cache_path).await {
             Ok(examples_info) => Ok(examples_info),
