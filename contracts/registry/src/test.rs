@@ -116,8 +116,8 @@ fn hello_world_using_publish_hash() {
 
     let version = registry.default_version();
 
-    let name = &to_string(env, "contract");
-    let wasm_name = &to_string(env, "wasm");
+    let name = &to_string(env, "contract_name");
+    let wasm_name = &to_string(env, "wasm_name");
 
     let author = &Address::generate(env);
 
