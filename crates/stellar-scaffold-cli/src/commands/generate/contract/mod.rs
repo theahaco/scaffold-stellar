@@ -788,13 +788,12 @@ members = []
         let oz_cache_path = cli_cache_path.join("openzeppelin-stellar-contracts");
         let soroban_examples_cache_path = cli_cache_path.join("soroban_examples");
 
-        match Self::update_cache(&oz_cache_path, &soroban_examples_cache_path).await {
-            Ok(examples_info) => Ok(examples_info),
-            Err(e) => {
+        Self::update_cache(&oz_cache_path, &soroban_examples_cache_path)
+            .await
+            .or_else(|e| {
                 printer.warnln(format!("Failed to update examples cache: {e}"));
                 Self::get_latest_known_examples(&oz_cache_path, &soroban_examples_cache_path)
-            }
-        }
+            })
     }
 
     async fn update_cache(
