@@ -556,7 +556,7 @@ members = []
     }
 
     fn examples_list(examples_path: PathBuf) -> Result<Vec<String>, Error> {
-        let mut oz_examples: Vec<String> = if examples_path.exists() {
+        let mut examples: Vec<String> = if examples_path.exists() {
             fs::read_dir(examples_path)?
                 .filter_map(std::result::Result::ok)
                 .filter(|entry| entry.path().is_dir())
@@ -571,9 +571,9 @@ members = []
             Vec::new()
         };
 
-        oz_examples.sort();
+        examples.sort();
 
-        Ok(oz_examples)
+        Ok(examples)
     }
 
     async fn list_examples(&self, global_args: &global::Args) -> Result<(), Error> {
