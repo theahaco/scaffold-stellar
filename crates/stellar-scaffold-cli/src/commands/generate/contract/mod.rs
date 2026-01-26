@@ -76,7 +76,7 @@ pub enum Error {
     )]
     InvalidCargoToml(String),
     #[error(
-        "Invalid workspace toml file in the root of the current directory: missing {0} section"
+        "Invalid workspace toml file in the root of the current directory: missing {0} section\nPlease make sure to run this command from the root of a Scaffold project."
     )]
     InvalidWorkspaceCargoToml(String),
     #[error("Failed to open browser: {0}")]
