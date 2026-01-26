@@ -18,6 +18,9 @@ use stellar_cli::print::Print;
 use tar::Archive;
 use toml::Value::Table;
 
+const SOROBAN_EXAMPLES_REPO: &str = "https://github.com/stellar/soroban-examples";
+const OZ_EXAMPLES_REPO: &str = "https://github.com/OpenZeppelin/stellar-contracts/examples";
+
 #[derive(Deserialize)]
 struct Release {
     tag_name: String,
@@ -60,6 +63,8 @@ pub enum Error {
     TomlSerialize(#[from] toml::ser::Error),
     #[error("Git command failed: {0}")]
     GitCloneFailed(String),
+    #[error("Example '{0}' not found")]
+    ExampleNotFound(String),
     #[error("Example '{0}' not found in OpenZeppelin stellar-contracts")]
     OzExampleNotFound(String),
     #[error("Example '{0}' not found in Stellar soroban-examples")]
@@ -124,13 +129,16 @@ impl Cmd {
                 global_args,
                 printer,
             )
-        } else {
+        } else if example_name.starts_with("stellar/") {
+            let (_, example_name) = example_name.split_at(8);
             self.generate_soroban_example(
                 example_name,
                 examples_info.soroban_examples_path,
                 dest_path,
                 printer,
             )
+        } else {
+            Err(Error::ExampleNotFound(example_name.to_owned()))
         }
     }
 
@@ -581,14 +589,14 @@ members = []
 
         printer.println("\nAvailable contract examples:");
         printer.println("────────────────────────────────");
-        printer.println("soroban-examples:");
+        printer.println(format!("From {SOROBAN_EXAMPLES_REPO}:"));
 
         for example in &soroban_examples {
-            printer.println(format!("  📁 {example}"));
+            printer.println(format!("  📁 stellar/{example}"));
         }
 
         printer.println("────────────────────────────────");
-        printer.println("OpenZeppelin examples:");
+        printer.println(format!("From {OZ_EXAMPLES_REPO}:"));
 
         for example in &oz_examples {
             printer.println(format!("  📁 oz/{example}"));
@@ -597,7 +605,7 @@ members = []
         printer.println("\nUsage:");
         printer.println("   stellar-scaffold contract generate --from <example-name>");
         printer.println(
-            "   Example (soroban-examples): stellar-scaffold contract generate --from hello-world",
+            "   Example (soroban-examples): stellar-scaffold contract generate --from stellar/hello-world",
         );
         printer.println("   Example (OpenZeppelin examples): stellar-scaffold contract generate --from oz/nft-royalties");
 
