@@ -114,7 +114,7 @@ impl Cmd {
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
 
-        if example_name.starts_with("oz-") {
+        if example_name.starts_with("oz/") {
             let (_, example_name) = example_name.split_at(3);
             Self::generate_oz_example(
                 example_name,
@@ -591,7 +591,7 @@ members = []
         printer.println("OpenZeppelin examples:");
 
         for example in &oz_examples {
-            printer.println(format!("  📁 oz-{example}"));
+            printer.println(format!("  📁 oz/{example}"));
         }
 
         printer.println("\nUsage:");
@@ -599,7 +599,7 @@ members = []
         printer.println(
             "   Example (soroban-examples): stellar-scaffold contract generate --from hello-world",
         );
-        printer.println("   Example (OpenZeppelin exampls): stellar-scaffold contract generate --from oz-nft-royalties");
+        printer.println("   Example (OpenZeppelin exampls): stellar-scaffold contract generate --from oz/nft-royalties");
 
         Ok(())
     }
