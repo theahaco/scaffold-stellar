@@ -589,14 +589,14 @@ members = []
 
         printer.println("\nAvailable contract examples:");
         printer.println("────────────────────────────────");
-        printer.println("From https://github.com/stellar/soroban-examples:");
+        printer.println(format!("From {SOROBAN_EXAMPLES_REPO}:"));
 
         for example in &soroban_examples {
             printer.println(format!("  📁 stellar/{example}"));
         }
 
         printer.println("────────────────────────────────");
-        printer.println("From https://github.com/OpenZeppelin/stellar-contracts/examples:");
+        printer.println(format!("From {OZ_EXAMPLES_REPO}"));
 
         for example in &oz_examples {
             printer.println(format!("  📁 oz/{example}"));
