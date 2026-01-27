@@ -4,9 +4,13 @@ members = [
   "contracts/*",
 ]
 
+[workspace.package]
+edition = "2024"
+version = "0.0.0"
+
 [workspace.dependencies]
-soroban-sdk = "22.0.0"
-soroban-token-sdk = "22.0.7"
+soroban-sdk = "23.2.1"
+soroban-token-sdk = "23.2.1"
 
 [profile.release]
 opt-level = "z"
