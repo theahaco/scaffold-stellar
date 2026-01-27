@@ -2,15 +2,15 @@ extern crate std;
 
 use soroban_sdk::{self, Address, Bytes, BytesN, Env};
 
-mod hello_world {
+pub mod hello_world {
     soroban_sdk::contractimport!(file = "../../target/stellar/local/hello_world.wasm");
 }
 
-mod hello_world_v2 {
+pub mod hello_world_v2 {
     soroban_sdk::contractimport!(file = "../../target/stellar/local/hello_world_v2.wasm");
 }
 
-mod hello_world_v3 {
+pub mod hello_world_v3 {
     soroban_sdk::contractimport!(file = "../../target/stellar/local/hello_world_v3.wasm");
 }
 
