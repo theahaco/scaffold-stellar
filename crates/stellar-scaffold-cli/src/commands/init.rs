@@ -108,7 +108,7 @@ impl Cmd {
 
         // Update the project's OpenZeppelin examples with the latest editions
         if !self.vers.tutorial {
-            let example_contracts = ["oz-nft-enumerable", "oz-fungible-allowlist"];
+            let example_contracts = ["oz/nft-enumerable", "oz/fungible-allowlist"];
 
             for contract in example_contracts {
                 self.update_oz_example(&absolute_project_path, contract, global_args)
