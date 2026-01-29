@@ -78,27 +78,24 @@ soroban_token_contract.client = false
 #[case::oz_fungible_allowlist("oz/fungible-allowlist")]
 #[case::oz_fungible_blocklist("oz/fungible-blocklist")]
 #[case::oz_fungible_capped("oz/fungible-capped")]
-// the following are commented out because they currently do not build from a freshly created project
-// this is because we need to add a few deps to the FE template that's being used
-// stellar-contract-utils, etc
-// i also wonder if instead of updating the soroban-boilterplate-init we should use the FE template direclty to really test things properly
-
-//  #[case::oz_fungible_merkle_airdrop("oz/fungible-merkle-airdrop")]❌
-//  #[case::oz_fungible_pausable("oz/fungible-pausable")] ❌
+#[case::oz_fungible_pausable("oz/fungible-pausable")] 
 #[case::oz_fungible_vault("oz/fungible-vault")]
-//  #[case::oz_merkle_voting("oz/merkle-voting")]❌
-//  #[case::oz_multisig("oz/multisig")] ❌ ?
+#[case::oz_merkle_voting("oz/merkle-voting")]
 #[case::oz_nft_access_control("oz/nft-access-control")]
 #[case::oz_nft_consecutive("oz/nft-consecutive")]
 #[case::oz_nft_enumberable("oz/nft-enumerable")]
 #[case::oz_nft_royalties("oz/nft-royalties")]
 #[case::oz_nft_sequential_minting("oz/nft-sequential-minting")]
 #[case::oz_ownable("oz/ownable")]
-//  #[case::oz_pausable("oz/pausable")] ❌
-//  #[case::oz_rwa("oz/rwa")] ❌
-//  #[case::oz_sac_admin_generic("oz/sac-admin-generic")] ❌
+#[case::oz_pausable("oz/pausable")]
 #[case::oz_sac_admin_wrapper("oz/sac-admin-wrapper")]
-//  #[case::oz_upgradeable("oz/upgradeable")] ❌
+
+// the following are commented out because they currently do not build from a freshly created scaffold project
+// #[case::oz_fungible_merkle_airdrop("oz/fungible-merkle-airdrop")] // also needs hex-literal as a workspace dev dependency
+// #[case::oz_multisig("oz/multisig")] - doesn't have a cargo.toml in the root of the example 
+// #[case::oz_upgradeable("oz/upgradeable")] - doesn't have a cargo.toml in the root of the example
+// #[case::oz_rwa("oz/rwa")] - error: symbol `__constructor` is already defined
+// #[case::oz_sac_admin_generic("oz/sac-admin-generic")] ❌ also needs workspace.dependencies.ed25519-dalek
 
 fn test_adding_and_building_oz_examples(#[case] input: &str) {
     TestEnv::from("soroban-init-boilerplate", |env| {
