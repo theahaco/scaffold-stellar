@@ -168,7 +168,7 @@ impl Cmd {
         global_args: &global::Args,
     ) -> Result<(), Error> {
         let mut example_path = example_name;
-        if example_name.starts_with("oz-") {
+        if example_name.starts_with("oz/") {
             (_, example_path) = example_name.split_at(3);
         }
 
