@@ -29,3 +29,13 @@ updates:
         update-types:
           - minor
           - patch
+
+  - package-ecosystem: "cargo"
+    directory: "/stellar-scaffold-test/fixtures/soroban-init-boilerplate"
+    schedule:
+      interval: "weekly"
+    groups:
+      cargo-minor:
+        update-types:
+          - minor
+          - patch
