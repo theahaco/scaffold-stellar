@@ -143,7 +143,7 @@ soroban_token_contract.client = false
 
 // this test makes sure that the OZ example repo release version that is included in new scaffold projects from the FE template is compatible with the current scaffold binary
 #[tokio::test]
-async fn test_scaffold_project_is_compatible_with_oz_examples(#[case] input: &str) {
+async fn test_scaffold_project_is_compatible_with_oz_examples() {
     TestEnv::from_init("test-project", |env| async move {
         env.set_environments_toml(format!(
             r#"
@@ -172,7 +172,7 @@ soroban_token_contract.client = false
             env.scaffold("generate")
                 .arg("contract")
                 .arg("--from")
-                .arg(input)
+                .arg(example)
                 .assert()
                 .success()
                 .stdout_as_str();
