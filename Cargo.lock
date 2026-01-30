@@ -4307,7 +4307,7 @@ dependencies = [
  "crate-git-revision",
  "dotenvy",
  "ed25519-dalek",
- "heck 0.4.1",
+ "heck 0.5.0",
  "predicates",
  "sha2 0.10.9",
  "shlex",
