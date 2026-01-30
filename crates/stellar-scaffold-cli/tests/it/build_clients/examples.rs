@@ -210,7 +210,7 @@ soroban_token_contract.client = false
         for example in vec![
             "oz/fungible-allowlist",
             "oz/fungible-capped",
-            "oz/fungible-pausible",
+            "oz/fungible-pausable",
         ] {
             env.scaffold("generate")
                 .arg("contract")
