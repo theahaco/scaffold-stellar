@@ -76,8 +76,6 @@ soroban_token_contract.client = false
 
 // the following are commented out because they currently do not build from a freshly created scaffold project
 // #[case::oz_fungible_merkle_airdrop("oz/fungible-merkle-airdrop")] // also needs hex-literal as a workspace dev dependency
-// #[case::oz_multisig("oz/multisig")] - doesn't have a cargo.toml in the root of the example
-// #[case::oz_upgradeable("oz/upgradeable")] - doesn't have a cargo.toml in the root of the example
 // #[case::oz_rwa("oz/rwa")] - error: symbol `__constructor` is already defined
 // #[case::oz_sac_admin_generic("oz/sac-admin-generic")] - also needs workspace.dependencies.ed25519-dalek
 
@@ -143,6 +141,51 @@ soroban_token_contract.client = false
 
         // Run scaffold_build and assert success
         env.scaffold_build("development", true).assert().success();
+    });
+}
+
+#[rstest]
+#[case::oz_multisig("oz/multisig")]
+#[case::oz_upgradeable("oz/upgradeable")]
+fn test_adding_and_building_oz_examples_without_manifest_file_at_root(#[case] input: &str) {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        env.set_environments_toml(format!(
+            r#"
+[development]
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
+
+accounts = [
+    "alice",
+]
+[development.contracts]
+soroban_hello_world_contract.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+            rpc_url()
+        ));
+        assert!(
+            env.cwd.join("contracts").is_dir(),
+            "no contracts directory found"
+        );
+        fs_extra::dir::remove(env.cwd.join("contracts"))
+            .expect("failed to remove contracts directory");
+
+        let output = env
+            .scaffold("generate")
+            .arg("contract")
+            .arg("--from")
+            .arg(input)
+            .arg("--output")
+            .arg(format!("{}/contracts/example", env.cwd.display()))
+            .assert()
+            .success()
+            .stderr_as_str();
+
+        println!("output {:?}", output);
+        assert!(output.contains("Warning: No workspace Cargo.toml found in current directory."));
     });
 }
 
