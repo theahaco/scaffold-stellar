@@ -22,6 +22,7 @@ const SOROBAN_EXAMPLES_REPO: &str = "https://github.com/stellar/soroban-examples
 const STELLAR_PREFIX: &str = "stellar/";
 const OZ_EXAMPLES_REPO: &str = "https://github.com/OpenZeppelin/stellar-contracts/examples";
 const OZ_PREFIX: &str = "oz/";
+const LATEST_SUPPORTED_OZ_RELEASE: &str = "v0.5.1";
 
 #[derive(Deserialize)]
 struct Release {
@@ -617,9 +618,10 @@ members = []
     }
 
     async fn fetch_latest_oz_release() -> Result<Release, Error> {
-        Self::fetch_latest_release_from_url(
-            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/v0.5.1",
-        )
+        Self::fetch_latest_release_from_url(&format!(
+            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/{}",
+            LATEST_SUPPORTED_OZ_RELEASE
+        ))
         .await
     }
 
