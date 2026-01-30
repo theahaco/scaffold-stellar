@@ -123,8 +123,8 @@ impl Cmd {
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
 
-        if example_name.starts_with(OZ_PREFIX) {
-            let (_, example_name) = example_name.split_at(3);
+        if let Some(rest) = example_name.strip_prefix(OZ_PREFIX) {
+            let example_name = rest;
             let dest_path = self
                 .output
                 .clone()
@@ -137,8 +137,8 @@ impl Cmd {
                 global_args,
                 printer,
             )
-        } else if example_name.starts_with(STELLAR_PREFIX) {
-            let (_, example_name) = example_name.split_at(8);
+        } else if let Some(rest) = example_name.strip_prefix(STELLAR_PREFIX) {
+            let example_name = rest;
             let dest_path = self
                 .output
                 .clone()
