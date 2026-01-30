@@ -177,12 +177,13 @@ mod tests {
     use stellar_scaffold_test::{AssertExt, RegistryTest};
 
     #[tokio::test]
-    async fn test_run() {
+    async fn verified() {
         // Create test environment
         let registry = RegistryTest::new().await;
 
         // Path to the hello world contract WASM
         let wasm_path = registry.hello_wasm_v1();
+        let wasm_path_two = registry.hello_wasm_v2();
 
         registry
             .registry_cli("publish")
@@ -195,19 +196,22 @@ mod tests {
             .assert()
             .success();
 
-        // Then deploy it
-        registry
+        // Then publish with different wasm same version
+        let stderr = registry
             .registry_cli("publish")
             .arg("--wasm")
-            .arg(&wasm_path)
+            .arg(&wasm_path_two)
             .arg("--binver")
             .arg("0.0.2")
             .arg("--wasm-name")
             .arg("hello")
             .assert()
-            .failure();
+            .failure()
+            .stderr_as_str();
+        assert!(stderr.contains("Error(Contract, #8)"));
 
-        let output = registry
+        // Different version same wasm
+        let stderr = registry
             .registry_cli("publish")
             .arg("--wasm")
             .arg(&wasm_path)
@@ -215,10 +219,10 @@ mod tests {
             .arg("0.0.3")
             .arg("--wasm-name")
             .arg("hello")
-            .output()
-            .unwrap();
-        assert!(!output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr).contains("Error(Contract, #11)"));
+            .assert()
+            .failure()
+            .stderr_as_str();
+        assert!(stderr.contains("Error(Contract, #11)"));
 
         registry
             .registry_cli("publish")
@@ -239,6 +243,7 @@ mod tests {
 
         // Path to the hello world contract WASM
         let wasm_path = registry.hello_wasm_v1();
+        let wasm_path_two = registry.hello_wasm_v2();
 
         registry
             .registry_cli("publish")
@@ -251,19 +256,21 @@ mod tests {
             .assert()
             .success();
 
-        // Then deploy it
-        registry
+        // publish new wasm with same name
+        let stderr = registry
             .registry_cli("publish")
             .arg("--wasm")
-            .arg(&wasm_path)
+            .arg(&wasm_path_two)
             .arg("--binver")
             .arg("0.0.2")
             .arg("--wasm-name")
             .arg("unverified/hello")
             .assert()
-            .failure();
+            .failure()
+            .stderr_as_str();
+        assert!(stderr.contains("Error(Contract, #8)"));
 
-        let output = registry
+        let stderr = registry
             .registry_cli("publish")
             .arg("--wasm")
             .arg(&wasm_path)
@@ -271,15 +278,16 @@ mod tests {
             .arg("0.0.3")
             .arg("--wasm-name")
             .arg("unverified/hello")
-            .output()
-            .unwrap();
-        assert!(!output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr).contains("Error(Contract, #11)"));
+            .assert()
+            .failure()
+            .stderr_as_str();
+
+        assert!(stderr.contains("Error(Contract, #11)"));
 
         registry
             .registry_cli("publish")
             .arg("--wasm")
-            .arg(&registry.hello_wasm_v2())
+            .arg(&wasm_path_two)
             .arg("--binver")
             .arg("0.0.3")
             .arg("--wasm-name")
