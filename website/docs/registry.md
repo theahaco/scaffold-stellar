@@ -13,7 +13,7 @@ The registry system consists of two main components:
 
 There are two types of registries:
 
-- **Verified (Root) Registry** - A managed registry where a manager account must approve initial publishes and contract name registrations. This ensures that established contracts in the verified registry have been vetted.
+- **Verified (Root) Registry** - A managed registry where a manager account must approve initial publishes and contract name registrations. This ensures that established contracts in the verified registry have been vetted. If interested in having your contract added to the registry please open an issue and we can begin to verify your contract and project.
 - **Unverified Registry** - An unmanaged registry where anyone can publish wasms or register contract names without approval.
 
 ### Name Resolution

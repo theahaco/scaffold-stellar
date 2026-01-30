@@ -184,19 +184,11 @@ impl<'a> Registry<'a> {
     pub fn mock_auth_for(
         &self,
         signer_address: &Address,
-        method: &str,
+        fn_name: &str,
         args: impl TryIntoVal<Env, Vec<Val>>,
     ) {
-        let env = self.env();
-        env.mock_auths(&[MockAuth {
-            address: signer_address,
-            invoke: &MockAuthInvoke {
-                contract: &self.client.address,
-                fn_name: method,
-                args: unsafe { args.try_into_val(env).unwrap_unchecked() },
-                sub_invokes: &[],
-            },
-        }]);
+       self.mock_auths_for(&[signer_address], fn_name, args);
+       
     }
 
     pub fn mock_auth_and_deploy(
