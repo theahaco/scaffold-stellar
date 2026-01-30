@@ -625,19 +625,11 @@ members = []
         Ok(())
     }
 
-    async fn fetch_latest_supported_oz_release(printer: &Print) -> Result<Release, Error> {
-        // async fn fetch_latest_oz_release() -> Result<Release, Error> {
-        let version_override = std::env::var("OZ_RELEASE_TAG");
-        let version = match version_override {
-            Ok(v) => {
-                printer.warnln(format!(
-                    "Overriding OpenZeppelin Example Contracts Version to {v}"
-                ));
-                v
-            }
-            Err(_) => LATEST_SUPPORTED_OZ_RELEASE.to_owned(),
-        };
-        Self::fetch_latest_release_from_url(&format!("{OZ_EXAMPLES_GITHUB_API}{version}")).await
+    async fn fetch_latest_supported_oz_release() -> Result<Release, Error> {
+        Self::fetch_latest_release_from_url(&format!(
+            "{OZ_EXAMPLES_GITHUB_API}{LATEST_SUPPORTED_OZ_RELEASE}"
+        ))
+        .await
     }
 
     async fn fetch_latest_soroban_examples_release() -> Result<Release, Error> {
@@ -807,7 +799,7 @@ members = []
         let oz_cache_path = cli_cache_path.join("openzeppelin-stellar-contracts");
         let soroban_examples_cache_path = cli_cache_path.join("soroban_examples");
 
-        Self::update_cache(&oz_cache_path, &soroban_examples_cache_path, printer)
+        Self::update_cache(&oz_cache_path, &soroban_examples_cache_path)
             .await
             .or_else(|e| {
                 printer.warnln(format!("Failed to update examples cache: {e}"));
@@ -818,10 +810,9 @@ members = []
     async fn update_cache(
         oz_cache_path: &Path,
         soroban_examples_cache_path: &Path,
-        printer: &Print,
     ) -> Result<ExamplesInfo, Error> {
         // Get the latest supported oz release tag
-        let Release { tag_name } = Self::fetch_latest_supported_oz_release(printer).await?;
+        let Release { tag_name } = Self::fetch_latest_supported_oz_release().await?;
         let oz_repo_cache_path = oz_cache_path.join(&tag_name);
         if !oz_repo_cache_path.exists() {
             Self::cache_oz_repository(&oz_repo_cache_path, &tag_name).await?;
