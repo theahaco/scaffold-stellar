@@ -123,9 +123,12 @@ impl Cmd {
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
 
-        if example_name.starts_with(OZ_PREFIX) {
-            let (_, example_name) = example_name.split_at(3);
-            let dest_path = self.output_dir(example_name);
+        if let Some(rest) = example_name.strip_prefix(OZ_PREFIX) {
+            let example_name = rest;
+            let dest_path = self
+                .output
+                .clone()
+                .unwrap_or_else(|| format!("contracts/{example_name}"));
             Self::generate_oz_example(
                 example_name,
                 &examples_info.oz_examples_path,
@@ -134,9 +137,12 @@ impl Cmd {
                 global_args,
                 &printer,
             )
-        } else if example_name.starts_with(STELLAR_PREFIX) {
-            let (_, example_name) = example_name.split_at(8);
-            let dest_path = self.output_dir(example_name);
+        } else if let Some(rest) = example_name.strip_prefix(STELLAR_PREFIX) {
+            let example_name = rest;
+            let dest_path = self
+                .output
+                .clone()
+                .unwrap_or_else(|| format!("contracts/{example_name}"));
             self.generate_soroban_example(
                 example_name,
                 &examples_info.soroban_examples_path,
