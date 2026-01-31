@@ -5,6 +5,9 @@ edition = "2024"
 publish = false
 repository.workspace = true
 
+[lib]
+crate-type = ["rlib"]
+
 [lints]
 workspace = true
 
@@ -18,8 +21,6 @@ uuid = { version = "1.18", features = ["v4"] }
 clap = { workspace = true }
 
 soroban-sdk = { workspace = true }
+stellar-strkey = { workspace = true }
 stellar-cli = { workspace = true }
-stellar-scaffold-cli = { path = "../stellar-scaffold-cli" }
-stellar-registry-cli = { path = "../stellar-registry-cli" }
 wasm-gen = "0.1.4"
-
