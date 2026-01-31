@@ -23,6 +23,8 @@ pub enum Error {
     Invoke(#[from] invoke::Error),
     #[error(transparent)]
     Config(#[from] stellar_cli::config::Error),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {

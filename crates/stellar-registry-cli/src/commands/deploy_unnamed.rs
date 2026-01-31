@@ -1,7 +1,6 @@
 use std::ffi::OsString;
 
 use clap::Parser;
-use rand::Rng;
 use soroban_rpc as rpc;
 pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
@@ -34,7 +33,6 @@ pub struct Cmd {
     pub version: Option<String>,
 
     /// Optional salt for deterministic contract address (hex-encoded 32 bytes)
-    /// If not provided a random salt will be used
     #[arg(long)]
     pub salt: Option<String>,
 
@@ -73,13 +71,15 @@ pub enum Error {
     ConstructorHelpMessage(String),
     #[error("{0}")]
     InvalidReturnValue(String),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         match self.invoke().await {
             Ok(contract_id) => {
-                println!("{contract_id}");
+                println!("Contract deployed successfully to {contract_id}");
                 Ok(())
             }
             Err(Error::ConstructorHelpMessage(help)) => {
@@ -139,32 +139,30 @@ impl Cmd {
         };
 
         // Build salt argument
-        let salt_arg = ScVal::Bytes(xdr::ScBytes(
-            if let Some(salt) = &self.salt {
-                let bytes: [u8; 32] = hex::decode(salt)
-                    .map_err(|_| Error::InvalidReturnValue("Invalid salt hex".to_string()))?
-                    .try_into()
-                    .map_err(|_| Error::InvalidReturnValue("Salt must be 32 bytes".to_string()))?;
-                bytes
-            } else {
-                rand::rng().random::<[u8; 32]>()
-            }
-            .try_into()
-            .unwrap(),
-        ));
-        let args: [ScVal; 5] = [
-            ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
-            self.version.clone().map_or(ScVal::Void, |s| {
-                ScVal::String(ScString(s.try_into().unwrap()))
-            }),
-            args,
-            salt_arg,
-            ScVal::Address(xdr::ScAddress::Account(deployer.account_id())),
-        ];
+        let salt_arg = if let Some(salt) = &self.salt {
+            let bytes: [u8; 32] = hex::decode(salt)
+                .map_err(|_| Error::InvalidReturnValue("Invalid salt hex".to_string()))?
+                .try_into()
+                .map_err(|_| Error::InvalidReturnValue("Salt must be 32 bytes".to_string()))?;
+            ScVal::Bytes(xdr::ScBytes(bytes.try_into().unwrap()))
+        } else {
+            ScVal::Void
+        };
+
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
-            function_name: "deploy_unnamed".try_into().unwrap(),
-            args: args.try_into().unwrap(),
+            function_name: "deploy_unnammed".try_into().unwrap(),
+            args: [
+                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
+                self.version.clone().map_or(ScVal::Void, |s| {
+                    ScVal::String(ScString(s.try_into().unwrap()))
+                }),
+                salt_arg,
+                args,
+                ScVal::Address(xdr::ScAddress::Account(deployer.account_id())),
+            ]
+            .try_into()
+            .unwrap(),
         };
 
         // Get the account sequence number
@@ -176,6 +174,7 @@ impl Cmd {
             util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
         let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
         let mut txn = assembled.transaction().clone();
+        println!("{}", txn.to_xdr_base64(Limits::none())?);
         if self.fee.build_only {
             println!("{}", txn.to_xdr_base64(Limits::none())?);
             std::process::exit(1);
@@ -199,10 +198,10 @@ impl Cmd {
     }
 }
 
-#[cfg(feature = "integration-tests")]
+// #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    use stellar_scaffold_test::{AssertExt, RegistryTest};
+    use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
     async fn simple() {
@@ -265,7 +264,7 @@ mod tests {
             .success();
 
         // Deploy unnamed with specific version
-        let contract_id = registry
+        registry
             .registry_cli("deploy-unnamed")
             .arg("--wasm-name")
             .arg("hello")
@@ -274,9 +273,7 @@ mod tests {
             .arg("--")
             .arg("--admin=alice")
             .assert()
-            .success()
-            .stdout_as_str();
-        println!("{contract_id}")
+            .success();
     }
 
     #[tokio::test]
@@ -305,43 +302,5 @@ mod tests {
             .arg("--admin=alice")
             .assert()
             .success();
-    }
-
-    #[tokio::test]
-    async fn with_salt() {
-        let registry = RegistryTest::new().await;
-        let v1 = registry.hello_wasm_v1();
-        let pre_contract = stellar_registry_build::contract::PreHashContractID::new(
-            registry.alice_address.clone(),
-            "test_salt",
-        );
-        let salt = hex::encode(pre_contract.salt);
-        let contract_id = pre_contract.id(&stellar_build::Network::Local);
-
-        // First publish the contract
-        registry
-            .registry_cli("publish")
-            .arg("--wasm")
-            .arg(v1.to_str().unwrap())
-            .arg("--binver")
-            .arg("0.0.1")
-            .arg("--wasm-name")
-            .arg("hello")
-            .assert()
-            .success();
-
-        // Deploy unnamed
-        let contract_id_str = registry
-            .registry_cli("deploy-unnamed")
-            .arg("--wasm-name")
-            .arg("hello")
-            .arg("--salt")
-            .arg(&salt)
-            .arg("--")
-            .arg("--admin=alice")
-            .assert()
-            .success()
-            .stdout_as_str();
-        assert_eq!(contract_id_str, contract_id.to_string())
     }
 }

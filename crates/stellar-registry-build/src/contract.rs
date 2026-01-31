@@ -1,4 +1,4 @@
-use crate::{named_registry::PrefixedName, registry::Registry};
+use crate::{Error, named_registry::PrefixedName, registry::Registry};
 use sha2::{Digest, Sha256};
 use soroban_rpc as rpc;
 use stellar_build::Network;
@@ -110,7 +110,7 @@ impl ContractId {
     pub async fn resolve_id(
         &self,
         config: &config::Args,
-    ) -> Result<stellar_strkey::Contract, invoke::Error> {
+    ) -> Result<stellar_strkey::Contract, Error> {
         let network_passphrase = config.get_network()?.network_passphrase;
         Ok(match self {
             ContractId::Resolved(contract) => *contract,
@@ -118,7 +118,7 @@ impl ContractId {
                 unresolved_contract.resolve_contract_id(&config.locator, &network_passphrase)?
             }
             ContractId::PreHash(pre_hash_contract_id) => {
-                pre_hash_contract_id.id(&network_passphrase.parse().unwrap())
+                pre_hash_contract_id.id(&network_passphrase.parse()?)
             }
             ContractId::FromRegistry(PrefixedName { channel, name }) => {
                 Registry::new(config, channel.as_deref())
@@ -129,7 +129,7 @@ impl ContractId {
         })
     }
 
-    pub async fn resolve_contract(&self, config: &config::Args) -> Result<Contract, invoke::Error> {
+    pub async fn resolve_contract(&self, config: &config::Args) -> Result<Contract, Error> {
         Ok(Contract::new(self.resolve_id(config).await?, config))
     }
 }
