@@ -187,8 +187,7 @@ impl<'a> Registry<'a> {
         fn_name: &str,
         args: impl TryIntoVal<Env, Vec<Val>>,
     ) {
-       self.mock_auths_for(&[signer_address], fn_name, args);
-       
+        self.mock_auths_for(&[signer_address], fn_name, args);
     }
 
     pub fn mock_auth_and_deploy(

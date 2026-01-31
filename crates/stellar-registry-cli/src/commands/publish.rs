@@ -64,42 +64,28 @@ pub enum Error {
     Config(#[from] config::Error),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
+    #[error("Invalid arguments: --wasm or --github required")]
+    InvalidWasmArgs,
+    #[error("--github requires --binver")]
+    BinverMissing,
+    #[error("--github requires --wasm-name")]
+    WasmNameMissing,
 }
 
 impl Cmd {
-    pub async fn fetch_from_github(&self) -> Result<Vec<u8>, Error> {
-        let from_github = self.wasm_args.from_github.as_ref().unwrap();
-        let wasm_name = &self.wasm_name.as_ref().unwrap().name;
-        let bin_ver = self.binver.as_ref().unwrap();
-        let url = format!(
-            "https://github.com/{from_github}/releases/download/{wasm_name}-v{bin_ver}/{wasm_name}_v{bin_ver}.wasm"
-        );
-        let client = reqwest::Client::new();
-        let response = client
-            .get(url)
-            .header("User-Agent", "stellar-registry-cli")
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::Reqwest(response.error_for_status().unwrap_err()));
-        }
-        Ok(response.bytes().await?.to_vec())
-    }
-
     pub async fn get_wasm_bytes(&self) -> Result<Vec<u8>, Error> {
         if let Some(github) = &self.wasm_args.from_github {
             Ok(Fetcher::new(
                 github,
-                &self.wasm_name.as_ref().unwrap().name,
-                self.binver.as_ref().unwrap(),
+                &self.wasm_name.as_ref().ok_or(Error::WasmNameMissing)?.name,
+                self.binver.as_ref().ok_or(Error::BinverMissing)?,
             )
             .fetch()
             .await?)
         } else if let Some(wasm) = &self.wasm_args.wasm {
             std::fs::read(wasm).map_err(|_| Error::MissingFileArg(wasm.clone()))
         } else {
-            unreachable!()
+            Err(Error::InvalidWasmArgs)
         }
     }
 
@@ -107,7 +93,7 @@ impl Cmd {
         // Read the Wasm file from the path
         let wasm_bytes = self.get_wasm_bytes().await?;
         let spec =
-            contract_spec::Spec::new(&wasm_bytes).map_err(|_| Error::CannotParseContractSpec);
+            contract_spec::Spec::new(&wasm_bytes).map_err(|_| Error::CannotParseContractSpec)?;
         // Prepare a mutable vector for the base arguments
         let mut args = vec![
             "publish".to_string(),
@@ -116,7 +102,7 @@ impl Cmd {
         ];
 
         // Use `filter_map` to extract relevant metadata and format as arguments
-        args.extend(spec?.meta.iter().filter_map(|entry| match entry {
+        args.extend(spec.meta.iter().filter_map(|entry| match entry {
             ScMetaEntry::ScMetaV0(ScMetaV0 { key, val }) => {
                 let key_str = key.to_string();
                 match key_str.as_str() {
