@@ -1,8 +1,8 @@
 use std::{convert::Infallible, fmt::Display, str::FromStr};
 
-use stellar_cli::{commands::contract::invoke, config};
+use stellar_cli::config;
 
-use crate::{contract::ContractId, registry::Registry};
+use crate::{Error, contract::ContractId, registry::Registry};
 
 #[derive(Clone, Debug)]
 /// Help docs for special type
@@ -36,7 +36,7 @@ impl From<PrefixedName> for ContractId {
 }
 
 impl PrefixedName {
-    pub async fn registry(&self, config: &config::Args) -> Result<Registry, invoke::Error> {
+    pub async fn registry(&self, config: &config::Args) -> Result<Registry, Error> {
         Registry::from_named_registry(config, self).await
     }
 }

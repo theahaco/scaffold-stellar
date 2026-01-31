@@ -85,6 +85,8 @@ pub enum Error {
     ConstructorHelpMessage(String),
     #[error("{0}")]
     InvalidReturnValue(String),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {

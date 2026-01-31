@@ -9,7 +9,7 @@ on:
     branches: [main]
   pull_request:
     paths-ignore:
-      - 'website/**'
+      - "website/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -51,7 +51,7 @@ jobs:
       - name: build since clippy needs contracts to be built
         run: just build
       - name: Run cargo clippy
-        run: cargo clippy --all
+        run: cargo clippy --all -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
       - name: Unit Tests
         run: just test
       - name: Always Save Cache

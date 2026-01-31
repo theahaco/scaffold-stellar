@@ -70,6 +70,8 @@ pub enum Error {
     BinverMissing,
     #[error("--github requires --wasm-name")]
     WasmNameMissing,
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {
