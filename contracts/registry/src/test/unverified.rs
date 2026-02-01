@@ -1,4 +1,3 @@
-#![allow(unused)]
 use crate::test::contracts::{
     self, hw_bytes, hw_bytes_v2, hw_bytes_v3, hw_hash, hw_hash_v2, hw_hash_v3,
 };

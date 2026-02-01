@@ -1,5 +1,7 @@
 extern crate std;
-use crate::{error::Error, ContractArgs, ContractClient as SorobanContractClient};
+use crate::{
+    error::Error, name::UNVERIFIED, ContractArgs, ContractClient as SorobanContractClient,
+};
 
 use soroban_sdk::{
     self,
@@ -44,6 +46,51 @@ impl<'a> Registry<'a> {
         Self::new().switch_client_to_unverified()
     }
 
+    /// Creates a non-root registry with a manager (different from admin).
+    /// Publishing requires manager auth.
+    pub fn new_non_root_managed() -> Self {
+        let env = Env::default();
+        let bytes = Bytes::from_slice(&env, registry::WASM);
+        let hash = env.deployer().upload_contract_wasm(registry::WASM);
+        let admin = Address::generate(&env);
+        let manager = Address::generate(&env);
+        let contract_id = registry::WASM.register(
+            &env,
+            None,
+            ContractArgs::__constructor(&admin, &Some(manager), &false),
+        );
+        let client = SorobanContractClient::new(&env, &contract_id);
+        Registry {
+            env,
+            client,
+            admin,
+            bytes,
+            hash,
+        }
+    }
+
+    /// Creates a non-root registry without a manager.
+    /// Authors can publish directly without manager auth.
+    pub fn new_non_root_unmanaged() -> Self {
+        let env = Env::default();
+        let bytes = Bytes::from_slice(&env, registry::WASM);
+        let hash = env.deployer().upload_contract_wasm(registry::WASM);
+        let admin = Address::generate(&env);
+        let contract_id = registry::WASM.register(
+            &env,
+            None,
+            ContractArgs::__constructor(&admin, &None, &false),
+        );
+        let client = SorobanContractClient::new(&env, &contract_id);
+        Registry {
+            env,
+            client,
+            admin,
+            bytes,
+            hash,
+        }
+    }
+
     fn new_with_bytes_internal(env: &Env, bytes: Bytes, hash: BytesN<32>) -> Self {
         let admin = Address::generate(env);
         let contract_id = registry::WASM.register(
@@ -74,7 +121,7 @@ impl<'a> Registry<'a> {
             self.env(),
             &self
                 .client
-                .fetch_contract_id(&to_string(self.env(), "unverified")),
+                .fetch_contract_id(&to_string(self.env(), UNVERIFIED)),
         );
         self
     }
@@ -184,10 +231,19 @@ impl<'a> Registry<'a> {
     pub fn mock_auth_for(
         &self,
         signer_address: &Address,
-        fn_name: &str,
+        method: &str,
         args: impl TryIntoVal<Env, Vec<Val>>,
     ) {
-        self.mock_auths_for(&[signer_address], fn_name, args);
+        let env = self.env();
+        env.mock_auths(&[MockAuth {
+            address: signer_address,
+            invoke: &MockAuthInvoke {
+                contract: &self.client.address,
+                fn_name: method,
+                args: unsafe { args.try_into_val(env).unwrap_unchecked() },
+                sub_invokes: &[],
+            },
+        }]);
     }
 
     pub fn mock_auth_and_deploy(
