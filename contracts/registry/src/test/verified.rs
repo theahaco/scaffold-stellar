@@ -154,69 +154,6 @@ fn hello_world_using_publish_hash() {
     );
 }
 
-// #[test]
-// fn contract_admin_error_cases() {
-//     let registry = &Registry::new();
-//     let env = registry.env();
-//     let other_address = &Address::generate(env);
-
-//     let name = &to_string(env, "registry");
-//     let wasm_name = &registry.name();
-//     let author = registry.admin();
-//     let client = registry.client();
-//     assert_eq!(
-//         client.try_fetch_contract_id(name).unwrap_err(),
-//         Ok(Error::NoSuchContractDeployed)
-//     );
-//     let version = &Some(default_version(env));
-//     registry.mock_auth_with_addresses_for_publish(
-//         name,
-//         other_address,
-//         version,
-//         &registry.bytes(),
-//         &[other_address]
-//     );
-
-//     assert_eq!(
-//         registry.try_publish(other_address).unwrap_err(),
-//         Err(InvokeError::Abort),
-//     );
-//     let version = &Some(default_version(env));
-//     registry.mock_auth_for_publish(wasm_name, author, version, &registry.bytes());
-//     registry.publish();
-//     let args = vec![env, other_address.into_val(env)];
-//     registry.mock_auths_for(
-//         &[other_address, registry.admin()],
-//         "deploy",
-//         ContractArgs::deploy(wasm_name, &None, name, author, &Some(args.clone()), &None),
-//     );
-//     client.deploy(
-//         wasm_name,
-//         &None,
-//         name,
-//         &other_address,
-//         &Some(args.clone()),
-//         &None,
-//     );
-
-//     assert_eq!(
-//         client.try_deploy(wasm_name, &None, name, &other_address, &Some(args), &None,),
-//         Err(Ok(Error::AdminOnly))
-//     );
-
-//     registry.mock_auth_and_deploy(
-//         author,
-//         wasm_name,
-//         name,
-//         None,
-//         &Some(ContractArgs::__constructor(
-//             author,
-//             &Some(author.clone()),
-//             &true,
-//         )),
-//     );
-// }
-
 #[test]
 fn returns_most_recent_version() {
     let registry = Registry::new();
@@ -600,4 +537,212 @@ fn hello_world_deploy_unnamed() {
             .with_address(author.clone(), wasm_hash)
             .deployed_address()
     );
+}
+
+#[test]
+fn remove_manager_requires_admin() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    // Verify manager exists initially
+    assert!(client.manager().is_some());
+
+    // Non-admin cannot remove manager (admin-sep returns InvalidAction error)
+    let non_admin = &Address::generate(env);
+    registry.mock_auth_for(non_admin, "remove_manager", ());
+    assert!(client.try_remove_manager().is_err());
+
+    // Admin can remove manager
+    registry.mock_auth_for(registry.admin(), "remove_manager", ());
+    client.remove_manager();
+
+    // Verify manager is removed
+    assert!(client.manager().is_none());
+}
+
+#[test]
+fn publish_after_manager_removal() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    // Remove manager
+    registry.mock_auth_for(registry.admin(), "remove_manager", ());
+    client.remove_manager();
+    assert!(client.manager().is_none());
+
+    // After manager removal, author can publish directly without manager approval
+    let author = &Address::generate(env);
+    let wasm_name = &to_string(env, "test_wasm");
+    let version = &to_string(env, "0.0.0");
+    let bytes = &registry.bytes();
+
+    // Only author auth required now (no manager)
+    registry.mock_auth_for(author, "publish", (wasm_name, author, bytes, version));
+    client.publish(wasm_name, author, bytes, version);
+
+    assert_eq!(client.current_version(wasm_name), *version);
+}
+
+#[test]
+fn set_manager_requires_admin() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    let new_manager = &Address::generate(env);
+    let non_admin = &Address::generate(env);
+
+    // Non-admin cannot set manager (admin-sep returns InvalidAction error)
+    registry.mock_auth_for(non_admin, "set_manager", (new_manager,));
+    assert!(client.try_set_manager(new_manager).is_err());
+
+    // Admin can set new manager
+    registry.mock_auth_for(registry.admin(), "set_manager", (new_manager,));
+    client.set_manager(new_manager);
+
+    assert_eq!(client.manager(), Some(new_manager.clone()));
+}
+
+#[test]
+fn deploy_after_manager_removal() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    // First publish a wasm while manager is present
+    let wasm_name = &to_string(env, "test_wasm");
+    let version = &to_string(env, "0.0.0");
+    env.mock_all_auths();
+    client.publish(wasm_name, registry.admin(), &hw_bytes(env), version);
+
+    // Remove manager
+    client.remove_manager();
+    assert!(client.manager().is_none());
+
+    // After manager removal, contract_admin can deploy directly
+    let contract_admin = &Address::generate(env);
+    let contract_name = &to_string(env, "my_contract");
+    let args = vec![env, contract_admin.into_val(env)];
+
+    // Only contract_admin auth required now (no manager)
+    registry.mock_auth_for(
+        contract_admin,
+        "deploy",
+        ContractArgs::deploy(
+            wasm_name,
+            &None,
+            contract_name,
+            contract_admin,
+            &Some(args.clone()),
+            &None,
+        ),
+    );
+    let contract_id = client.deploy(
+        wasm_name,
+        &None,
+        contract_name,
+        contract_admin,
+        &Some(args),
+        &None,
+    );
+
+    assert_eq!(client.fetch_contract_id(contract_name), contract_id);
+}
+
+#[test]
+fn non_root_managed_registry_requires_manager_for_publish() {
+    let registry = &Registry::new_non_root_managed();
+    let env = registry.env();
+    let client = registry.client();
+
+    // Verify manager exists
+    assert!(client.manager().is_some());
+
+    let author = &Address::generate(env);
+    let wasm_name = &to_string(env, "test_wasm");
+    let version = &to_string(env, "0.0.0");
+    let bytes = &registry.bytes();
+
+    // Without manager auth, publish should fail
+    registry.mock_auth_for(author, "publish", (wasm_name, author, bytes, version));
+    assert_eq!(
+        client.try_publish(wasm_name, author, bytes, version),
+        Err(Err(InvokeError::Abort))
+    );
+
+    // With both manager and author auth, publish should succeed
+    // Note: manager is different from admin in non-root managed registry
+    let manager = &client.manager().unwrap();
+    registry.mock_auths_for(
+        &[author, manager],
+        "publish",
+        (wasm_name, author, bytes, version),
+    );
+    client.publish(wasm_name, author, bytes, version);
+
+    assert_eq!(client.current_version(wasm_name), *version);
+}
+
+#[test]
+fn non_root_unmanaged_registry_author_can_publish_directly() {
+    let registry = &Registry::new_non_root_unmanaged();
+    let env = registry.env();
+    let client = registry.client();
+
+    // Verify no manager
+    assert!(client.manager().is_none());
+
+    let author = &Address::generate(env);
+    let wasm_name = &to_string(env, "test_wasm");
+    let version = &to_string(env, "0.0.0");
+    let bytes = &registry.bytes();
+
+    // Author can publish directly without manager
+    registry.mock_auth_for(author, "publish", (wasm_name, author, bytes, version));
+    client.publish(wasm_name, author, bytes, version);
+
+    assert_eq!(client.current_version(wasm_name), *version);
+}
+
+#[test]
+fn non_root_unmanaged_registry_deploy_requires_only_admin() {
+    let registry = &Registry::new_non_root_unmanaged();
+    let env = registry.env();
+    let client = registry.client();
+
+    // First publish a wasm
+    let wasm_name = &to_string(env, "test_wasm");
+    let version = &to_string(env, "0.0.0");
+    env.mock_all_auths();
+    client.publish(wasm_name, registry.admin(), &hw_bytes(env), version);
+
+    // Deploy requires only contract_admin auth (no manager)
+    let contract_admin = &Address::generate(env);
+    let contract_name = &to_string(env, "my_contract");
+    let args = vec![env, contract_admin.into_val(env)];
+
+    registry.mock_auth_for(
+        contract_admin,
+        "deploy",
+        ContractArgs::deploy(
+            wasm_name,
+            &None,
+            contract_name,
+            contract_admin,
+            &Some(args.clone()),
+            &None,
+        ),
+    );
+    let contract_id = client.deploy(
+        wasm_name,
+        &None,
+        contract_name,
+        contract_admin,
+        &Some(args),
+        &None,
+    );
+
+    assert_eq!(client.fetch_contract_id(contract_name), contract_id);
 }

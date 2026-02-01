@@ -1,6 +1,7 @@
 #![allow(non_upper_case_globals)]
 use crate::name;
 use crate::name::NormalizedName;
+use crate::name::UNVERIFIED;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
 
@@ -145,7 +146,7 @@ impl Contract {
                 .unwrap_unchecked()
             {
                 let contract_name =
-                    NormalizedName::new_unchecked(String::from_str(env, "unverified"));
+                    NormalizedName::new_unchecked(String::from_str(env, UNVERIFIED));
                 let args = vec![
                     env,
                     *admin.as_val(),

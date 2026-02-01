@@ -8,6 +8,7 @@ mod to_str;
 use normalized::Normalized;
 
 pub(crate) const REGISTRY: &str = "registry";
+pub(crate) const UNVERIFIED: &str = "unverified";
 
 /// Checks that the name is a valid crate name.
 /// 1. The name must be non-empty.
@@ -88,7 +89,7 @@ impl TryFromVal<Env, Val> for NormalizedName {
 
     fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
         let name: String = TryFromVal::try_from_val(env, v)?;
-        Ok(Self(name))
+        Ok(name.try_into()?)
     }
 }
 
