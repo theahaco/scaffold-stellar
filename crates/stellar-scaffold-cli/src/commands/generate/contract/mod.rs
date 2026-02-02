@@ -619,8 +619,7 @@ members = []
 
     async fn fetch_latest_oz_release() -> Result<Release, Error> {
         Self::fetch_latest_release_from_url(&format!(
-            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/{}",
-            LATEST_SUPPORTED_OZ_RELEASE
+            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/{LATEST_SUPPORTED_OZ_RELEASE}",
         ))
         .await
     }
