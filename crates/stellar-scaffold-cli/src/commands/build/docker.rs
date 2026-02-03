@@ -22,7 +22,7 @@ pub async fn start_local_stellar() -> Result<(), Box<dyn Error>> {
 async fn wait_for_stellar_health() -> Result<(), Box<dyn Error>> {
     let client = reqwest::Client::new();
     let start_time = std::time::Instant::now();
-    let timeout = std::time::Duration::from_secs(60);
+    let timeout = std::time::Duration::from_secs(120);
 
     // First check Stellar RPC health
     loop {
@@ -39,6 +39,7 @@ async fn wait_for_stellar_health() -> Result<(), Box<dyn Error>> {
             .await?;
         if res.status().is_success() {
             let health_status: serde_json::Value = res.json().await?;
+            println!("========> HEALTH STATUS {:?}", health_status);
             if health_status["result"]["status"] == "healthy" {
                 eprintln!("Stellar RPC is healthy, now checking friendbot...");
                 break;
