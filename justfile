@@ -1,31 +1,29 @@
-set dotenv-load
+set dotenv-load := true
 
 export PATH := './target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
-
 
 [private]
 path:
     just --list
 
 scaffold +args:
-    @cargo run --bin stellar-scaffold --quiet -- {{args}}
+    @cargo run --bin stellar-scaffold --quiet -- {{ args }}
 
 registry +args:
-    @cargo run --bin stellar-registry --quiet -- {{args}}
+    @cargo run --bin stellar-registry --quiet -- {{ args }}
 
 stellar-scaffold +args:
-    @cargo run --bin stellar-scaffold -- {{args}}
+    @cargo run --bin stellar-scaffold -- {{ args }}
 
 s +args:
-    @stellar {{args}}
+    @stellar {{ args }}
 
 stellar +args:
-    @stellar {{args}}
+    @stellar {{ args }}
 
 build_contract p:
-    stellar contract build --profile contracts --package {{p}}
-
+    stellar contract build --profile contracts --package {{ p }}
 
 # build contracts
 build:
