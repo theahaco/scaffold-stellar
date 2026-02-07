@@ -307,7 +307,7 @@ impl<'a> Registry<'a> {
         contract_name: &soroban_sdk::String,
         wasm_name: &soroban_sdk::String,
         version: &Option<String>,
-        upgrade_fn: &Option<&str>,
+        upgrade_fn: Option<&str>,
         old_contract: &Address,
         wasm_hash: &BytesN<32>,
     ) -> Result<Result<Address, ConversionError>, Result<Error, InvokeError>> {

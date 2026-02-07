@@ -51,7 +51,9 @@ jobs:
       - name: build since clippy needs contracts to be built
         run: just build
       - name: Run cargo clippy
-        run: cargo clippy --all -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
+        run: just clippy
+      - name: Run cargo clippy on tests
+        run: just clippy-tests
       - name: Unit Tests
         run: just test
       - name: Always Save Cache

@@ -267,6 +267,7 @@ fn validate_version() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn hello_world_deploy_v2() {
     let registry = &Registry::new();
     let env = registry.env();
@@ -382,7 +383,7 @@ fn hello_world_deploy_v2() {
             alice_contract,
             hello_wasm,
             sv1,
-            &None,
+            None,
             &address,
             &registry_client.fetch_hash(hello_wasm, &None)
         ),
@@ -395,7 +396,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         &None,
-        &None,
+        None,
         &address,
         &registry_client.fetch_hash(hello_wasm, &None),
     );
@@ -409,7 +410,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         sv0,
-        &None,
+        None,
         &address,
         &registry_client.fetch_hash(hello_wasm, sv0),
     );
@@ -439,7 +440,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         sv0,
-        &Some("custom_upgrade"),
+        Some("custom_upgrade"),
         &address,
         &registry_client.fetch_hash(hello_wasm, sv0),
     );

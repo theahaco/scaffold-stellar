@@ -951,7 +951,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
+    #[ignore = "requires additional setup beyond HTTP mock"]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
         let global_args = global::Args::default();
