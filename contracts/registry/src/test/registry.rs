@@ -11,7 +11,7 @@ use soroban_sdk::{
 };
 
 pub fn default_version(env: &Env) -> soroban_sdk::String {
-    soroban_sdk::String::from_str(&env, "0.0.0")
+    soroban_sdk::String::from_str(env, "0.0.0")
 }
 
 stellar_registry::import_contract_client!(registry);
@@ -157,7 +157,7 @@ impl<'a> Registry<'a> {
     // }
 
     pub fn publish(&self) {
-        self.try_publish(&self.admin).unwrap()
+        self.try_publish(&self.admin).unwrap();
     }
     pub fn env(&self) -> &Env {
         &self.env
@@ -219,7 +219,7 @@ impl<'a> Registry<'a> {
             sub_invokes: &[],
         };
         let auths: std::vec::Vec<MockAuth<'_>> = addresses
-            .into_iter()
+            .iter()
             .map(|address| MockAuth {
                 address,
                 invoke: &invoke,

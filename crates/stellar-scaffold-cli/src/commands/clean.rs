@@ -354,7 +354,7 @@ crate-type = ["cdylib"]
     fn test_clean_target_stellar() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let target_stellar_path = temp_dir.path().join("target").join("stellar");
         std::fs::create_dir_all(&target_stellar_path).unwrap();
@@ -374,7 +374,7 @@ crate-type = ["cdylib"]
     fn test_clean_packages() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let packages_path = temp_dir.path().join("packages");
         let test_package_path = packages_path.join("test_contract_package");
@@ -403,7 +403,7 @@ crate-type = ["cdylib"]
     fn test_clean_src_contracts() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let src_contracts_path = temp_dir.path().join("src").join("contracts");
         std::fs::create_dir_all(&src_contracts_path).unwrap();

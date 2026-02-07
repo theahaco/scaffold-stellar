@@ -49,7 +49,7 @@ fn use_publish_method() {
     );
 
     let other_address = &Address::generate(env);
-    let random_bytes: BytesN<32> = BytesN::random(&env);
+    let random_bytes: BytesN<32> = BytesN::random(env);
     registry.mock_auth_for(
         other_address,
         "publish_hash",
@@ -82,7 +82,7 @@ fn hello_world_using_publish() {
     assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
     let args = contracts::hello_world::Args::__constructor(author);
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None, &Some(args.clone()));
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None, &Some(args));
     registry.mock_auths_for(
         &[author, registry.admin()],
         "deploy",
@@ -160,10 +160,10 @@ fn returns_most_recent_version() {
     let client = &registry.client();
     let env = registry.env();
     let name = &registry.name();
-    let v1 = to_string(&env, "0.0.1");
-    let v2 = to_string(&env, "0.0.2");
-    let v9 = to_string(&env, "0.0.9");
-    let v10 = to_string(&env, "0.0.10");
+    let v1 = to_string(env, "0.0.1");
+    let v2 = to_string(env, "0.0.2");
+    let v9 = to_string(env, "0.0.9");
+    let v10 = to_string(env, "0.0.10");
 
     let address = registry.admin();
     registry.mock_initial_publish();
@@ -171,8 +171,8 @@ fn returns_most_recent_version() {
     let fetched_hash = client.fetch_hash(name, &None);
     let first_hash = registry.hash();
     assert_eq!(fetched_hash, first_hash);
-    let second_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_auth_for(&address, "publish_hash", (name, address, &second_hash, &v1));
+    let second_hash: BytesN<32> = BytesN::random(env);
+    registry.mock_auth_for(address, "publish_hash", (name, address, &second_hash, &v1));
     client.publish_hash(name, address, &second_hash, &v1);
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, second_hash);
@@ -182,13 +182,13 @@ fn returns_most_recent_version() {
         Err(Ok(Error::HashAlreadyPublished))
     );
 
-    let third_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_auth_for(&address, "publish_hash", (name, address, &third_hash, &v9));
+    let third_hash: BytesN<32> = BytesN::random(env);
+    registry.mock_auth_for(address, "publish_hash", (name, address, &third_hash, &v9));
     client.publish_hash(name, address, &third_hash, &v9);
     let res = client.fetch_hash(name, &None);
     assert_eq!(res, third_hash);
-    let forth_hash: BytesN<32> = BytesN::random(&env);
-    registry.mock_auth_for(&address, "publish_hash", (name, address, &forth_hash, &v10));
+    let forth_hash: BytesN<32> = BytesN::random(env);
+    registry.mock_auth_for(address, "publish_hash", (name, address, &forth_hash, &v10));
     client.publish_hash(name, address, &forth_hash, &v10);
 
     let version = client.current_version(name);
@@ -216,16 +216,16 @@ fn publish_to_kebab_case() {
     let client = registry.client();
     let address = registry.admin();
     let env = registry.env();
-    let name = &to_string(&env, "hello_world");
+    let name = &to_string(env, "hello_world");
     // client.register_name(address, name);
     let bytes = registry.bytes();
-    let version = default_version(&env);
+    let version = default_version(env);
     registry.mock_auth_for_publish(name, address, &Some(version.clone()), &bytes);
     client.publish(name, address, &bytes, &version);
-    let most_recent_version = client.current_version(&to_string(&env, "hello_world"));
-    assert_eq!(most_recent_version, to_string(&env, "0.0.0"));
-    let most_recent_version = client.current_version(&to_string(&env, "hello-world"));
-    assert_eq!(most_recent_version, to_string(&env, "0.0.0"));
+    let most_recent_version = client.current_version(&to_string(env, "hello_world"));
+    assert_eq!(most_recent_version, to_string(env, "0.0.0"));
+    let most_recent_version = client.current_version(&to_string(env, "hello-world"));
+    assert_eq!(most_recent_version, to_string(env, "0.0.0"));
 }
 
 #[test]
@@ -234,34 +234,34 @@ fn validate_version() {
     let client = registry.client();
     let address = registry.admin();
     let env = registry.env();
-    let name = &to_string(&env, "registry");
+    let name = &to_string(env, "registry");
     let bytes = &registry.bytes();
     env.mock_all_auths();
-    let version = &to_string(&env, "0.0.0");
-    let new_version = &to_string(&env, "0.0.1");
+    let version = &to_string(env, "0.0.0");
+    let new_version = &to_string(env, "0.0.1");
     client.publish(name, address, bytes, version);
-    let random_hash: BytesN<32> = BytesN::random(&env);
+    let random_hash: BytesN<32> = BytesN::random(env);
     assert_eq!(
         client.try_publish_hash(name, address, &random_hash, version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
     assert_eq!(
-        client.try_publish_hash(name, address, &random_hash, &to_string(&env, "0.  0.0"),),
+        client.try_publish_hash(name, address, &random_hash, &to_string(env, "0.  0.0"),),
         Err(Ok(Error::InvalidVersion))
     );
-    let too_long = &to_string(&env, "0".repeat(200).as_str());
+    let too_long = &to_string(env, "0".repeat(200).as_str());
     assert_eq!(
         client.try_publish_hash(name, address, &random_hash, too_long),
         Err(Ok(Error::InvalidVersion))
     );
-    let empty = &to_string(&env, "");
+    let empty = &to_string(env, "");
     assert_eq!(
         client.try_publish_hash(name, address, &random_hash, empty),
         Err(Ok(Error::InvalidVersion))
     );
     client.publish_hash(name, address, &random_hash, new_version);
     assert_eq!(
-        client.try_publish_hash(name, address, &BytesN::<32>::random(&env), version),
+        client.try_publish_hash(name, address, &BytesN::<32>::random(env), version),
         Err(Ok(Error::VersionMustBeGreaterThanCurrent))
     );
 }
@@ -515,9 +515,9 @@ fn hello_world_deploy_unnamed() {
     let author = registry.admin();
 
     let wasm_hash = env.deployer().upload_contract_wasm(hw_bytes(env));
-    let version = &Some(to_string(&env, "0.0.0"));
+    let version = &Some(to_string(env, "0.0.0"));
 
-    registry.mock_auth_for_publish(name, author, &version, &hw_bytes(env));
+    registry.mock_auth_for_publish(name, author, version, &hw_bytes(env));
     registry
         .client()
         .publish(name, author, &hw_bytes(env), &version.clone().unwrap());
