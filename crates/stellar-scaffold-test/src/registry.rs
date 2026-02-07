@@ -15,6 +15,7 @@ use crate::common::{TestEnv, find_stellar_wasm_dir};
 pub struct RegistryTest {
     pub env: TestEnv,
     pub registry_address: String,
+    pub alice_address: stellar_strkey::ed25519::PublicKey,
 }
 
 impl RegistryTest {
@@ -54,10 +55,15 @@ impl RegistryTest {
         unsafe {
             env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
         }
-
+        let alice_address = Self::parse_cmd_internal::<keys::public_key::Cmd>(&env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap();
         Self {
             env,
             registry_address,
+            alice_address,
         }
     }
 
@@ -88,6 +94,7 @@ impl RegistryTest {
                 rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
+                "--fee=1000000000",
             ],
         )
         .expect("Failed to parse arguments for upload")
@@ -99,6 +106,13 @@ impl RegistryTest {
         .to_string();
 
         eprintln!("🪞 Deploying registry contract...");
+
+        let alice_key = Self::parse_cmd_internal::<keys::public_key::Cmd>(env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap()
+            .to_string();
 
         // Deploy contract using the Stellar CLI library directly with alice account
         let deploy_args = [
@@ -113,6 +127,9 @@ impl RegistryTest {
             "--",
             "--admin",
             "alice",
+            "--manager",
+            &format!("\"{alice_key}\""),
+            "--is-root",
         ];
         let contract_id =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
@@ -181,7 +198,7 @@ impl RandomizedWasm {
         wasm_gen::write_custom_section(
             &mut wasm_bytes,
             "test_section",
-            uuid::Uuid::new_v4().as_bytes(),
+            format!("{}{}", uuid::Uuid::new_v4(), temp_dir.display()).as_bytes(),
         );
         let out_file = temp_dir.join(&self.0);
         fs::write(&out_file, wasm_bytes).expect("Failed to write wasm file with custom section");

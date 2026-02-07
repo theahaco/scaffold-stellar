@@ -4,7 +4,7 @@
 
 # b = "build"
 # c = "check"
-# t = "nextest run "
+t = "nextest run "
 r = "run --quiet --"
 # rr = "run --release"
 # recursive_example = "rr --example recursions"

@@ -18,7 +18,7 @@ pub enum Error {
         r#"Invalid STELLAR_PASSPHRASE: {0}. 
             Expected: "Standalone Network ; February 2017",
                       "Test SDF Network ; September 2015",
-                      "Future SDF Network ; September 2023",
+                      "Test SDF Future Network ; October 2022",
                       "Public Global Stellar Network ; September 2015" "#
     )]
     InvalidNetworkPassphrase(String),
@@ -58,7 +58,7 @@ impl Network {
         Ok(match passphrase {
             "Standalone Network ; February 2017" => Network::Local,
             "Test SDF Network ; September 2015" => Network::Testnet,
-            "Future SDF Network ; September 2023" => Network::Futurenet,
+            "Test SDF Future Network ; October 2022" => Network::Futurenet,
             "Public Global Stellar Network ; September 2015" => Network::Mainnet,
             other => return Err(Error::InvalidNetworkPassphrase(other.to_string())),
         })
@@ -68,7 +68,7 @@ impl Network {
         match self {
             Network::Local => "Standalone Network ; February 2017",
             Network::Testnet => "Test SDF Network ; September 2015",
-            Network::Futurenet => "Future SDF Network ; September 2023",
+            Network::Futurenet => "Test SDF Future Network ; October 2022",
             Network::Mainnet => "Public Global Stellar Network ; September 2015",
         }
     }
