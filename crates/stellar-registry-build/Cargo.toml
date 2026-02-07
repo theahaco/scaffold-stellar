@@ -20,7 +20,7 @@ soroban-spec-tools = { workspace = true }
 soroban-rpc = { workspace = true }
 stellar-strkey = { workspace = true }
 
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 tokio = { version = "1", features = ["full"] }
 shlex = "1.1.0"
 heck = "0.4.1"
