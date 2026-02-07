@@ -4229,7 +4229,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-build"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "cargo_metadata",
  "sha2 0.10.9",
@@ -4239,7 +4239,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "stellar-scaffold-macro",
 ]
@@ -4264,7 +4264,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry-cli"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4317,7 +4317,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4367,7 +4367,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-macro"
-version = "0.8.10"
+version = "0.8.11"
 dependencies = [
  "proc-macro2",
  "quote",
