@@ -34,7 +34,11 @@ fn valid_names() {
         }
     }
 
-    assert!(failures.is_empty(), "failures:\n  {}", failures.join("\n  "));
+    assert!(
+        failures.is_empty(),
+        "failures:\n  {}",
+        failures.join("\n  ")
+    );
 }
 
 const INVALID_NAMES: &[&str] = &[
@@ -66,7 +70,11 @@ fn invalid_names() {
         }
     }
 
-    assert!(failures.is_empty(), "failures:\n  {}", failures.join("\n  "));
+    assert!(
+        failures.is_empty(),
+        "failures:\n  {}",
+        failures.join("\n  ")
+    );
 }
 
 #[rustfmt::skip]
@@ -146,7 +154,11 @@ fn invalid_keywords() {
         }
     }
 
-    assert!(failures.is_empty(), "failures:\n  {}", failures.join("\n  "));
+    assert!(
+        failures.is_empty(),
+        "failures:\n  {}",
+        failures.join("\n  ")
+    );
 }
 
 // (input, expected)
@@ -171,7 +183,9 @@ fn normalization() {
                 let actual = normalized.to_string();
                 let expected_str = to_string(&env, expected);
                 if actual != expected_str {
-                    failures.push(format!("'{input}' should normalize to '{expected}', got '{actual}'"));
+                    failures.push(format!(
+                        "'{input}' should normalize to '{expected}', got '{actual}'"
+                    ));
                 }
             }
             Err(_) => {
@@ -180,5 +194,9 @@ fn normalization() {
         }
     }
 
-    assert!(failures.is_empty(), "failures:\n  {}", failures.join("\n  "));
+    assert!(
+        failures.is_empty(),
+        "failures:\n  {}",
+        failures.join("\n  ")
+    );
 }
