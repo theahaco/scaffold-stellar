@@ -136,7 +136,7 @@ impl Contract {
     /// Since we know that this contract is an executable we can skip checking when unwrapping
     /// which is unsafe.
     ///
-    /// Furthermore it uses the NormalizedName::new_unchecked, which is unsafe because it skips validating
+    /// Furthermore it uses the `NormalizedName::new_unchecked`, which is unsafe because it skips validating
     /// the name, which we know already to be valid.
     pub(crate) fn deploy_unverified_and_claim_registry(env: &Env, admin: &Address) {
         unsafe {
