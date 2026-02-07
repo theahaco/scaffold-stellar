@@ -66,7 +66,7 @@ notify = "8.2.0"
 stellar-strkey = { workspace = true }
 stellar-xdr = { workspace = true }
 regex = "1.12.2"
-toml_edit = "0.22.16"
+toml_edit = "0.23.9"
 indexmap = { version = "2.12", features = ["serde"] }
 tempfile = "3.23"
 fs_extra = "1.3"
