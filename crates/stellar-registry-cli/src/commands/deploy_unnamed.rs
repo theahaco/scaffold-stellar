@@ -1,6 +1,7 @@
 use std::ffi::OsString;
 
 use clap::Parser;
+use rand::Rng;
 use soroban_rpc as rpc;
 pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
@@ -139,30 +140,32 @@ impl Cmd {
         };
 
         // Build salt argument
-        let salt_arg = if let Some(salt) = &self.salt {
-            let bytes: [u8; 32] = hex::decode(salt)
-                .map_err(|_| Error::InvalidReturnValue("Invalid salt hex".to_string()))?
-                .try_into()
-                .map_err(|_| Error::InvalidReturnValue("Salt must be 32 bytes".to_string()))?;
-            ScVal::Bytes(xdr::ScBytes(bytes.try_into().unwrap()))
-        } else {
-            ScVal::Void
-        };
-
+        let salt_arg = ScVal::Bytes(xdr::ScBytes(
+            if let Some(salt) = &self.salt {
+                let bytes: [u8; 32] = hex::decode(salt)
+                    .map_err(|_| Error::InvalidReturnValue("Invalid salt hex".to_string()))?
+                    .try_into()
+                    .map_err(|_| Error::InvalidReturnValue("Salt must be 32 bytes".to_string()))?;
+                bytes
+            } else {
+                rand::rng().random::<[u8; 32]>()
+            }
+            .try_into()
+            .unwrap(),
+        ));
+        let args: [ScVal; 5] = [
+            ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
+            self.version.clone().map_or(ScVal::Void, |s| {
+                ScVal::String(ScString(s.try_into().unwrap()))
+            }),
+            args,
+            salt_arg,
+            ScVal::Address(xdr::ScAddress::Account(deployer.account_id())),
+        ];
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
             function_name: "deploy_unnamed".try_into().unwrap(),
-            args: [
-                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
-                self.version.clone().map_or(ScVal::Void, |s| {
-                    ScVal::String(ScString(s.try_into().unwrap()))
-                }),
-                salt_arg,
-                args,
-                ScVal::Address(xdr::ScAddress::Account(deployer.account_id())),
-            ]
-            .try_into()
-            .unwrap(),
+            args: args.try_into().unwrap(),
         };
 
         // Get the account sequence number
@@ -174,7 +177,6 @@ impl Cmd {
             util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
         let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
         let mut txn = assembled.transaction().clone();
-        println!("{}", txn.to_xdr_base64(Limits::none())?);
         if self.fee.build_only {
             println!("{}", txn.to_xdr_base64(Limits::none())?);
             std::process::exit(1);
