@@ -151,7 +151,7 @@ impl Cmd {
 
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
-            function_name: "deploy_unnammed".try_into().unwrap(),
+            function_name: "deploy_unnamed".try_into().unwrap(),
             args: [
                 ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
                 self.version.clone().map_or(ScVal::Void, |s| {
