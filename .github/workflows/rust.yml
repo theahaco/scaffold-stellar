@@ -53,7 +53,7 @@ jobs:
       - name: Run cargo clippy
         run: just clippy
       - name: Run cargo clippy on tests
-        run: just clippy-tests
+        run: just clippy-test
       - name: Unit Tests
         run: just test
       - name: Always Save Cache
