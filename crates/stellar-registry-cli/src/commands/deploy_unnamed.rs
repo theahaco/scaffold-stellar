@@ -198,7 +198,7 @@ impl Cmd {
     }
 }
 
-// #[cfg(feature = "integration-tests")]
+#[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
     use stellar_scaffold_test::RegistryTest;
