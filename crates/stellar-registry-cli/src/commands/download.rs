@@ -42,6 +42,8 @@ pub enum Error {
     Xdr(#[from] xdr::Error),
     #[error(transparent)]
     Network(#[from] stellar_cli::config::network::Error),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {

@@ -1,31 +1,29 @@
-set dotenv-load
+set dotenv-load := true
 
 export PATH := './target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
-
 
 [private]
 path:
     just --list
 
 scaffold +args:
-    @cargo run --bin stellar-scaffold --quiet -- {{args}}
+    @cargo run --bin stellar-scaffold --quiet -- {{ args }}
 
 registry +args:
-    @cargo run --bin stellar-registry --quiet -- {{args}}
+    @cargo run --bin stellar-registry --quiet -- {{ args }}
 
 stellar-scaffold +args:
-    @cargo run --bin stellar-scaffold -- {{args}}
+    @cargo run --bin stellar-scaffold -- {{ args }}
 
 s +args:
-    @stellar {{args}}
+    @stellar {{ args }}
 
 stellar +args:
-    @stellar {{args}}
+    @stellar {{ args }}
 
 build_contract p:
-    stellar contract build --profile contracts --package {{p}}
-
+    stellar contract build --profile contracts --package {{ p }}
 
 # build contracts
 build:
@@ -56,3 +54,10 @@ create: build
     rm -rf .soroban
     -stellar keys generate default --fund
     # just stellar contract deploy --wasm ./target/stellar/local/example_status_message.wasm --alias core --source-account default
+
+clippy *args:
+    cargo clippy --all {{ args }} \
+    -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
+
+clippy-test:
+    just clippy --tests

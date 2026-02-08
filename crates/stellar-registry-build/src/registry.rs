@@ -1,6 +1,7 @@
-use stellar_cli::{commands::contract::invoke, config};
+use stellar_cli::config;
 
 use crate::{
+    Error,
     contract::{Contract, PreHashContractID},
     named_registry::PrefixedName,
 };
@@ -11,32 +12,32 @@ impl Registry {
     pub async fn from_named_registry(
         config: &config::Args,
         name: &PrefixedName,
-    ) -> Result<Self, invoke::Error> {
+    ) -> Result<Self, Error> {
         Self::new(config, name.channel.as_deref()).await
     }
-    pub async fn new(config: &config::Args, name: Option<&str>) -> Result<Self, invoke::Error> {
+    pub async fn new(config: &config::Args, name: Option<&str>) -> Result<Self, Error> {
         let contract = Self::verified(config)?;
-        if let Some(name) = name {
+        Ok(if let Some(name) = name {
             if let Ok(contract_id) = name.parse() {
-                Ok(Registry(Contract::new(contract_id, config)))
+                Registry(Contract::new(contract_id, config))
             } else {
-                contract.fetch_contract(name).await.map(Registry)
+                contract.fetch_contract(name).await.map(Registry)?
             }
         } else {
-            Ok(contract)
-        }
+            contract
+        })
     }
 
-    pub async fn fetch_contract_id(
-        &self,
-        name: &str,
-    ) -> Result<stellar_strkey::Contract, invoke::Error> {
+    pub async fn fetch_contract_id(&self, name: &str) -> Result<stellar_strkey::Contract, Error> {
         let slop = ["fetch_contract_id", "--contract-name", name];
         let contract_id = self.0.invoke_with_result(&slop, None, true).await?;
-        Ok(contract_id.trim_matches('"').parse().unwrap())
+        contract_id
+            .trim_matches('"')
+            .parse()
+            .map_err(|_| Error::InvalidContractId(contract_id))
     }
 
-    pub async fn fetch_contract(&self, name: &str) -> Result<Contract, invoke::Error> {
+    pub async fn fetch_contract(&self, name: &str) -> Result<Contract, Error> {
         Ok(Contract::new(
             self.fetch_contract_id(name).await?,
             self.0.config(),
@@ -47,10 +48,10 @@ impl Registry {
         &self.0
     }
 
-    pub fn verified(config: &config::Args) -> Result<Self, invoke::Error> {
+    pub fn verified(config: &config::Args) -> Result<Self, Error> {
         Ok(Registry(Contract::new(
             if let Ok(id) = std::env::var("STELLAR_REGISTRY_CONTRACT_ID") {
-                id.parse().expect("Malformed contract id")
+                id.parse().map_err(|_| Error::InvalidContractId(id))?
             } else {
                 verified_contract_id(&config.get_network()?.network_passphrase)
             },
@@ -59,10 +60,15 @@ impl Registry {
     }
 }
 
+/// Stellar Address for G account for registry project
+/// # Unsafe
+/// It parse
 pub fn stellar_address() -> stellar_strkey::ed25519::PublicKey {
-    "GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M"
-        .parse()
-        .unwrap()
+    unsafe {
+        "GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M"
+            .parse()
+            .unwrap_unchecked()
+    }
 }
 
 pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Contract {

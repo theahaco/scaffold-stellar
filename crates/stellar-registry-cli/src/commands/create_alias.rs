@@ -26,6 +26,8 @@ pub enum Error {
     LocatorConfig(#[from] stellar_cli::config::locator::Error),
     #[error(transparent)]
     Config(#[from] stellar_cli::config::Error),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {
