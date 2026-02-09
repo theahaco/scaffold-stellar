@@ -126,11 +126,6 @@ jobs:
           --health-retries 50
     steps:
       - uses: actions/checkout@v6
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - run: rustup update
       - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v23.3.0
       - name: Download nextest archive
