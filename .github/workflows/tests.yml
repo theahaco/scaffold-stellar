@@ -139,4 +139,6 @@ jobs:
         run: zstd -d runtime-artifacts.tar.zst --stdout | tar xf -
       - run: stellar keys generate default --fund
       - name: Run tests
-        run: cargo nextest run --archive-file nextest-archive.tar.zst --extract-to /tmp/nextest-run --workspace-remap . -E '${{ matrix.filter }}'
+        run: |
+          mkdir -p /tmp/nextest-run
+          cargo nextest run --archive-file nextest-archive.tar.zst --extract-to /tmp/nextest-run --workspace-remap . -E '${{ matrix.filter }}'
