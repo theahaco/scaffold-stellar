@@ -17,6 +17,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
 
 jobs:
   check:
@@ -29,12 +31,15 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ./target/debug/stellar*
+            ./target/debug/soroban-*
+            ./target/debug/syn-*
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - run: rustup component add rustfmt clippy
@@ -45,6 +50,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@just
       - uses: cargo-bins/cargo-binstall@main
+      - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
       - uses: stellar/stellar-cli@v23.3.0
@@ -62,9 +68,10 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
+            ./target/debug/stellar*
+            ./target/debug/soroban-*
+            ./target/debug/syn-*
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
