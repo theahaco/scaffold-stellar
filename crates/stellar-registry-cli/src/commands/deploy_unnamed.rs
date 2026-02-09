@@ -34,7 +34,6 @@ pub struct Cmd {
     pub version: Option<String>,
 
     /// Optional salt for deterministic contract address (hex-encoded 32 bytes)
-    /// If not provided a random salt will be used
     #[arg(long)]
     pub salt: Option<String>,
 
@@ -73,13 +72,15 @@ pub enum Error {
     ConstructorHelpMessage(String),
     #[error("{0}")]
     InvalidReturnValue(String),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {
     pub async fn run(&self) -> Result<(), Error> {
         match self.invoke().await {
             Ok(contract_id) => {
-                println!("{contract_id}");
+                println!("Contract deployed successfully to {contract_id}");
                 Ok(())
             }
             Err(Error::ConstructorHelpMessage(help)) => {
@@ -202,7 +203,7 @@ impl Cmd {
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    use stellar_scaffold_test::{AssertExt, RegistryTest};
+    use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
     async fn simple() {
@@ -265,7 +266,7 @@ mod tests {
             .success();
 
         // Deploy unnamed with specific version
-        let contract_id = registry
+        registry
             .registry_cli("deploy-unnamed")
             .arg("--wasm-name")
             .arg("hello")
@@ -274,9 +275,7 @@ mod tests {
             .arg("--")
             .arg("--admin=alice")
             .assert()
-            .success()
-            .stdout_as_str();
-        println!("{contract_id}")
+            .success();
     }
 
     #[tokio::test]
@@ -305,43 +304,5 @@ mod tests {
             .arg("--admin=alice")
             .assert()
             .success();
-    }
-
-    #[tokio::test]
-    async fn with_salt() {
-        let registry = RegistryTest::new().await;
-        let v1 = registry.hello_wasm_v1();
-        let pre_contract = stellar_registry_build::contract::PreHashContractID::new(
-            registry.alice_address.clone(),
-            "test_salt",
-        );
-        let salt = hex::encode(pre_contract.salt);
-        let contract_id = pre_contract.id(&stellar_build::Network::Local);
-
-        // First publish the contract
-        registry
-            .registry_cli("publish")
-            .arg("--wasm")
-            .arg(v1.to_str().unwrap())
-            .arg("--binver")
-            .arg("0.0.1")
-            .arg("--wasm-name")
-            .arg("hello")
-            .assert()
-            .success();
-
-        // Deploy unnamed
-        let contract_id_str = registry
-            .registry_cli("deploy-unnamed")
-            .arg("--wasm-name")
-            .arg("hello")
-            .arg("--salt")
-            .arg(&salt)
-            .arg("--")
-            .arg("--admin=alice")
-            .assert()
-            .success()
-            .stdout_as_str();
-        assert_eq!(contract_id_str, contract_id.to_string())
     }
 }

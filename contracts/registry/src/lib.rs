@@ -40,9 +40,10 @@ impl Contract {
     /// - `admin`: account which will: upgrade this Registry itself; add, set, or remove `manager`
     /// - `manager`: optional. If set, makes this a *managed* registry, meaning `publish`, `register_contract`, & `deploy` must be approved by the manager before caller's account is considered trusted for that contract/wasm name.
     /// - `is_root`: if true, this registry is the root registry, meaning it has no namespace. Other Registry contracts, like the `unverified` one, are themselves registered in the root Registry. If `is_root` is true, this constructor will also auto-deploy the `unverified` Registry.
+    #[allow(clippy::needless_pass_by_value)]
     pub fn __constructor(env: &Env, admin: &Address, manager: Option<Address>, is_root: bool) {
         Self::set_admin(env, admin.clone());
-        if let Some(manager) = manager.as_ref() {
+        if let Some(manager) = &manager {
             Storage::set_manager_no_auth(env, manager);
         }
         if is_root {
@@ -57,8 +58,8 @@ impl Contract {
     }
 
     /// Admin can set the new manager
-    pub fn set_manager(env: &Env, new_manager: Address) {
-        Storage::set_manager(env, &new_manager);
+    pub fn set_manager(env: &Env, new_manager: &Address) {
+        Storage::set_manager(env, new_manager);
     }
 
     /// Admin can remove manager

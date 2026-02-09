@@ -54,7 +54,7 @@ fn use_publish_method() {
     );
 
     let other_address = &Address::generate(env);
-    let random_bytes: BytesN<32> = BytesN::random(&env);
+    let random_bytes: BytesN<32> = BytesN::random(env);
     registry.mock_auth_for(
         other_address,
         "publish_hash",
@@ -87,7 +87,7 @@ fn hello_world_using_publish() {
     assert_eq!(client.fetch_hash(wasm_name, &None), registry.hash());
     let args = contracts::hello_world::Args::__constructor(author);
 
-    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None, &Some(args.clone()));
+    let address = registry.mock_auth_and_deploy(author, wasm_name, name, None, &Some(args));
     registry.mock_auths_for(
         &[author, registry.admin()],
         "deploy",
@@ -169,6 +169,7 @@ fn hello_world_using_publish_hash() {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn hello_world_deploy_v2() {
     let registry = &Registry::new_unverified();
     let env = registry.env();
@@ -309,7 +310,7 @@ fn hello_world_deploy_v2() {
             alice_contract,
             hello_wasm,
             sv1,
-            &None,
+            None,
             &address,
             &registry_client.fetch_hash(hello_wasm, &None)
         ),
@@ -322,7 +323,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         &None,
-        &None,
+        None,
         &address,
         &registry_client.fetch_hash(hello_wasm, &None),
     );
@@ -336,7 +337,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         sv0,
-        &None,
+        None,
         &address,
         &registry_client.fetch_hash(hello_wasm, sv0),
     );
@@ -366,7 +367,7 @@ fn hello_world_deploy_v2() {
         alice_contract,
         hello_wasm,
         sv0,
-        &Some("custom_upgrade"),
+        Some("custom_upgrade"),
         &address,
         &registry_client.fetch_hash(hello_wasm, sv0),
     );
@@ -428,15 +429,9 @@ fn hello_world_deploy_unnamed() {
     let author = &Address::generate(env);
 
     let wasm_hash = env.deployer().upload_contract_wasm(hw_bytes(env));
-    let version = &Some(to_string(&env, "0.0.0"));
+    let version = &Some(to_string(env, "0.0.0"));
 
-    registry.mock_auth_with_addresses_for_publish(
-        name,
-        author,
-        &version,
-        &hw_bytes(env),
-        &[author],
-    );
+    registry.mock_auth_with_addresses_for_publish(name, author, version, &hw_bytes(env), &[author]);
     registry
         .client()
         .publish(name, author, &hw_bytes(env), &version.clone().unwrap());

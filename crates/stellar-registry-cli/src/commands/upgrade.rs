@@ -38,6 +38,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Upgrade failed: {0:?}")]
     UpgradeFailed(invoke::Error),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {

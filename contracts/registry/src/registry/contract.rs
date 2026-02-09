@@ -108,15 +108,15 @@ impl Contract {
 
     pub(crate) fn fetch_hash_and_deploy(
         env: &Env,
-        wasm_name: NormalizedName,
+        wasm_name: &NormalizedName,
         version: Option<String>,
         salt: impl IntoVal<Env, BytesN<32>>,
         init: Option<Vec<Val>>,
         deployer: Address,
     ) -> Result<Address, Error> {
-        let hash = Self::get_hash_and_bump(env, &wasm_name, version.clone())?;
+        let hash = Self::get_hash_and_bump(env, wasm_name, version.clone())?;
         let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
-        let version = Self::get_version(env, &wasm_name, version)?;
+        let version = Self::get_version(env, wasm_name, version)?;
         crate::events::Deploy {
             wasm_name: wasm_name.to_string(),
             version,
@@ -211,7 +211,7 @@ pub trait Deployable {
         let salt = contract_name.hash();
         let contract_id = Contract::fetch_hash_and_deploy(
             env,
-            wasm_name.try_into()?,
+            &wasm_name.try_into()?,
             version.clone(),
             salt,
             init,
@@ -233,7 +233,7 @@ pub trait Deployable {
         deployer: soroban_sdk::Address,
     ) -> Result<soroban_sdk::Address, Error> {
         deployer.require_auth();
-        Contract::fetch_hash_and_deploy(env, wasm_name.try_into()?, version, salt, init, deployer)
+        Contract::fetch_hash_and_deploy(env, &wasm_name.try_into()?, version, salt, init, deployer)
     }
 
     /// Register a name for an existing contract which wasn't deployed by the registry

@@ -84,26 +84,25 @@ impl Cmd {
         Ok(())
     }
 
-    fn clean_packages(workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+    fn clean_packages(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         let packages_path: PathBuf = workspace_root.join("packages");
-        let git_tracked_packages_entries =
-            Self::git_tracked_entries(workspace_root.clone(), "packages");
+        let git_tracked_packages_entries = Self::git_tracked_entries(workspace_root, "packages");
         Self::clean_dir(
             workspace_root,
             &packages_path,
-            git_tracked_packages_entries,
+            &git_tracked_packages_entries,
             printer,
         )
     }
 
-    fn clean_src_contracts(workspace_root: &PathBuf, printer: &Print) -> Result<(), Error> {
+    fn clean_src_contracts(workspace_root: &Path, printer: &Print) -> Result<(), Error> {
         let src_contracts_path = workspace_root.join("src").join("contracts");
-        let git_tracked_src_contract_entries: Vec<String> =
-            Self::git_tracked_entries(workspace_root.clone(), "src/contracts");
+        let git_tracked_src_contract_entries =
+            Self::git_tracked_entries(workspace_root, "src/contracts");
         Self::clean_dir(
             workspace_root,
             &src_contracts_path,
-            git_tracked_src_contract_entries,
+            &git_tracked_src_contract_entries,
             printer,
         )
     }
@@ -255,7 +254,7 @@ impl Cmd {
         }
     }
 
-    fn git_tracked_entries(workspace_root: PathBuf, subdir: &str) -> Vec<String> {
+    fn git_tracked_entries(workspace_root: &Path, subdir: &str) -> Vec<String> {
         let output = Command::new("git")
             .args(["ls-files", subdir])
             .current_dir(workspace_root)
@@ -278,9 +277,9 @@ impl Cmd {
 
     // cleans the given directory while preserving git tracked files, as well as some common template files: utils.js and .gitkeep
     fn clean_dir(
-        workspace_root: &PathBuf,
-        dir_to_clean: &PathBuf,
-        git_tracked_entries: Vec<String>,
+        workspace_root: &Path,
+        dir_to_clean: &Path,
+        git_tracked_entries: &[String],
         printer: &Print,
     ) -> Result<(), Error> {
         if dir_to_clean.exists() {
@@ -355,7 +354,7 @@ crate-type = ["cdylib"]
     fn test_clean_target_stellar() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let target_stellar_path = temp_dir.path().join("target").join("stellar");
         std::fs::create_dir_all(&target_stellar_path).unwrap();
@@ -375,7 +374,7 @@ crate-type = ["cdylib"]
     fn test_clean_packages() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let packages_path = temp_dir.path().join("packages");
         let test_package_path = packages_path.join("test_contract_package");
@@ -404,7 +403,7 @@ crate-type = ["cdylib"]
     fn test_clean_src_contracts() {
         let global_args = global::Args::default();
         let temp_dir = TempDir::new().unwrap();
-        let manifest_path = create_test_workspace(&temp_dir.path());
+        let manifest_path = create_test_workspace(temp_dir.path());
 
         let src_contracts_path = temp_dir.path().join("src").join("contracts");
         std::fs::create_dir_all(&src_contracts_path).unwrap();

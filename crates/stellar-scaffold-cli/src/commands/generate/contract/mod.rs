@@ -44,7 +44,7 @@ pub struct Cmd {
 
     /// Output directory for the generated contract (defaults to contracts/<example-name>)
     #[arg(short, long)]
-    pub output: Option<String>,
+    pub output: Option<PathBuf>,
 
     /// Force add contract to existing project (ignoring some errors)
     #[arg(long, conflicts_with_all = ["ls", "from_wizard"])]
@@ -84,7 +84,7 @@ pub enum Error {
     #[error("No action specified. Use --from, --ls, or --from-wizard")]
     NoActionSpecified,
     #[error("Destination path {0} already exists. Use --force to overwrite it")]
-    PathExists(String),
+    PathExists(PathBuf),
     #[error("Failed to update examples cache")]
     UpdateExamplesCache,
     #[error("Failed to fetch workspace Cargo.toml")]
@@ -120,29 +120,23 @@ impl Cmd {
 
         if example_name.starts_with(OZ_PREFIX) {
             let (_, example_name) = example_name.split_at(3);
-            let dest_path = self
-                .output
-                .clone()
-                .unwrap_or_else(|| format!("contracts/{example_name}"));
+            let dest_path = self.output_dir(example_name);
             Self::generate_oz_example(
                 example_name,
-                examples_info.oz_examples_path,
-                examples_info.oz_version_tag,
-                dest_path,
+                &examples_info.oz_examples_path,
+                &examples_info.oz_version_tag,
+                &dest_path,
                 global_args,
-                printer,
+                &printer,
             )
         } else if example_name.starts_with(STELLAR_PREFIX) {
             let (_, example_name) = example_name.split_at(8);
-            let dest_path = self
-                .output
-                .clone()
-                .unwrap_or_else(|| format!("contracts/{example_name}"));
+            let dest_path = self.output_dir(example_name);
             self.generate_soroban_example(
                 example_name,
-                examples_info.soroban_examples_path,
-                dest_path,
-                printer,
+                &examples_info.soroban_examples_path,
+                &dest_path,
+                &printer,
             )
         } else {
             Err(Error::ExampleNotFound(example_name.to_owned()))
@@ -151,11 +145,11 @@ impl Cmd {
 
     fn generate_oz_example(
         example_name: &str,
-        repo_cache_path: PathBuf,
-        tag_name: String,
-        dest_path: String,
+        repo_cache_path: &Path,
+        tag_name: &str,
+        dest_path: &Path,
         global_args: &global::Args,
-        printer: Print,
+        printer: &Print,
     ) -> Result<(), Error> {
         // Check if the example exists
         let example_source_path = repo_cache_path.join(format!("examples/{example_name}"));
@@ -164,7 +158,7 @@ impl Cmd {
         }
 
         // Create destination and copy example contents
-        fs::create_dir_all(&dest_path)?;
+        fs::create_dir_all(dest_path)?;
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         // Read and update workspace Cargo.toml
@@ -174,7 +168,7 @@ impl Cmd {
             Self::update_workspace_dependencies(
                 &workspace_cargo_path,
                 &example_source_path,
-                &tag_name,
+                tag_name,
                 global_args,
             )?;
         } else {
@@ -184,7 +178,8 @@ impl Cmd {
         }
 
         printer.checkln(format!(
-            "Successfully downloaded example '{example_name}' to {dest_path}"
+            "Successfully downloaded example '{example_name}' to {}",
+            dest_path.display()
         ));
         printer
             .infoln("You may need to modify your environments.toml to add constructor arguments!");
@@ -194,29 +189,30 @@ impl Cmd {
     fn generate_soroban_example(
         &self,
         example_name: &str,
-        repo_cache_path: PathBuf,
-        dest_path: String,
-        printer: Print,
+        repo_cache_path: &Path,
+        dest_path: &Path,
+        printer: &Print,
     ) -> Result<(), Error> {
         // Check if the example exists
         let example_source_path = repo_cache_path.join(example_name);
         if !example_source_path.exists() {
             return Err(Error::StellarExampleNotFound(example_name.to_string()));
         }
-        if Path::new(&dest_path).exists() {
+        if dest_path.exists() {
             if self.force {
-                printer.warnln(format!("Overwriting existing directory {dest_path}..."));
-                fs::remove_dir_all(&dest_path)?;
+                printer.warnln(format!(
+                    "Overwriting existing directory {}...",
+                    dest_path.display()
+                ));
+                fs::remove_dir_all(dest_path)?;
             } else {
-                return Err(Error::PathExists(dest_path));
+                return Err(Error::PathExists(dest_path.to_owned()));
             }
         }
 
         // Create destination and copy example contents
-        fs::create_dir_all(&dest_path)?;
+        fs::create_dir_all(dest_path)?;
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
-
-        let dest_path = Path::new(&dest_path);
 
         match fs::remove_file(dest_path.join("Cargo.lock")) {
             Ok(..) => {}
@@ -248,7 +244,7 @@ impl Cmd {
             &workspace_cargo_path,
             &example_toml_path,
             example_name,
-            &printer,
+            printer,
         )?;
 
         printer.checkln(format!(
@@ -894,6 +890,14 @@ members = []
 
         Ok(PathBuf::from(workspace_root_str))
     }
+
+    fn output_dir(&self, example_name: &str) -> PathBuf {
+        PathBuf::from("contracts").join(
+            self.output
+                .as_deref()
+                .unwrap_or_else(|| Path::new(example_name)),
+        )
+    }
 }
 
 struct ExamplesInfo {
@@ -947,7 +951,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
+    #[ignore = "requires additional setup beyond HTTP mock"]
     async fn test_ls_command() {
         let cmd = create_test_cmd(None, true, false);
         let global_args = global::Args::default();
