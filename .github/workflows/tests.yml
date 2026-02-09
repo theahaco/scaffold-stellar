@@ -15,9 +15,56 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+
 jobs:
-  test:
-    name: test RPC
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    env:
+      PKG_CONFIG_PATH: /usr/lib/pkgconfig
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
+      - name: Restore cargo registry cache
+        id: cache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - run: rustup update
+      - run: rustup target add wasm32v1-none
+      - uses: taiki-e/install-action@just
+      - uses: cargo-bins/cargo-binstall@main
+      - uses: stellar/stellar-cli@v23.3.0
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - run: just build
+      - run: just build-cli-test-contracts
+      - run: cargo test --package stellar-scaffold-cli --features integration-tests --no-run
+      - run: cargo test --package stellar-registry-cli --features integration-tests --no-run
+      - name: Save cargo registry cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+  test-scaffold-cli:
+    name: test scaffold-cli
+    needs: build
     runs-on: ubuntu-latest
     env:
       STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
@@ -45,35 +92,73 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - name: Restore cache
-        id: cache-restore
+      - name: Restore cargo registry cache
         uses: actions/cache/restore@v5
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - uses: taiki-e/install-action@just
-      - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
       - uses: stellar/stellar-cli@v23.3.0
-      - run: just create
-      - run: just test-integration
-      - name: Always Save Cache
-        id: cache-save
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - run: just build
+      - run: just build-cli-test-contracts
+      - run: stellar keys generate default --fund
+      - run: cargo test --package stellar-scaffold-cli --features integration-tests
+
+  test-registry-cli:
+    name: test registry-cli
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
+      STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
+      STELLAR_ACCOUNT: default
+      STELLAR_CONTRACT_ID: core
+      PKG_CONFIG_PATH: /usr/lib/pkgconfig
+    services:
+      rpc:
+        image: stellar/quickstart:testing
+        ports:
+          - 8000:8000
+        env:
+          ENABLE_LOGS: true
+          NETWORK: local
+          ENABLE_SOROBAN_RPC: true
+        options: >-
+          --health-cmd "curl --no-progress-meter --fail-with-body -X POST \"http://localhost:8000/soroban/rpc\" -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":8675309,\"method\":\"getNetwork\"}' && curl --no-progress-meter \"http://localhost:8000/friendbot\" | grep '\"invalid_field\": \"addr\"'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 50
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
+      - name: Restore cargo registry cache
+        uses: actions/cache/restore@v5
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+      - run: rustup update
+      - run: rustup target add wasm32v1-none
+      - uses: taiki-e/install-action@just
+      - uses: cargo-bins/cargo-binstall@main
+      - uses: stellar/stellar-cli@v23.3.0
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - run: just build
+      - run: stellar keys generate default --fund
+      - run: cargo test --package stellar-registry-cli --features integration-tests
