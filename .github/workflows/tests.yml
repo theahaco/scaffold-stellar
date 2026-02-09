@@ -9,7 +9,7 @@ on:
     branches: [main, release/**]
   pull_request:
     paths-ignore:
-      - 'website/**'
+      - "website/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -37,6 +37,9 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+            ./target/debug/stellar*
+            ./target/debug/soroban-*
+            ./target/debug/syn-*
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
@@ -79,6 +82,9 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+            ./target/debug/stellar*
+            ./target/debug/soroban-*
+            ./target/debug/syn-*
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   test:
@@ -138,7 +144,10 @@ jobs:
       - name: Extract runtime artifacts
         run: zstd -d runtime-artifacts.tar.zst --stdout | tar xf -
       - run: stellar keys generate default --fund
-      - name: Run tests
+      - name: Extract nextest archive
         run: |
           mkdir -p /tmp/nextest-run
-          cargo nextest run --archive-file nextest-archive.tar.zst --extract-to /tmp/nextest-run --workspace-remap . -E '${{ matrix.filter }}'
+          cargo nextest run --archive-file nextest-archive.tar.zst --extract-to /tmp/nextest-run --workspace-remap . --no-run
+          cp -a /tmp/nextest-run/target/* target/
+      - name: Run tests
+        run: cargo nextest run --binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap . -E '${{ matrix.filter }}'
