@@ -100,9 +100,9 @@ jobs:
           - name: scaffold-cli (features)
             filter: "package(stellar-scaffold-cli) and not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)"
           - name: scaffold-cli (examples 1-14)
-            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_0/) or test(/case_1[0-4]/))"
+            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_0/) or test(/case_1/))"
           - name: scaffold-cli (examples 15-27)
-            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_1[5-9]/) or test(/case_2/))"
+            filter: "package(stellar-scaffold-cli) and test(examples::) and test(/case_2/)"
           - name: registry-cli
             filter: "package(stellar-registry-cli)"
     env:
