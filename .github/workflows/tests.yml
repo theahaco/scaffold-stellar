@@ -15,15 +15,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-env:
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
-
 jobs:
   build:
     name: build
     runs-on: ubuntu-latest
     env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
       PKG_CONFIG_PATH: /usr/lib/pkgconfig
     steps:
       - uses: actions/checkout@v6
@@ -45,13 +43,34 @@ jobs:
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - uses: taiki-e/install-action@just
+      - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
       - uses: stellar/stellar-cli@v23.3.0
       - uses: mozilla-actions/sccache-action@v0.0.9
       - run: just build
       - run: just build-cli-test-contracts
-      - run: cargo test --package stellar-scaffold-cli --features integration-tests --no-run
-      - run: cargo test --package stellar-registry-cli --features integration-tests --no-run
+      - name: Create nextest archive
+        run: cargo nextest archive --archive-file nextest-archive.tar.zst --package stellar-scaffold-cli --package stellar-registry-cli --features integration-tests
+      - name: Package runtime artifacts
+        run: |
+          tar -cf - \
+            target/debug/stellar-scaffold \
+            target/debug/stellar-registry \
+            target/stellar/local/ \
+            crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/stellar/local/ \
+            | zstd -1 -o runtime-artifacts.tar.zst
+      - name: Upload nextest archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextest-archive
+          path: nextest-archive.tar.zst
+          retention-days: 1
+      - name: Upload runtime artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-artifacts
+          path: runtime-artifacts.tar.zst
+          retention-days: 1
       - name: Save cargo registry cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
@@ -62,16 +81,29 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
-  test-scaffold-cli:
-    name: test scaffold-cli
+  test:
+    name: test ${{ matrix.name }}
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: scaffold-cli (contracts)
+            filter: "package(stellar-scaffold-cli) and (test(build_clients::accounts::) or test(build_clients::contracts::))"
+          - name: scaffold-cli (features)
+            filter: "package(stellar-scaffold-cli) and not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)"
+          - name: scaffold-cli (examples 1-14)
+            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_0/) or test(/case_1[0-4]/))"
+          - name: scaffold-cli (examples 15-27)
+            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_1[5-9]/) or test(/case_2/))"
+          - name: registry-cli
+            filter: "package(stellar-registry-cli)"
     env:
       STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
       STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
       STELLAR_ACCOUNT: default
       STELLAR_CONTRACT_ID: core
-      PKG_CONFIG_PATH: /usr/lib/pkgconfig
     services:
       rpc:
         image: stellar/quickstart:testing
@@ -92,73 +124,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - name: Restore cargo registry cache
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
       - run: rustup update
-      - run: rustup target add wasm32v1-none
-      - uses: taiki-e/install-action@just
-      - uses: cargo-bins/cargo-binstall@main
+      - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v23.3.0
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - run: just build
-      - run: just build-cli-test-contracts
-      - run: stellar keys generate default --fund
-      - run: cargo test --package stellar-scaffold-cli --features integration-tests
-
-  test-registry-cli:
-    name: test registry-cli
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
-      STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
-      STELLAR_ACCOUNT: default
-      STELLAR_CONTRACT_ID: core
-      PKG_CONFIG_PATH: /usr/lib/pkgconfig
-    services:
-      rpc:
-        image: stellar/quickstart:testing
-        ports:
-          - 8000:8000
-        env:
-          ENABLE_LOGS: true
-          NETWORK: local
-          ENABLE_SOROBAN_RPC: true
-        options: >-
-          --health-cmd "curl --no-progress-meter --fail-with-body -X POST \"http://localhost:8000/soroban/rpc\" -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":8675309,\"method\":\"getNetwork\"}' && curl --no-progress-meter \"http://localhost:8000/friendbot\" | grep '\"invalid_field\": \"addr\"'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 50
-    steps:
-      - uses: actions/checkout@v6
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - name: Restore cargo registry cache
-        uses: actions/cache/restore@v5
+      - name: Download nextest archive
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-      - run: rustup update
-      - run: rustup target add wasm32v1-none
-      - uses: taiki-e/install-action@just
-      - uses: cargo-bins/cargo-binstall@main
-      - uses: stellar/stellar-cli@v23.3.0
-      - uses: mozilla-actions/sccache-action@v0.0.9
-      - run: just build
+          name: nextest-archive
+      - name: Download runtime artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-artifacts
+      - name: Extract runtime artifacts
+        run: zstd -d runtime-artifacts.tar.zst --stdout | tar xf -
       - run: stellar keys generate default --fund
-      - run: cargo test --package stellar-registry-cli --features integration-tests
+      - name: Run tests
+        run: cargo nextest run --archive-file nextest-archive.tar.zst --extract-to . --workspace-remap . -E '${{ matrix.filter }}'
