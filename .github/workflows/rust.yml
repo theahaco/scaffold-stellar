@@ -26,20 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Restore cache
-        id: cache-restore
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            ./target/debug/stellar*
-            ./target/debug/soroban-*
-            ./target/debug/syn-*
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - run: rustup component add rustfmt clippy
@@ -62,16 +48,3 @@ jobs:
         run: just clippy-test
       - name: Unit Tests
         run: just test
-      - name: Always Save Cache
-        id: cache-save
-        if: always() && steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            ./target/debug/stellar*
-            ./target/debug/soroban-*
-            ./target/debug/syn-*
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}

@@ -29,20 +29,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
-      - name: Restore cargo registry cache
-        id: cache-restore
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            ./target/debug/stellar*
-            ./target/debug/soroban-*
-            ./target/debug/syn-*
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
       - run: rustup update
       - run: rustup target add wasm32v1-none
       - uses: taiki-e/install-action@just
@@ -74,18 +60,6 @@ jobs:
           name: runtime-artifacts
           path: runtime-artifacts.tar.zst
           retention-days: 1
-      - name: Save cargo registry cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            ./target/debug/stellar*
-            ./target/debug/soroban-*
-            ./target/debug/syn-*
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
   test:
     name: test ${{ matrix.name }}
