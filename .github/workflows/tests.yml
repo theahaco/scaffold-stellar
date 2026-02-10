@@ -48,7 +48,7 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
-      - uses: stellar/stellar-cli@v23.3.0
+      - uses: stellar/stellar-cli@v25.1.0
       - uses: mozilla-actions/sccache-action@v0.0.9
       - run: just build
       - run: just build-cli-test-contracts
@@ -129,7 +129,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: taiki-e/install-action@nextest
-      - uses: stellar/stellar-cli@v23.3.0
+      - uses: stellar/stellar-cli@v25.1.0
       - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Download nextest archive
         uses: actions/download-artifact@v4
