@@ -771,11 +771,11 @@ export default new Client.Client({{
         let printer = self.printer();
         let existing_spec = fetch_contract_spec(existing_hash, network).await?;
         let spec_to_upgrade = fetch_contract_spec(hash, network).await?;
-        let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(existing_spec) else {
+        let Some(legacy_upgradeable) = Self::is_legacy_upgradeable(&existing_spec) else {
             return Ok(None);
         };
 
-        if Self::is_legacy_upgradeable(spec_to_upgrade).is_none() {
+        if Self::is_legacy_upgradeable(&spec_to_upgrade).is_none() {
             printer.warnln("New WASM is not upgradable. Contract will be redeployed instead of being upgraded.");
             return Ok(None);
         }
@@ -814,7 +814,7 @@ export default new Client.Client({{
     }
 
     /// Returns: none if not upgradable, Some(true) if legacy upgradeable, Some(false) if new upgradeable
-    fn is_legacy_upgradeable(spec: Vec<ScSpecEntry>) -> Option<bool> {
+    fn is_legacy_upgradeable(spec: &[ScSpecEntry]) -> Option<bool> {
         spec.iter()
             .filter_map(|x| if let FunctionV0(e) = x { Some(e) } else { None })
             .filter(|x| x.name.to_string() == "upgrade")

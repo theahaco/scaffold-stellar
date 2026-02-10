@@ -1,4 +1,4 @@
-use soroban_sdk::{Env, String};
+use soroban_sdk::{crypto::Hash, Bytes, Env, IntoVal, String, TryFromVal, Val};
 
 use crate::error::Error;
 
@@ -8,11 +8,7 @@ mod to_str;
 use normalized::Normalized;
 
 pub(crate) const REGISTRY: &str = "registry";
-
-#[must_use]
-pub fn registry(env: &Env) -> String {
-    String::from_str(env, REGISTRY)
-}
+pub(crate) const UNVERIFIED: &str = "unverified";
 
 /// Checks that the name is a valid crate name.
 /// 1. The name must be non-empty.
@@ -24,6 +20,80 @@ pub fn registry(env: &Env) -> String {
 /// Then checks if the canonical form is not a rust keyword.
 ///
 /// See: <https://github.com/rust-lang/crates.io/blob/ad7740c951d9876a7070435a47ae11f1b1dc37e4/crates/crates_io_database/src/models/krate.rs#L218>
-pub(crate) fn canonicalize(s: &String) -> Result<String, Error> {
-    Normalized::canonicalize(s)
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct NormalizedName(String);
+
+impl AsRef<String> for NormalizedName {
+    fn as_ref(&self) -> &String {
+        self.as_string()
+    }
+}
+
+impl NormalizedName {
+    pub fn new(s: &String) -> Result<Self, Error> {
+        s.try_into()
+    }
+
+    /// Creates a new normalized name but skips normalizing it
+    /// # Safety
+    /// Ensure name is normalized
+    pub unsafe fn new_unchecked(s: String) -> Self {
+        NormalizedName(s)
+    }
+
+    pub fn as_string(&self) -> &String {
+        &self.0
+    }
+
+    pub fn to_string(&self) -> String {
+        self.0.clone()
+    }
+
+    pub fn hash(&self) -> Hash<32> {
+        let s = &self.0;
+        let env = s.env();
+        let len = s.len() as usize;
+        let mut bytes = [0u8; 100];
+        let bytes = &mut bytes[0..len];
+        s.copy_into_slice(bytes);
+        let mut b = Bytes::new(env);
+        b.copy_from_slice(0, bytes);
+        env.crypto().sha256(&b)
+    }
+}
+
+impl TryFrom<&String> for NormalizedName {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Ok(Self(Normalized::canonicalize(value)?))
+    }
+}
+
+impl TryFrom<String> for NormalizedName {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        (&value).try_into()
+    }
+}
+
+impl IntoVal<Env, Val> for NormalizedName {
+    fn into_val(&self, env: &Env) -> Val {
+        self.0.into_val(env)
+    }
+}
+
+impl TryFromVal<Env, Val> for NormalizedName {
+    type Error = soroban_sdk::Error;
+
+    fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
+        let name: String = TryFromVal::try_from_val(env, v)?;
+        Ok(name.try_into()?)
+    }
+}
+
+#[must_use]
+pub fn registry(env: &Env) -> NormalizedName {
+    unsafe { NormalizedName::new_unchecked(String::from_str(env, REGISTRY)) }
 }

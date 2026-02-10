@@ -190,12 +190,7 @@ impl Cmd {
             from: Some(example_name.to_owned()),
             ls: false,
             from_wizard: false,
-            output: Some(
-                all_contracts_path
-                    .join(example_path)
-                    .to_string_lossy()
-                    .into_owned(),
-            ),
+            output: Some(all_contracts_path.join(example_path)),
             force: false,
         }
         .run(&quiet_global_args)

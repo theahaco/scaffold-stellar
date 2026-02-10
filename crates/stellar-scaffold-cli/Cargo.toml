@@ -45,7 +45,7 @@ cargo_toml = "0.22"
 sha2 = { workspace = true }
 
 
-reqwest = { version = "0.12.9", default-features = false, features = [
+reqwest = { workspace = true, default-features = false, features = [
     "json",
     "rustls-tls",
 ] }
