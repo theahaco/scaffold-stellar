@@ -8,9 +8,8 @@ use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
     commands::contract::invoke,
     config::{self, UnresolvedMuxedAccount},
-    fee,
     utils::rpc::get_remote_wasm_from_hash,
-    xdr::{self, InvokeContractArgs, Limits, ScSpecEntry, ScString, ScVal, Uint256, WriteXdr},
+    xdr::{self, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256},
 };
 use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
@@ -43,9 +42,6 @@ pub struct Cmd {
 
     #[command(flatten)]
     pub config: global::Args,
-
-    #[command(flatten)]
-    pub fee: fee::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -100,7 +96,7 @@ impl Cmd {
         }
         let res = registry
             .as_contract()
-            .invoke_with_result(&slop, None, true)
+            .invoke_with_result(&slop, true)
             .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
@@ -173,14 +169,9 @@ impl Cmd {
             stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
         let account_details = client.get_account(&public_strkey).await?;
         let sequence: i64 = account_details.seq_num.into();
-        let tx =
-            util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
-        let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
+        let tx = util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, 100, &key)?;
+        let assembled = simulate_and_assemble_transaction(&client, &tx, None, None).await?;
         let mut txn = assembled.transaction().clone();
-        if self.fee.build_only {
-            println!("{}", txn.to_xdr_base64(Limits::none())?);
-            std::process::exit(1);
-        }
         txn = config
             .sign_soroban_authorizations(&txn, &signers)
             .await?

@@ -5,7 +5,7 @@ use clap::{Args, Parser};
 pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
     commands::contract::invoke,
-    config, fee,
+    config,
     xdr::{ScMetaEntry, ScMetaV0},
 };
 use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
@@ -44,8 +44,6 @@ pub struct Cmd {
     pub slop: Vec<OsString>,
     #[command(flatten)]
     pub config: global::Args,
-    #[command(flatten)]
-    pub fee: fee::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -147,7 +145,6 @@ impl Cmd {
             .as_contract()
             .invoke(
                 &args.iter().map(String::as_str).collect::<Vec<_>>(),
-                Some(&self.fee),
                 self.dry_run,
             )
             .await?;

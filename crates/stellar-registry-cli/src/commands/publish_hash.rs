@@ -1,5 +1,5 @@
 use clap::Parser;
-use stellar_cli::{commands::contract::invoke, config, fee};
+use stellar_cli::{commands::contract::invoke, config};
 use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
 use crate::commands::global;
@@ -28,9 +28,6 @@ pub struct Cmd {
 
     #[command(flatten)]
     pub config: global::Args,
-
-    #[command(flatten)]
-    pub fee: fee::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -65,10 +62,7 @@ impl Cmd {
 
         let registry = Registry::new(&self.config, self.wasm_name.channel.as_deref()).await?;
 
-        registry
-            .as_contract()
-            .invoke(&args, Some(&self.fee), self.dry_run)
-            .await?;
+        registry.as_contract().invoke(&args, self.dry_run).await?;
 
         eprintln!(
             "{}Successfully published hash {} as {}@{}",
@@ -84,7 +78,7 @@ impl Cmd {
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    use stellar_cli::commands::{NetworkRunnable, contract::upload};
+    use stellar_cli::commands::contract::upload;
     use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
@@ -93,7 +87,7 @@ mod tests {
         let v1 = registry.hello_wasm_v1();
 
         // First upload the wasm to get a hash
-        let hash = registry
+        let upload_cmd = registry
             .parse_cmd::<upload::Cmd>(&[
                 "--wasm",
                 v1.to_str().unwrap(),
@@ -101,8 +95,9 @@ mod tests {
                 "alice",
                 "--fee=10000000",
             ])
-            .unwrap()
-            .run_against_rpc_server(None, None)
+            .unwrap();
+        let hash = upload_cmd
+            .execute(&upload_cmd.config, false, false)
             .await
             .unwrap()
             .into_result()
@@ -137,7 +132,7 @@ mod tests {
         let v1 = registry.hello_wasm_v1();
 
         // First upload the wasm to get a hash
-        let hash = registry
+        let upload_cmd = registry
             .parse_cmd::<upload::Cmd>(&[
                 "--wasm",
                 v1.to_str().unwrap(),
@@ -145,8 +140,9 @@ mod tests {
                 "alice",
                 "--fee=10000000",
             ])
-            .unwrap()
-            .run_against_rpc_server(None, None)
+            .unwrap();
+        let hash = upload_cmd
+            .execute(&upload_cmd.config, false, false)
             .await
             .unwrap()
             .into_result()

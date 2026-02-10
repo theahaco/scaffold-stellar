@@ -61,7 +61,7 @@ impl Cmd {
         let registry = self.contract_name.registry(&self.config).await?;
         registry
             .as_contract()
-            .invoke_with_result(&slop, None, false)
+            .invoke_with_result(&slop, false)
             .await
             .map_err(Error::UpgradeFailed)?;
         let version = if let Some(version) = self.version.as_deref() {
@@ -69,7 +69,7 @@ impl Cmd {
         } else {
             registry
                 .as_contract()
-                .invoke_with_result(&["current_version", "--wasm-name", wasm_name], None, true)
+                .invoke_with_result(&["current_version", "--wasm-name", wasm_name], true)
                 .await?
         };
         println!("Upgraded {contract_name} to {wasm_name}@{version}",);

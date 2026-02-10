@@ -15,7 +15,6 @@ use std::process::Command;
 use std::{fmt::Debug, path::PathBuf};
 use stellar_cli::{
     CommandParser, commands as cli,
-    commands::NetworkRunnable,
     commands::contract::info::shared::{
         self as contract_spec, Args as FetchArgs, Error as FetchError, fetch,
     },
@@ -173,6 +172,8 @@ impl Builder {
             network: to_args(&self.network),
             sign_with: sign_with::Args::default(),
             source_account: self.source_account.clone(),
+            fee: None,
+            inclusion_fee: None,
         }
     }
 
@@ -206,7 +207,7 @@ impl Builder {
         contract_id: &Contract,
         network: &network::Network,
     ) -> Result<Option<String>, Error> {
-        let result = cli::contract::fetch::Cmd {
+        let fetch_cmd = cli::contract::fetch::Cmd {
             contract_id: Some(stellar_cli::config::UnresolvedContract::Resolved(
                 *contract_id,
             )),
@@ -214,9 +215,8 @@ impl Builder {
             locator: self.get_config_locator().clone(),
             network: to_args(network),
             wasm_hash: None,
-        }
-        .run_against_rpc_server(Some(&self.global_args), None)
-        .await;
+        };
+        let result = fetch_cmd.execute(&self.config()).await;
 
         match result {
             Ok(result) => {
@@ -284,7 +284,7 @@ export default new Client.Client({{
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
-        self.run_against_rpc_server(cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
+        let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
             "--output-dir",
@@ -298,8 +298,8 @@ export default new Client.Client({{
             &network.rpc_url,
             "--network-passphrase",
             &network.network_passphrase,
-        ])?)
-        .await?;
+        ])?;
+        bindings_cmd.execute(self.global_args.quiet).await?;
 
         // Run `npm i` in the temp directory
         printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
@@ -669,14 +669,19 @@ export default new Client.Client({{
         printer.infoln(format!("Uploading {name:?} wasm bytecode on-chain..."));
         let cmd = cli::contract::upload::Cmd {
             config: self.config(),
-            fee: stellar_cli::fee::Args::default(),
+            resources: stellar_cli::resources::Args::default(),
             wasm: stellar_cli::wasm::Args {
                 wasm: wasm_path.to_path_buf(),
             },
             ignore_checks: false,
+            build_only: false,
         };
-        let hash = self
-            .run_against_rpc_server(cmd)
+        let hash = cmd
+            .execute(
+                &cmd.config,
+                self.global_args.quiet,
+                self.global_args.no_cache,
+            )
             .await?
             .into_result()
             .expect("no hash returned by 'contract upload'")
@@ -748,10 +753,13 @@ export default new Client.Client({{
             .iter()
             .map(std::string::String::as_str)
             .collect();
-        let contract_id = self
-            .run_against_rpc_server(cli::contract::deploy::wasm::Cmd::parse_arg_vec(
-                &deploy_arg_refs,
-            )?)
+        let deploy_cmd = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?;
+        let contract_id = deploy_cmd
+            .execute(
+                &deploy_cmd.config,
+                self.global_args.quiet,
+                self.global_args.no_cache,
+            )
             .await?
             .into_result()
             .expect("no contract id returned by 'contract deploy'");
@@ -804,7 +812,12 @@ export default new Client.Client({{
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
         }?;
         printer.infoln(format!("Upgrading {name:?} smart contract"));
-        self.run_against_rpc_server(invoke_cmd)
+        invoke_cmd
+            .execute(
+                &self.config(),
+                self.global_args.quiet,
+                self.global_args.no_cache,
+            )
             .await?
             .into_result()
             .expect("no result returned by 'contract invoke'");
@@ -892,8 +905,13 @@ export default new Client.Client({{
                 "  ↳ Executing: stellar contract invoke {}",
                 args.join(" ")
             ));
-            let result = self
-                .run_against_rpc_server(cli::contract::invoke::Cmd::parse_arg_vec(&args)?)
+            let invoke_cmd = cli::contract::invoke::Cmd::parse_arg_vec(&args)?;
+            let result = invoke_cmd
+                .execute(
+                    &self.config(),
+                    self.global_args.quiet,
+                    self.global_args.no_cache,
+                )
                 .await?;
             printer.infoln(format!("  ↳ Result: {result:?}"));
         }
@@ -901,15 +919,6 @@ export default new Client.Client({{
             "After deploy script for {name:?} completed successfully"
         ));
         Ok(())
-    }
-
-    pub async fn run_against_rpc_server<T: NetworkRunnable>(
-        &self,
-        rpc_runner: T,
-    ) -> Result<T::Result, T::Error> {
-        rpc_runner
-            .run_against_rpc_server(Some(&self.global_args), Some(&self.config()))
-            .await
     }
 }
 
