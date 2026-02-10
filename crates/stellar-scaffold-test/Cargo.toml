@@ -15,9 +15,9 @@ workspace = true
 assert_cmd = "2.1"
 assert_fs = "1.1"
 reflink-copy = "0.1"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 tokio-stream = "0.1"
-uuid = { version = "1.18", features = ["v4"] }
+uuid = { version = "1.20", features = ["v4"] }
 clap = { workspace = true }
 
 soroban-sdk = { workspace = true }
