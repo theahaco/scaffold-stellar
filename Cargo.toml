@@ -21,7 +21,7 @@ soroban-rpc = { package = "stellar-rpc-client", version = "23.0.1" }
 soroban-spec-tools = "23.1.2"
 
 soroban-sdk = "23.4.0"
-admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "c70aefe12a33fad9cf3188786d47aba086e08d40" }
+admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "73082957fb7bd79ee4f2138e71a578fbd8d5d394" }
 stellar-xdr = "23.0.0"
 stellar-strkey = "0.0.13"
 
