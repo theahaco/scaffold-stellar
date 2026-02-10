@@ -45,10 +45,35 @@ test: build
     cargo t
 
 test-integration: build-cli-test-contracts
-    cargo t --verbose --package stellar-scaffold-cli --features integration-tests --no-run
-    cargo t --verbose --package stellar-registry-cli --features integration-tests --no-run
+    just test-integration-scaffold-contracts
+    just test-integration-scaffold-features
+    just test-integration-scaffold-examples-1
+    just test-integration-scaffold-examples-2
+    just test-integration-registry
+
+[private]
+_test-scaffold filter:
+    cargo t --package stellar-scaffold-cli --features integration-tests -E '{{ filter }}'
+
+# Run scaffold-cli accounts & contracts integration tests
+test-integration-scaffold-contracts:
+    just _test-scaffold 'test(build_clients::accounts::) or test(build_clients::contracts::)'
+
+# Run scaffold-cli init_script, network, watch & clean integration tests
+test-integration-scaffold-features:
+    just _test-scaffold 'not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)'
+
+# Run scaffold-cli example integration tests (cases 1-14)
+test-integration-scaffold-examples-1:
+    just _test-scaffold 'test(examples::) and (test(/case_0/) or test(/case_1[0-4]/))'
+
+# Run scaffold-cli example integration tests (cases 15-27)
+test-integration-scaffold-examples-2:
+    just _test-scaffold 'test(examples::) and (test(/case_1[5-9]/) or test(/case_2/))'
+
+# Run registry-cli integration tests
+test-integration-registry:
     cargo t --package stellar-registry-cli --features integration-tests
-    cargo t --package stellar-scaffold-cli --features integration-tests
 
 create: build
     rm -rf .soroban

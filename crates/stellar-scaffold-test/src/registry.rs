@@ -25,7 +25,7 @@ impl RegistryTest {
         Self::parse_cmd_internal::<network::add::Cmd>(
             &env,
             &[
-                "localhost",
+                "local",
                 "--rpc-url",
                 rpc_url,
                 "--network-passphrase",
@@ -35,7 +35,7 @@ impl RegistryTest {
         .unwrap()
         .run()
         .unwrap();
-        Self::parse_cmd_internal::<network::default::Cmd>(&env, &["localhost"])
+        Self::parse_cmd_internal::<network::default::Cmd>(&env, &["local"])
             .unwrap()
             .run(&global::Args::default())
             .unwrap();
