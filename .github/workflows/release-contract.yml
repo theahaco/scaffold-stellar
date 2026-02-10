@@ -103,7 +103,7 @@ jobs:
           echo "OUTPUT=$OUTPUT" >> $GITHUB_ENV
 
       - name: Build contract
-        uses: stellar/stellar-cli@v22.8.1
+        uses: stellar/stellar-cli@v25.1.0
         with:
           version: "22.8.1"
       - run: |
