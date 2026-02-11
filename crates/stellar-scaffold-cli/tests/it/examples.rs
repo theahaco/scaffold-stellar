@@ -59,12 +59,14 @@ soroban_token_contract.client = false
         fs_extra::dir::remove(env.cwd.join("contracts"))
             .expect("failed to remove contracts directory");
 
+
+
         env.scaffold("generate")
             .arg("contract")
             .arg("--from")
             .arg(input)
             .arg("--output")
-            .arg(format!("{}/contracts/example", env.cwd.display()))
+            .arg(format!("{}/contracts/example", env.cwd.display()));
             .assert()
             .success()
             .stdout_as_str();

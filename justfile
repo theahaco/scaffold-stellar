@@ -45,35 +45,42 @@ test: build
     cargo t
 
 test-integration: build-cli-test-contracts
-    just test-integration-scaffold-contracts
-    just test-integration-scaffold-features
-    just test-integration-scaffold-examples-1
-    just test-integration-scaffold-examples-2
-    just test-integration-registry
+    cargo t --features integration-tests
 
 [private]
-_test-scaffold filter:
-    cargo t --package stellar-scaffold-cli --features integration-tests -E '{{ filter }}'
+_test-integration package filter ci="false":
+    cargo t  -E 'package({{ package }}) and {{ filter }}' \
+    {{ if ci == "false" { '--features integration-tests' } else { '--binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap .' } }}
+
+[private]
+_test-scaffold filter ci="false":
+    just _test-integration stellar-scaffold-cli '{{ filter }}' {{ ci }}
+
+[private]
+_test-scaffold-ci filter:
+    jsut _test-scaffold {{ filter }}  --binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap .
 
 # Run scaffold-cli accounts & contracts integration tests
-test-integration-scaffold-contracts:
-    just _test-scaffold 'test(build_clients::accounts::) or test(build_clients::contracts::)'
+test-integration-scaffold-build-clients ci="false":
+    just _test-scaffold 'test(build_clients)' {{ ci }}
 
 # Run scaffold-cli init_script, network, watch & clean integration tests
-test-integration-scaffold-features:
-    just _test-scaffold 'not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)'
+test-integration-scaffold-features ci="false":
+    just _test-scaffold 'test(features::)' {{ ci }}
 
 # Run scaffold-cli example integration tests (cases 1-14)
-test-integration-scaffold-examples-1:
-    just _test-scaffold 'test(examples::) and (test(/case_0/) or test(/case_1[0-4]/))'
+test-integration-scaffold-examples-1 ci="false":
+    just _test-scaffold 'test(examples::) and test(/case_01/)' {{ ci }}
+    just _test-scaffold 'test(examples::) and (test(/case_0[2-9]/) or test(/case_1[0-4]/))' {{ ci }}
 
 # Run scaffold-cli example integration tests (cases 15-27)
-test-integration-scaffold-examples-2:
-    just _test-scaffold 'test(examples::) and (test(/case_1[5-9]/) or test(/case_2/))'
+test-integration-scaffold-examples-2 ci="false":
+    just _test-scaffold 'test(examples::) and test(/case_15/)' {{ ci }}
+    just _test-scaffold 'test(examples::) and (test(/case_1[6-9]/) or test(/case_2/))' {{ ci }}
 
 # Run registry-cli integration tests
-test-integration-registry:
-    cargo t --package stellar-registry-cli --features integration-tests
+test-integration-registry ci="false":
+    just _test-integration stellar-registry-cli {{ ci }}
 
 create: build
     rm -rf .soroban
