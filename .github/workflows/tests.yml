@@ -82,8 +82,6 @@ jobs:
           - name: registry-cli
             filter: "test-integration-registry"
     env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
       STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
       STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
       STELLAR_ACCOUNT: default
