@@ -35,7 +35,7 @@ impl Cmd {
         let slop = ["current_version", "--wasm-name", &self.wasm_name.name];
         let raw = registry
             .as_contract()
-            .invoke_with_result(&slop, None, true)
+            .invoke_with_result(&slop, true)
             .await?;
         Ok(raw.trim_matches('"').to_string())
     }

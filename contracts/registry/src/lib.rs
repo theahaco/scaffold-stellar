@@ -42,7 +42,7 @@ impl Contract {
     /// - `is_root`: if true, this registry is the root registry, meaning it has no namespace. Other Registry contracts, like the `unverified` one, are themselves registered in the root Registry. If `is_root` is true, this constructor will also auto-deploy the `unverified` Registry.
     #[allow(clippy::needless_pass_by_value)]
     pub fn __constructor(env: &Env, admin: &Address, manager: Option<Address>, is_root: bool) {
-        Self::set_admin(env, admin.clone());
+        Self::set_admin(env, admin);
         if let Some(manager) = &manager {
             Storage::set_manager_no_auth(env, manager);
         }

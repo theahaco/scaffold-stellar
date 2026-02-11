@@ -27,7 +27,7 @@ build_contract p:
 
 # build contracts
 build:
-    just stellar-scaffold build
+    just stellar-scaffold build --profile contracts
     cargo build --package stellar-registry-cli
     stellar contract optimize --wasm ./target/stellar/local/registry.wasm --wasm-out ./target/stellar/local/registry.wasm
 
