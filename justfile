@@ -92,4 +92,4 @@ clippy *args:
     -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
 
 clippy-test:
-    just clippy --tests
+    just clippy --tests --all-features

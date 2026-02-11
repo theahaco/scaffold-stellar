@@ -4,7 +4,7 @@ use stellar_scaffold_test::{TestEnv, rpc_url};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_stream::{StreamExt, wrappers::LinesStream};
 
-#[ignore]
+#[ignore = "Need to fix but was a blocker"]
 #[tokio::test]
 async fn watch_command_watches_for_changes_and_environments_toml() {
     TestEnv::from_async("soroban-init-boilerplate", |env| async {
@@ -192,8 +192,9 @@ soroban_token_contract.client = false
     .await;
 }
 
-#[ignore]
+#[ignore = "Need to fix but was a blocker"]
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn watch_and_vite_integration_test() {
     TestEnv::from_init("test-project", |env| async {
         Box::pin(async move {
@@ -202,7 +203,7 @@ async fn watch_and_vite_integration_test() {
                 .expect("Package json should be editable");
             // Install npm dependencies
             let npm_install_output = tokio::process::Command::new(npm_cmd())
-                .args(&["install"])
+                .args(["install"])
                 .current_dir(&env.cwd)
                 .output()
                 .await
@@ -216,7 +217,7 @@ async fn watch_and_vite_integration_test() {
 
             // Start npm run dev (which runs watch and vite concurrently)
             let mut dev_process = tokio::process::Command::new(npm_cmd())
-                .args(&["run", "dev"])
+                .args(["run", "dev"])
                 .current_dir(&env.cwd)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -272,7 +273,7 @@ async fn watch_and_vite_integration_test() {
                 .await
                 {
                     Ok(Some((source, line))) => {
-                        println!("📝 [{}] {}", source, line);
+                        println!("📝 [{source}] {line}");
 
                         // Check for watch ready
                         if !watch_ready
@@ -345,7 +346,7 @@ async fn watch_and_vite_integration_test() {
 
             for module_path in js_module_paths {
                 let _ = client
-                    .get(&format!("http://localhost:{}{}", port, module_path))
+                    .get(format!("http://localhost:{port}{module_path}"))
                     .timeout(tokio::time::Duration::from_secs(10))
                     .send()
                     .await;
@@ -368,8 +369,7 @@ async fn watch_and_vite_integration_test() {
             }
             assert!(
                 vite_errors.is_empty(),
-                "Vite errors detected during test execution. Errors found: {:?}",
-                vite_errors
+                "Vite errors detected during test execution. Errors found: {vite_errors:?}"
             );
 
             // Modify hello world source file and monitor for rebuild
@@ -415,7 +415,7 @@ mod test;
                 .await
                 {
                     Ok(Some((source, line))) => {
-                        println!("📝 [{}] {}", source, line);
+                        println!("📝 [{source}] {line}");
 
                         // Check for file change detection
                         if !file_change_detected
@@ -454,10 +454,7 @@ mod test;
                         // Timeout occurred, periodically query the hello world client file
                         if file_change_detected {
                             match client
-                                .get(&format!(
-                                    "http://localhost:{}{}",
-                                    port, hello_world_client_path
-                                ))
+                                .get(format!("http://localhost:{port}{hello_world_client_path}"))
                                 .timeout(tokio::time::Duration::from_secs(5))
                                 .send()
                                 .await
@@ -475,7 +472,7 @@ mod test;
                                     }
                                 }
                                 Err(e) => {
-                                    println!("⚠️  Error querying hello world client file: {}", e);
+                                    println!("⚠️  Error querying hello world client file: {e}");
                                 }
                             }
                         }
@@ -517,16 +514,12 @@ mod test;
 
             assert!(
                 new_vite_errors.is_empty(),
-                "Vite errors detected during hello world rebuild. Errors found: {:?}",
-                new_vite_errors
+                "Vite errors detected during hello world rebuild. Errors found: {new_vite_errors:?}"
             );
 
             // Final verification that hello world client is accessible after rebuild
             let final_response = client
-                .get(&format!(
-                    "http://localhost:{}{}",
-                    port, hello_world_client_path
-                ))
+                .get(format!("http://localhost:{port}{hello_world_client_path}"))
                 .timeout(tokio::time::Duration::from_secs(10))
                 .send()
                 .await
@@ -545,7 +538,7 @@ mod test;
             stderr_monitor.abort();
 
             if let Err(e) = dev_process.kill().await {
-                eprintln!("Note: Error killing dev process: {}", e);
+                eprintln!("Note: Error killing dev process: {e}");
             }
         })
         .await;

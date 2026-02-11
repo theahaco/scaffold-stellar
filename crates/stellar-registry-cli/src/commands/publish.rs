@@ -212,7 +212,7 @@ mod tests {
         registry
             .registry_cli("publish")
             .arg("--wasm")
-            .arg(&registry.hello_wasm_v2())
+            .arg(registry.hello_wasm_v2())
             .arg("--binver")
             .arg("0.0.3")
             .arg("--wasm-name")
