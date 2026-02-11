@@ -2,6 +2,7 @@ set dotenv-load := true
 
 export PATH := './target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
+export CI_BUILD := env_var_or_default('CI_BUILD', '')
 
 [private]
 path:
