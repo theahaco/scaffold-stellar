@@ -23,6 +23,7 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
       PKG_CONFIG_PATH: /usr/lib/pkgconfig
+      CI_CACHE: "/tmp/.cache"
     steps:
       - uses: actions/checkout@v6
       - name: Install system dependencies
