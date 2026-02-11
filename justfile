@@ -81,7 +81,7 @@ test-integration-scaffold-examples-2 ci="false":
 
 # Run registry-cli integration tests
 test-integration-registry ci="false":
-    just _test-integration stellar-registry-cli {{ ci }}
+    just _test-integration stellar-registry-cli 'test(.*)' {{ ci }}
 
 create: build
     rm -rf .soroban
