@@ -107,7 +107,6 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v25.1.0
-      - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Download nextest archive
         uses: actions/download-artifact@v4
         with:
