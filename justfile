@@ -14,7 +14,7 @@ registry +args:
     @cargo run --bin stellar-registry --quiet -- {{ args }}
 
 stellar-scaffold +args:
-    @cargo run --bin stellar-scaffold -- {{ args }}
+    @cargo run $CI_BUILD --bin stellar-scaffold -- {{ args }}
 
 s +args:
     @stellar {{ args }}
@@ -28,7 +28,7 @@ build_contract p:
 # build contracts
 build:
     just stellar-scaffold build --profile contracts
-    cargo build --package stellar-registry-cli
+    cargo build $CI_BUILD --package stellar-registry-cli
     stellar contract optimize --wasm ./target/stellar/local/registry.wasm --wasm-out ./target/stellar/local/registry.wasm
 
 # Setup the project to use a pinned version of the CLI

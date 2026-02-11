@@ -24,6 +24,7 @@ jobs:
       RUSTC_WRAPPER: "sccache"
       PKG_CONFIG_PATH: /usr/lib/pkgconfig
       CI_CACHE: "/tmp/.cache"
+      CI_BUILD: "--locked"
     steps:
       - uses: actions/checkout@v6
       - name: Install system dependencies
