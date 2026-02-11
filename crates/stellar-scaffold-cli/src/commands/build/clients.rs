@@ -4,7 +4,7 @@ use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml::{self, Environment};
-use crate::commands::npm_cmd;
+use crate::commands::{PackageManager, PackageManagerSpec};
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
@@ -118,8 +118,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
-    NpmCommandFailure(std::path::PathBuf, String),
+    #[error("⛔ ️Failed to run package manager command in {0:?}: {1:?}")]
+    PacmanCommandFailure(std::path::PathBuf, String),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
     #[error("Failed to get upgrade operator: {0:?}")]
@@ -143,6 +143,7 @@ pub struct Builder {
     printer: Print,
     pub(crate) out_dir: Option<PathBuf>,
     env: Environment,
+    pacman: PackageManager,
 }
 
 impl Builder {
@@ -154,6 +155,7 @@ impl Builder {
         scaffold_env: ScaffoldEnv,
         out_dir: Option<PathBuf>,
         env: Environment,
+        pacman: PackageManager,
     ) -> Self {
         Self {
             printer: Print::new(global_args.quiet),
@@ -164,6 +166,7 @@ impl Builder {
             workspace_root,
             out_dir,
             env,
+            pacman,
         }
     }
 
@@ -301,50 +304,50 @@ export default new Client.Client({{
         ])?)
         .await?;
 
-        // Run `npm i` in the temp directory
-        printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
-        let output = std::process::Command::new(npm_cmd())
-            .current_dir(&temp_dir)
-            .arg("install")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
-            .output()?;
+        let pacman_label = self.pacman.as_str();
+
+        // Run `install` in the temp directory
+        printer.infoln(format!(
+            "Running '{pacman_label} install' in {temp_dir_display:?}"
+        ));
+        let output = self.pacman.install_no_workspace(&temp_dir)?;
 
         if !output.status.success() {
             // Clean up temp directory on failure
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
+            return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "npm install failed with status: {:?}\nError: {}",
+                    "{pacman_label} install failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
-        printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
+        printer.checkln(format!(
+            "'{pacman_label} install' succeeded in {temp_dir_display}"
+        ));
 
-        printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
-        let output = std::process::Command::new(npm_cmd())
-            .current_dir(&temp_dir)
-            .arg("run")
-            .arg("build")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .output()?;
+        printer.infoln(format!(
+            "Running '{pacman_label} run build' in {temp_dir_display}"
+        ));
+        let output = self.pacman.build(&temp_dir)?;
 
         if !output.status.success() {
             // Clean up temp directory on failure
             let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
+            return Err(Error::PacmanCommandFailure(
                 temp_dir.clone(),
                 format!(
-                    "npm run build failed with status: {:?}\nError: {}",
+                    "{pacman_label} run build failed with status: {:?}\nError: {}",
                     output.status.code(),
                     String::from_utf8_lossy(&output.stderr)
                 ),
             ));
         }
-        printer.checkln(format!("'npm run build' succeeded in {temp_dir_display}"));
+        printer.checkln(format!(
+            "'{pacman_label} run build' succeeded in {temp_dir_display}"
+        ));
 
         // Now atomically replace the old directory with the new one
         if final_output_dir.exists() {
@@ -360,18 +363,14 @@ export default new Client.Client({{
             // No existing directory, just move temp to final location
             std::fs::rename(&temp_dir, &final_output_dir)?;
             printer.checkln(format!("Client {name:?} created successfully"));
-            // Run npm install in the final output directory to ensure proper linking
-            let output = std::process::Command::new(npm_cmd())
-                .current_dir(&final_output_dir)
-                .arg("install")
-                .arg("--loglevel=error")
-                .output()?;
+            // Run pacman install in the final output directory to ensure proper linking
+            let output = self.pacman.install_silent(&final_output_dir)?;
 
             if !output.status.success() {
-                return Err(Error::NpmCommandFailure(
+                return Err(Error::PacmanCommandFailure(
                     final_output_dir.clone(),
                     format!(
-                        "npm install in final directory failed with status: {:?}\nError: {}",
+                        "{pacman_label} install in final directory failed with status: {:?}\nError: {}",
                         output.status.code(),
                         String::from_utf8_lossy(&output.stderr)
                     ),
@@ -945,6 +944,10 @@ impl Args {
             ([candidate], _) => candidate.clone(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
+
+        let pacman = PackageManagerSpec::from_package_json(workspace_root)
+            .expect("Must be declared in the init phase");
+
         let builder = Builder::new(
             global_args,
             network,
@@ -953,6 +956,7 @@ impl Args {
             env,
             self.out_dir.clone(),
             current_env,
+            pacman.kind,
         );
         Ok(builder)
     }

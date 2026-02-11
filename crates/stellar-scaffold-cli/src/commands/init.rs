@@ -1,15 +1,21 @@
 use clap::{Args, Parser};
 use degit::degit;
-use std::fs::{copy, metadata, read_dir, remove_dir_all};
+use dialoguer::Select;
+use dialoguer::theme::ColorfulTheme;
+use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file, write};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, io};
 
 use super::{build, generate};
+use crate::commands::{PackageManager, PackageManagerSpec};
 use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
 const TUTORIAL_BRANCH: &str = "tutorial";
+const PNPM_WORKSPACE: &str = r#"packages:
+  - "packages/*"
+"#;
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -116,8 +122,39 @@ impl Cmd {
             }
         }
 
-        // Install npm dependencies
-        let npm_status = npm_install(&absolute_project_path, &printer);
+        let pacman = pacman_select();
+        match pacman.kind {
+            PackageManager::Pnpm => {
+                if let Err(e) = write(
+                    absolute_project_path.join("pnpm-workspace.yaml"),
+                    PNPM_WORKSPACE,
+                ) {
+                    printer.warnln(format!(
+                        "Failed to create pnpm-workspace.yaml when pnpm was selected: {e}"
+                    ));
+                }
+            }
+            PackageManager::Npm => {
+                // npm owns package-lock.json → do nothing
+            }
+            _ => {
+                if let Err(e) = remove_file(absolute_project_path.join("package-lock.json")) {
+                    printer.warnln(format!(
+                        "Failed to remove package-lock.json when non-npm pacman selected: {e}"
+                    ));
+                }
+            }
+        }
+
+        if let Err(_) = pacman.write_to_package_json(&absolute_project_path) {
+            printer.warnln(format!(
+                "Failed to write the selected pacman to package.json"
+            ));
+        }
+
+        // Install dependencies
+        let pacman_command = pacman.command();
+        let pacman_status = pacman_install(pacman_command, &absolute_project_path, &printer);
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
@@ -149,10 +186,10 @@ impl Cmd {
         ));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
-        if !npm_status {
-            printer.blankln("\tnpm install");
+        if !pacman_status {
+            printer.blankln(format!("\t{pacman_command} install"));
         }
-        printer.blankln("\tnpm start\n");
+        printer.blankln(format!("\t{pacman_command} start"));
         printer.blankln(" Happy hacking! 🚀");
         Ok(())
     }
@@ -221,20 +258,52 @@ impl Cmd {
     }
 }
 
-// Check if npm is installed and exists in PATH
-fn npm_exists() -> bool {
-    Command::new("npm").arg("--version").output().is_ok()
+// Select package manager
+fn pacman_select() -> PackageManagerSpec {
+    let pacman_options = PackageManager::LIST
+        .iter()
+        .map(PackageManager::command)
+        .collect::<Vec<&str>>();
+
+    let pacman_index = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Pick your package manager")
+        .items(pacman_options)
+        .default(0)
+        .interact()
+        .unwrap_or(0);
+
+    let kind = PackageManager::LIST[pacman_index].clone();
+    let version = pacman_version(kind.command());
+
+    PackageManagerSpec { kind, version }
 }
 
-// Install npm dependencies
-fn npm_install(path: &PathBuf, printer: &Print) -> bool {
-    if !npm_exists() {
-        printer.warnln("Failed to install dependencies, npm is not installed");
+fn pacman_version(command: &str) -> Option<String> {
+    let output = Command::new(command).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    extract_version(&stdout)
+}
+
+// Check if selected pacman is installed and exists in PATH
+fn pacman_exists(command: &str) -> bool {
+    Command::new(command).arg("--version").output().is_ok()
+}
+
+// Install dependencies
+fn pacman_install(pacman_command: &str, path: &PathBuf, printer: &Print) -> bool {
+    if !pacman_exists(pacman_command) {
+        printer.warnln(format!(
+            "Failed to install dependencies, {pacman_command} is not installed"
+        ));
         return false;
     }
 
-    printer.infoln("Installing npm dependencies...");
-    match Command::new("npm")
+    printer.infoln("Installing dependencies...");
+    match Command::new(pacman_command)
         .arg("install")
         .current_dir(path)
         .output()
@@ -243,7 +312,9 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
         Ok(output) => {
             // Command ran without panic, but failed for some other reason
             // like network issue or missing dependency, etc.
-            printer.warnln("Failed to install dependencies: Please run 'npm install' manually");
+            printer.warnln(format!(
+                "Failed to install dependencies: Please run '{pacman_command} install' manually"
+            ));
             if !output.stderr.is_empty()
                 && let Ok(stderr) = String::from_utf8(output.stderr)
             {
@@ -252,7 +323,7 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
             false
         }
         Err(e) => {
-            printer.warnln(format!("Failed to run npm install: {e}"));
+            printer.warnln(format!("Failed to run {pacman_command} install: {e}"));
             false
         }
     }
@@ -281,4 +352,30 @@ fn git_commit(path: &PathBuf, message: &str) {
         .args(["commit", "-m", message])
         .current_dir(path)
         .output();
+}
+
+fn extract_version(text: &str) -> Option<String> {
+    for token in text.split_whitespace() {
+        if is_semver_like(token) {
+            return Some(
+                token
+                    .trim_matches(|c: char| !c.is_ascii_digit() && c != '.')
+                    .to_string(),
+            );
+        }
+    }
+    None
+}
+
+fn is_semver_like(s: &str) -> bool {
+    let s = s.trim_matches(|c: char| !c.is_ascii_digit() && c != '.');
+    let mut parts = s.split('.');
+
+    let major = parts.next().and_then(|p| p.parse::<u64>().ok());
+    let minor = parts.next().and_then(|p| p.parse::<u64>().ok());
+
+    // patch is optional (yarn classic sometimes omits weirdly)
+    let patch = parts.next().map_or(Some(0), |p| p.parse::<u64>().ok());
+
+    major.is_some() && minor.is_some() && patch.is_some()
 }
