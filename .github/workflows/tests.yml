@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-latest
+    runs-on: aha-ubuntu-latest-8-core
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
@@ -36,8 +36,8 @@ jobs:
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
-      - uses: stellar/stellar-cli@v25.1.0
       - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: stellar/stellar-cli@v25.1.0
       - run: just build
       - run: just build-cli-test-contracts
       - name: Create nextest archive
@@ -66,7 +66,7 @@ jobs:
   test:
     name: test ${{ matrix.name }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: aha-ubuntu-latest-8-core
     strategy:
       fail-fast: false
       matrix:
@@ -86,21 +86,10 @@ jobs:
       STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
       STELLAR_ACCOUNT: default
       STELLAR_CONTRACT_ID: core
-    services:
-      rpc:
-        image: stellar/quickstart:testing
-        ports:
-          - 8000:8000
-        env:
-          ENABLE_LOGS: true
-          NETWORK: local
-          ENABLE_SOROBAN_RPC: true
-        options: >-
-          --health-cmd "curl --no-progress-meter --fail-with-body -X POST \"http://localhost:8000/soroban/rpc\" -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":8675309,\"method\":\"getNetwork\"}' && curl --no-progress-meter \"http://localhost:8000/friendbot\" | grep '\"invalid_field\": \"addr\"'"
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 50
     steps:
+      - uses: stellar/quickstart@main
+        with:
+          tag: testing
       - uses: actions/checkout@v6
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
