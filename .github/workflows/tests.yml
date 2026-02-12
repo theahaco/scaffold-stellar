@@ -37,6 +37,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - uses: cargo-bins/cargo-binstall@main
       - uses: mozilla-actions/sccache-action@v0.0.9
+      - uses: stellar/stellar-cli@v25.1.0
       - run: just build
       - run: just build-cli-test-contracts
       - name: Create nextest archive
