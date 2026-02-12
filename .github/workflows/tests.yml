@@ -23,6 +23,8 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
       PKG_CONFIG_PATH: /usr/lib/pkgconfig
+      CI_CACHE: "/tmp/.cache"
+      CI_BUILD: "--locked"
     steps:
       - uses: actions/checkout@v6
       - name: Install system dependencies
@@ -69,19 +71,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: scaffold-cli (contracts)
-            filter: "package(stellar-scaffold-cli) and (test(build_clients::accounts::) or test(build_clients::contracts::))"
+          - name: scaffold-cli (build_clients)
+            filter: "test-integration-scaffold-build-clients"
           - name: scaffold-cli (features)
-            filter: "package(stellar-scaffold-cli) and not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)"
+            filter: "test-integration-scaffold-features"
           - name: scaffold-cli (examples 1-14)
-            filter: "package(stellar-scaffold-cli) and test(examples::) and (test(/case_0/) or test(/case_1/))"
+            filter: "test-integration-scaffold-examples-1"
           - name: scaffold-cli (examples 15-27)
-            filter: "package(stellar-scaffold-cli) and test(examples::) and test(/case_2/)"
+            filter: "test-integration-scaffold-examples-2"
           - name: registry-cli
-            filter: "package(stellar-registry-cli)"
+            filter: "test-integration-registry"
     env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
       STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
       STELLAR_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
       STELLAR_ACCOUNT: default
@@ -102,9 +102,9 @@ jobs:
           --health-retries 50
     steps:
       - uses: actions/checkout@v6
+      - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v25.1.0
-      - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Download nextest archive
         uses: actions/download-artifact@v4
         with:
@@ -122,4 +122,4 @@ jobs:
           cargo nextest run --archive-file nextest-archive.tar.zst --extract-to /tmp/nextest-run --workspace-remap . --no-run
           cp -a /tmp/nextest-run/target/* target/
       - name: Run tests
-        run: cargo nextest run --binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap . -E '${{ matrix.filter }}'
+        run: just ${{ matrix.filter }} true

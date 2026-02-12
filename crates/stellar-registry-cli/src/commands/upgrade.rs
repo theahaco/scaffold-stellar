@@ -88,6 +88,7 @@ mod tests {
     use crate::commands::{create_alias, upgrade};
 
     #[tokio::test]
+    #[allow(clippy::too_many_lines)]
     async fn simple_upgrade() {
         // Create test environment
         let registry = RegistryTest::new().await;
@@ -222,6 +223,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::too_many_lines)]
     async fn unverified() {
         // Create test environment
         let registry = RegistryTest::new().await;
