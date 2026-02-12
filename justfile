@@ -42,7 +42,6 @@ build-cli-test-contracts:
     just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
-    cargo t -E 'package(stellar-scaffold-cli)'
     cargo t
 
 test-integration: build-cli-test-contracts
