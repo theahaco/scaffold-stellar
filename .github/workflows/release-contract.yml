@@ -234,7 +234,7 @@ jobs:
           MAKE_TARGET: ${{ inputs.make_target }}
 
       - name: Attest
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "${{ env.OUTPUT }}/${{ env.WASM_FILE_NAME }}"
           subject-name: "${{ env.WASM_FILE_NAME }}"
