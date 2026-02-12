@@ -66,7 +66,7 @@ jobs:
   test:
     name: test ${{ matrix.name }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: aha-ubuntu-latest-8-core
     strategy:
       fail-fast: false
       matrix:
@@ -87,13 +87,13 @@ jobs:
       STELLAR_ACCOUNT: default
       STELLAR_CONTRACT_ID: core
     steps:
+      - uses: stellar/quickstart@main
+        with:
+          tag: testing
       - uses: actions/checkout@v6
       - uses: taiki-e/install-action@just
       - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v25.1.0
-      - uses: stellar/quickstart@main
-        with:
-          tag: testing
       - name: Download nextest archive
         uses: actions/download-artifact@v4
         with:
