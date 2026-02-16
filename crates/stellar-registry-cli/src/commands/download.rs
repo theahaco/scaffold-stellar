@@ -70,7 +70,7 @@ impl Cmd {
         }
         let raw = registry
             .as_contract()
-            .invoke_with_result(&slop, None, true)
+            .invoke_with_result(&slop, true)
             .await?;
         let bytes = stellar_cli::utils::rpc::get_remote_wasm_from_hash(
             &self.config.get_network()?.rpc_client()?,

@@ -59,15 +59,20 @@ soroban_token_contract.client = false
         fs_extra::dir::remove(env.cwd.join("contracts"))
             .expect("failed to remove contracts directory");
 
-        env.scaffold("generate")
+        let mut cmd = env.scaffold("generate");
+        let mut cmd = cmd
             .arg("contract")
             .arg("--from")
             .arg(input)
             .arg("--output")
-            .arg(format!("{}/contracts/example", env.cwd.display()))
-            .assert()
-            .success()
-            .stdout_as_str();
+            .arg(format!("{}/contracts/example", env.cwd.display()));
+
+        if let Ok(cache_dir) = &std::env::var("CI_CACHE") {
+            std::fs::create_dir_all(cache_dir).unwrap();
+            cmd = cmd.env("XDG_CACHE_HOME", cache_dir);
+        }
+
+        cmd.assert().success().stdout_as_str();
 
         // Run scaffold_build and assert success
         env.scaffold_build("development", true).assert().success();

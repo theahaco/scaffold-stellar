@@ -2,6 +2,7 @@ set dotenv-load := true
 
 export PATH := './target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
+export CI_BUILD := env_var_or_default('CI_BUILD', '')
 
 [private]
 path:
@@ -14,7 +15,7 @@ registry +args:
     @cargo run --bin stellar-registry --quiet -- {{ args }}
 
 stellar-scaffold +args:
-    @cargo run --bin stellar-scaffold -- {{ args }}
+    @cargo run $CI_BUILD --bin stellar-scaffold -- {{ args }}
 
 s +args:
     @stellar {{ args }}
@@ -27,8 +28,8 @@ build_contract p:
 
 # build contracts
 build:
-    just stellar-scaffold build
-    cargo build --package stellar-registry-cli
+    just stellar-scaffold build --profile contracts
+    cargo build $CI_BUILD --package stellar-registry-cli
     stellar contract optimize --wasm ./target/stellar/local/registry.wasm --wasm-out ./target/stellar/local/registry.wasm
 
 # Setup the project to use a pinned version of the CLI
@@ -41,39 +42,45 @@ build-cli-test-contracts:
     just stellar-scaffold build --manifest-path crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/Cargo.toml
 
 test: build
-    cargo t -E 'package(stellar-scaffold-cli)'
     cargo t
 
 test-integration: build-cli-test-contracts
-    just test-integration-scaffold-contracts
-    just test-integration-scaffold-features
-    just test-integration-scaffold-examples-1
-    just test-integration-scaffold-examples-2
-    just test-integration-registry
+    cargo t --features integration-tests
 
 [private]
-_test-scaffold filter:
-    cargo t --package stellar-scaffold-cli --features integration-tests -E '{{ filter }}'
+_test-integration package filter ci="false":
+    cargo t  -E 'package({{ package }}) and {{ filter }}' \
+    {{ if ci == "false" { '--features integration-tests' } else { '--binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap .' } }}
+
+[private]
+_test-scaffold filter ci="false":
+    just _test-integration stellar-scaffold-cli '{{ filter }}' {{ ci }}
+
+[private]
+_test-scaffold-ci filter:
+    jsut _test-scaffold {{ filter }}  --binaries-metadata target/nextest/binaries-metadata.json --cargo-metadata target/nextest/cargo-metadata.json --target-dir-remap target --workspace-remap .
 
 # Run scaffold-cli accounts & contracts integration tests
-test-integration-scaffold-contracts:
-    just _test-scaffold 'test(build_clients::accounts::) or test(build_clients::contracts::)'
+test-integration-scaffold-build-clients ci="false":
+    just _test-scaffold 'test(build_clients)' {{ ci }}
 
 # Run scaffold-cli init_script, network, watch & clean integration tests
-test-integration-scaffold-features:
-    just _test-scaffold 'not test(build_clients::accounts::) and not test(build_clients::contracts::) and not test(examples::)'
+test-integration-scaffold-features ci="false":
+    just _test-scaffold 'test(features::)' {{ ci }}
 
 # Run scaffold-cli example integration tests (cases 1-14)
-test-integration-scaffold-examples-1:
-    just _test-scaffold 'test(examples::) and (test(/case_0/) or test(/case_1[0-4]/))'
+test-integration-scaffold-examples-1 ci="false":
+    just _test-scaffold 'test(examples::) and test(/case_01/)' {{ ci }}
+    just _test-scaffold 'test(examples::) and (test(/case_0[2-9]/) or test(/case_1[0-4]/))' {{ ci }}
 
 # Run scaffold-cli example integration tests (cases 15-27)
-test-integration-scaffold-examples-2:
-    just _test-scaffold 'test(examples::) and (test(/case_1[5-9]/) or test(/case_2/))'
+test-integration-scaffold-examples-2 ci="false":
+    just _test-scaffold 'test(examples::) and test(/case_15/)' {{ ci }}
+    just _test-scaffold 'test(examples::) and (test(/case_1[6-9]/) or test(/case_2/))' {{ ci }}
 
 # Run registry-cli integration tests
-test-integration-registry:
-    cargo t --package stellar-registry-cli --features integration-tests
+test-integration-registry ci="false":
+    just _test-integration stellar-registry-cli 'test(/./)' {{ ci }}
 
 create: build
     rm -rf .soroban
@@ -85,4 +92,4 @@ clippy *args:
     -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
 
 clippy-test:
-    just clippy --tests
+    just clippy --tests --all-features

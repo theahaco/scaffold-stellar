@@ -1,5 +1,5 @@
 use clap::Parser;
-use stellar_cli::{commands::contract::invoke, config, fee};
+use stellar_cli::{commands::contract::invoke, config};
 use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
 use crate::commands::global;
@@ -25,9 +25,6 @@ pub struct Cmd {
 
     #[command(flatten)]
     pub config: global::Args,
-
-    #[command(flatten)]
-    pub fee: fee::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -60,10 +57,7 @@ impl Cmd {
 
         let registry = Registry::new(&self.config, self.contract_name.channel.as_deref()).await?;
 
-        registry
-            .as_contract()
-            .invoke(&args, Some(&self.fee), self.dry_run)
-            .await?;
+        registry.as_contract().invoke(&args, self.dry_run).await?;
 
         eprintln!(
             "{}Successfully registered contract '{}' at {}",
@@ -78,7 +72,7 @@ impl Cmd {
 #[cfg(feature = "integration-tests")]
 #[cfg(test)]
 mod tests {
-    use stellar_cli::commands::{NetworkRunnable, contract::deploy::wasm};
+    use stellar_cli::commands::contract::deploy::wasm;
     use stellar_scaffold_test::RegistryTest;
 
     #[tokio::test]
@@ -87,7 +81,7 @@ mod tests {
         let v1 = registry.hello_wasm_v1();
 
         // Deploy a contract directly (not through registry)
-        let contract_id = registry
+        let deploy_cmd = registry
             .parse_cmd::<wasm::Cmd>(&[
                 "--wasm",
                 v1.to_str().unwrap(),
@@ -97,8 +91,9 @@ mod tests {
                 "--",
                 "--admin=alice",
             ])
-            .unwrap()
-            .run_against_rpc_server(None, None)
+            .unwrap();
+        let contract_id = deploy_cmd
+            .execute(&deploy_cmd.config, false, false)
             .await
             .unwrap()
             .into_result()
@@ -131,7 +126,7 @@ mod tests {
         let v1 = registry.hello_wasm_v1();
 
         // Deploy a contract directly (not through registry)
-        let contract_id = registry
+        let deploy_cmd = registry
             .parse_cmd::<wasm::Cmd>(&[
                 "--wasm",
                 v1.to_str().unwrap(),
@@ -141,8 +136,9 @@ mod tests {
                 "--",
                 "--admin=alice",
             ])
-            .unwrap()
-            .run_against_rpc_server(None, None)
+            .unwrap();
+        let contract_id = deploy_cmd
+            .execute(&deploy_cmd.config, false, false)
             .await
             .unwrap()
             .into_result()

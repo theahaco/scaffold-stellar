@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use soroban_rpc as rpc;
 use stellar_build::Network;
 use stellar_cli::{
-    commands::{NetworkRunnable, contract::invoke, txn_result::TxnResult},
+    commands::{contract::invoke, txn_result::TxnResult},
     config::{self, UnresolvedContract},
     xdr::{self, WriteXdr as _},
 };
@@ -34,17 +34,11 @@ impl Contract {
         self.id
     }
 
-    pub fn build_invoke_cmd(
-        &self,
-        slop: &[&str],
-        fee: Option<&stellar_cli::fee::Args>,
-        view_only: bool,
-    ) -> invoke::Cmd {
+    pub fn build_invoke_cmd(&self, slop: &[&str], view_only: bool) -> invoke::Cmd {
         invoke::Cmd {
             contract_id: UnresolvedContract::Resolved(self.id),
             slop: slop.iter().map(Into::into).collect(),
             config: self.config.clone(),
-            fee: fee.cloned().unwrap_or_default(),
             send: if view_only {
                 invoke::Send::No
             } else {
@@ -57,28 +51,19 @@ impl Contract {
     pub async fn invoke(
         &self,
         slop: &[&str],
-        fee: Option<&stellar_cli::fee::Args>,
         view_only: bool,
     ) -> Result<TxnResult<String>, invoke::Error> {
-        self.build_invoke_cmd(slop, fee, view_only)
-            .run_against_rpc_server(
-                Some(&stellar_cli::commands::global::Args::default()),
-                Some(&self.config),
-            )
+        self.build_invoke_cmd(slop, view_only)
+            .execute(&self.config, false, false)
             .await
     }
 
     pub async fn invoke_with_result(
         &self,
         slop: &[&str],
-        fee: Option<&stellar_cli::fee::Args>,
         view_only: bool,
     ) -> Result<String, invoke::Error> {
-        Ok(self
-            .invoke(slop, fee, view_only)
-            .await?
-            .into_result()
-            .unwrap())
+        Ok(self.invoke(slop, view_only).await?.into_result().unwrap())
     }
 
     pub(crate) fn config(&self) -> &config::Args {

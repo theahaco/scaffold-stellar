@@ -30,7 +30,7 @@ impl Registry {
 
     pub async fn fetch_contract_id(&self, name: &str) -> Result<stellar_strkey::Contract, Error> {
         let slop = ["fetch_contract_id", "--contract-name", name];
-        let contract_id = self.0.invoke_with_result(&slop, None, true).await?;
+        let contract_id = self.0.invoke_with_result(&slop, true).await?;
         contract_id
             .trim_matches('"')
             .parse()

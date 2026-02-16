@@ -6,7 +6,7 @@ use std::{
 };
 use stellar_cli::{
     CommandParser,
-    commands::{self as cli, NetworkRunnable, contract::upload, global, keys, network},
+    commands::{self as cli, contract::upload, global, keys, network},
 };
 
 use crate::common::{TestEnv, find_stellar_wasm_dir};
@@ -81,7 +81,7 @@ impl RegistryTest {
         let wasm_path = RandomizedWasm::new("registry.wasm").randomize(&env.cwd);
         println!("Wasm path: {:?}", wasm_path.display());
         // Upload wasm using the Stellar CLI library directly with alice account
-        let hash = Self::parse_cmd_internal::<upload::Cmd>(
+        let upload_cmd = Self::parse_cmd_internal::<upload::Cmd>(
             env,
             &[
                 "--wasm",
@@ -97,13 +97,14 @@ impl RegistryTest {
                 "--fee=4000000000",
             ],
         )
-        .expect("Failed to parse arguments for upload")
-        .run_against_rpc_server(None, None)
-        .await
-        .expect("Failed to upload contract")
-        .into_result()
-        .expect("no hash returned by 'contract upload'")
-        .to_string();
+        .expect("Failed to parse arguments for upload");
+        let hash = upload_cmd
+            .execute(&upload_cmd.config, false, false)
+            .await
+            .expect("Failed to upload contract")
+            .into_result()
+            .expect("no hash returned by 'contract upload'")
+            .to_string();
 
         eprintln!("🪞 Deploying registry contract...");
 
@@ -131,17 +132,18 @@ impl RegistryTest {
             &format!("\"{alice_key}\""),
             "--is-root",
         ];
-        let contract_id =
+        let deploy_cmd =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
-                .expect("Failed to parse arguments for deploy")
-                .run_against_rpc_server(None, None)
-                .await
-                .expect("Failed to deploy contract")
-                .into_result()
-                .expect("no contract id returned by 'contract deploy'")
-                .to_string()
-                .trim()
-                .to_string();
+                .expect("Failed to parse arguments for deploy");
+        let contract_id = deploy_cmd
+            .execute(&deploy_cmd.config, false, false)
+            .await
+            .expect("Failed to deploy contract")
+            .into_result()
+            .expect("no contract id returned by 'contract deploy'")
+            .to_string()
+            .trim()
+            .to_string();
 
         eprintln!("✅ Registry deployed at: {contract_id}");
 

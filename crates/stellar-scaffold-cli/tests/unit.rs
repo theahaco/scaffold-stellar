@@ -1,3 +1,4 @@
+#![cfg(not(feature = "integration-tests"))]
 use stellar_scaffold_test::{AssertExt, TestEnv};
 
 #[test]
