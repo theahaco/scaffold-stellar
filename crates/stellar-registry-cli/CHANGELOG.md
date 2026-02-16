@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.16](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.15...stellar-registry-cli-v0.0.16) - 2026-02-16
+
+### Added
+
+- add managed contracts and `stellar-registry-build` ([#322](https://github.com/theahaco/scaffold-stellar/pull/322))
+- update stellar-cli and fix breaking changes ([#324](https://github.com/theahaco/scaffold-stellar/pull/324))
+
+### Fixed
+
+- reorganize RPC tests to simplify filters and fix flaky example tests ([#386](https://github.com/theahaco/scaffold-stellar/pull/386))
+- update code for stellar-cli v25, soroban-sdk v25, and admin-sep API changes ([#383](https://github.com/theahaco/scaffold-stellar/pull/383))
+- use pedantic clippy and apply suggestions ([#379](https://github.com/theahaco/scaffold-stellar/pull/379))
+- create parent directories if they don't exist ([#334](https://github.com/theahaco/scaffold-stellar/pull/334))
+
+### Other
+
+- Update editions to 2024 across crates ([#292](https://github.com/theahaco/scaffold-stellar/pull/292))
+
 ## [0.0.15](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.14...stellar-registry-cli-v0.0.15) - 2025-11-10
 
 ### Added
