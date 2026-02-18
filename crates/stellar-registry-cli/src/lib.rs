@@ -3,11 +3,13 @@
     clippy::must_use_candidate,
     clippy::missing_panics_doc
 )]
-pub mod commands;
-pub mod contract;
-
-pub use commands::Root;
 use std::path::Path;
+
+pub mod commands;
+pub mod github;
+
+pub use commands::Error;
+pub use commands::Root;
 
 pub fn parse_cmd<T>(s: &str) -> Result<T, clap::Error>
 where

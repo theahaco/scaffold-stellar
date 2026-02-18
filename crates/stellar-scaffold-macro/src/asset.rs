@@ -108,7 +108,7 @@ mod test {
             ) {
                 (Local, "CDMLFMKMMD7MWZP3FKUBZPVHTUEDLSX4BYGYKH4GCESXYHS3IHQ4EIG4")
                 | (Testnet, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC")
-                | (Futurenet, "CCLFEEF3IHRPZVGCYCRLKQNEXM5XM2BKENUHHXUL45Z4T5WRML3KB4SS")
+                | (Futurenet, "CB64D3G7SM2RTH6JSGG34DDTFTQ5CFDKVDZJZSODMCX4NJ2HV2KN7OHT")
                 | (Mainnet, "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA") => {}
                 (x, s) => panic!("Unexpected network {x:?} with asset {s}"),
             }
@@ -123,7 +123,7 @@ mod test {
             match (network, asset_id.to_string().as_str()) {
                 (Local, "CB5SYISL2JCNQQRPFS5H4EFEESWUSNTDYMUNQX7TWZE45MYWYEYWCHAU")
                 | (Testnet, "CA2E53VHFZ6YSWQIEIPBXJQGT6VW3VKWWZO555XKRQXYJ63GEBJJGHY7")
-                | (Futurenet, "CAIGIAHVHIPSS2OAFGYBPKUG2DFU5AIFE5FZM24UBVCWFJIQZNYXKPE7")
+                | (Futurenet, "CBYZIQLTWJKSC34FJSCOGEQ63BR4YQWAKUDZDBMKIPUBBEMPRUMB5Z24")
                 | (Mainnet, "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75") => {}
                 (x, s) => panic!("Unexpected network {x:?} with asset {s}"),
             }

@@ -2,7 +2,6 @@
 #![allow(deprecated)]
 use assert_cmd::{Command, assert::Assert};
 use assert_fs::TempDir;
-use fs_extra::dir::{CopyOptions, copy};
 use std::env;
 use std::fs;
 use std::future::Future;
@@ -40,14 +39,38 @@ impl AssertExt for Assert {
     }
 }
 
+/// Recursively copy a directory using reflink (`CoW`) where the filesystem supports it.
+/// Falls back to a normal copy on ext4/other non-CoW filesystems.
+fn reflink_copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let dst_path = dst.join(entry.file_name());
+        if file_type.is_dir() {
+            reflink_copy_dir(&entry.path(), &dst_path)?;
+        } else {
+            reflink_copy::reflink_or_copy(entry.path(), &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
 impl TestEnv {
     pub fn new(template: &str) -> Self {
-        let temp_dir = Arc::new(TempDir::new().unwrap());
+        let temp_dir = TempDir::new().unwrap();
+        // Uncomment the line below for persistent temp dirs
+        // let temp_dir = temp_dir.into_persistent();
+        let temp_dir = Arc::new(temp_dir);
         let cwd = temp_dir.path().join(template);
         Self::set_options(&temp_dir);
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
 
-        copy(template_dir.join(template), &*temp_dir, &CopyOptions::new()).unwrap();
+        reflink_copy_dir(
+            &template_dir.join(template),
+            &temp_dir.path().join(template),
+        )
+        .unwrap();
 
         Self { temp_dir, cwd }
     }
@@ -59,11 +82,7 @@ impl TestEnv {
         let dest_path = temp_dir.path().join(template);
 
         // First, copy everything
-        let mut copy_options = CopyOptions::new();
-        copy_options.skip_exist = true;
-        copy_options.content_only = true;
-
-        copy(&source_path, &dest_path, &copy_options).unwrap();
+        reflink_copy_dir(&source_path, &dest_path).unwrap();
 
         // Remove the contracts directory entirely
         let contracts_dir = dest_path.join("contracts");
@@ -74,7 +93,7 @@ impl TestEnv {
 
         for contract_name in contract_names {
             let source_contract = source_path.join("contracts").join(contract_name);
-            copy(&source_contract, &contracts_dir, &CopyOptions::new()).unwrap();
+            reflink_copy_dir(&source_contract, &contracts_dir.join(contract_name)).unwrap();
         }
 
         Self {
@@ -305,7 +324,7 @@ impl TestEnv {
         let new_dir = self.temp_dir.path().join(new_dir_name);
         fs::create_dir_all(&new_dir)?;
         let template_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures");
-        copy(template_dir.join(template), &new_dir, &CopyOptions::new()).unwrap();
+        reflink_copy_dir(&template_dir.join(template), &new_dir.join(template)).unwrap();
         self.cwd = new_dir.join(template);
         Ok(())
     }

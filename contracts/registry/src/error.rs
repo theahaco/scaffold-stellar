@@ -13,7 +13,7 @@ pub enum Error {
     NoSuchContractDeployed = 4,
     /// Contract already deployed
     AlreadyDeployed = 5,
-    /// Failed to redeploy a deployed contract with no coreriff macro
+    /// Failed to upgrade a contract
     UpgradeInvokeFailed = 6,
     /// Only Admin is allowed
     AdminOnly = 7,
@@ -29,4 +29,6 @@ pub enum Error {
     InvalidVersion = 10,
     /// Hash has aleady been published
     HashAlreadyPublished = 11,
+    /// Root registry requires manager when deploying
+    ManagerRequired = 12,
 }

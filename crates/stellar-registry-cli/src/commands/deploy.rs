@@ -7,33 +7,37 @@ pub use soroban_spec_tools::contract as contract_spec;
 use stellar_cli::{
     assembled::simulate_and_assemble_transaction,
     commands::contract::invoke,
-    config, fee,
+    config::{self, UnresolvedMuxedAccount},
     utils::rpc::get_remote_wasm_from_hash,
     xdr::{self, AccountId, InvokeContractArgs, ScSpecEntry, ScString, ScVal, Uint256},
 };
+use stellar_registry_build::{named_registry::PrefixedName, registry::Registry};
 
-use crate::contract::NetworkContract;
+use crate::commands::global;
 
-mod util;
+pub mod util;
 
 #[derive(Parser, Debug, Clone)]
 pub struct Cmd {
-    /// Name of contract to be deployed
+    /// Name of contract to be deployed. Can use prefix of not using verified registry.
+    /// E.g. `unverified/<name>`
     #[arg(long, visible_alias = "deploy-as")]
-    pub contract_name: String,
-    /// Name of published contract to deploy from
+    pub contract_name: PrefixedName,
+    /// Name of published contract to deploy from. Can use prefix of not using verified registry.
+    /// E.g. `unverified/<name>`
     #[arg(long)]
-    pub wasm_name: String,
+    pub wasm_name: PrefixedName,
     /// Arguments for constructor
     #[arg(last = true, id = "CONSTRUCTOR_ARGS")]
     pub slop: Vec<OsString>,
     /// Version of the wasm to deploy
     #[arg(long)]
     pub version: Option<String>,
+    /// Optional deployer, by default is registry contract itself
+    #[arg(long)]
+    pub deployer: Option<UnresolvedMuxedAccount>,
     #[command(flatten)]
-    pub config: config::Args,
-    #[command(flatten)]
-    pub fee: fee::Args,
+    pub config: global::Args,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -50,6 +54,8 @@ pub enum Error {
     SpecTools(#[from] soroban_spec_tools::Error),
     #[error(transparent)]
     Config(#[from] config::Error),
+    #[error(transparent)]
+    ConfigAddress(#[from] config::address::Error),
     #[error(transparent)]
     Xdr(#[from] xdr::Error),
     #[error("Cannot parse contract spec")]
@@ -73,6 +79,8 @@ pub enum Error {
     ConstructorHelpMessage(String),
     #[error("{0}")]
     InvalidReturnValue(String),
+    #[error(transparent)]
+    Registry(#[from] stellar_registry_build::Error),
 }
 
 impl Cmd {
@@ -81,7 +89,7 @@ impl Cmd {
             Ok(contract_id) => {
                 println!(
                     "Contract {} deployed successfully to {contract_id}",
-                    self.contract_name
+                    self.contract_name.name
                 );
                 Ok(())
             }
@@ -93,49 +101,66 @@ impl Cmd {
         }
     }
 
-    pub async fn hash(&self) -> Result<xdr::Hash, Error> {
-        let res = self
-            .config
-            .view_registry(&["fetch_hash", "--wasm_name", &self.wasm_name])
+    pub async fn hash(&self, registry: &Registry) -> Result<xdr::Hash, Error> {
+        let res = registry
+            .as_contract()
+            .invoke_with_result(&["fetch_hash", "--wasm_name", &self.wasm_name.name], true)
             .await?;
         let res = res.trim_matches('"');
         Ok(res.parse().unwrap())
     }
 
-    pub async fn wasm(&self) -> Result<Vec<u8>, Error> {
-        Ok(get_remote_wasm_from_hash(&self.config.rpc_client()?, &self.hash().await?).await?)
+    pub async fn wasm(&self, registry: &Registry) -> Result<Vec<u8>, Error> {
+        Ok(
+            get_remote_wasm_from_hash(&self.config.rpc_client()?, &self.hash(registry).await?)
+                .await?,
+        )
     }
 
-    pub async fn spec_entries(&self) -> Result<Vec<ScSpecEntry>, Error> {
-        Ok(contract_spec::Spec::new(&self.wasm().await?)
+    pub async fn spec_entries(&self, registry: &Registry) -> Result<Vec<ScSpecEntry>, Error> {
+        Ok(contract_spec::Spec::new(&self.wasm(registry).await?)
             .map_err(|_| Error::CannotParseContractSpec)?
             .spec)
     }
 
     async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
+        let registry = self.contract_name.registry(&self.config).await?;
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
-        let contract_address = self.config.contract_sc_address()?;
-        let contract_id = &self.config.contract_id()?;
-        let spec_entries = self.spec_entries().await?;
+        let contract_address = registry.as_contract().sc_address();
+        let contract_id = &registry.as_contract().id();
+        let spec_entries = self.spec_entries(&registry).await?;
         let (args, signers) =
             util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
-
+        let deployer = if let Some(deployer) = &self.deployer {
+            Some(
+                deployer
+                    .resolve_muxed_account(&self.config.locator, None)
+                    .await?,
+            )
+        } else {
+            None
+        };
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
             function_name: "deploy".try_into().unwrap(),
             args: [
-                ScVal::String(ScString(self.wasm_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
                 self.version.clone().map_or(ScVal::Void, |s| {
                     ScVal::String(ScString(s.try_into().unwrap()))
                 }),
-                ScVal::String(ScString(self.contract_name.clone().try_into().unwrap())),
+                ScVal::String(ScString(
+                    self.contract_name.name.clone().try_into().unwrap(),
+                )),
                 ScVal::Address(xdr::ScAddress::Account(AccountId(
                     xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
                 ))),
                 args,
+                deployer.map_or(ScVal::Void, |muxed_account| {
+                    ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
+                }),
             ]
             .try_into()
             .unwrap(),
@@ -146,9 +171,8 @@ impl Cmd {
             stellar_strkey::ed25519::PublicKey(key.verifying_key().to_bytes()).to_string();
         let account_details = client.get_account(&public_strkey).await?;
         let sequence: i64 = account_details.seq_num.into();
-        let tx =
-            util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, self.fee.fee, &key)?;
-        let assembled = simulate_and_assemble_transaction(&client, &tx, None).await?;
+        let tx = util::build_invoke_contract_tx(invoke_contract_args, sequence + 1, 100, &key)?;
+        let assembled = simulate_and_assemble_transaction(&client, &tx, None, None).await?;
         let mut txn = assembled.transaction().clone();
         txn = config
             .sign_soroban_authorizations(&txn, &signers)

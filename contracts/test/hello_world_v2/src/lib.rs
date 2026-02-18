@@ -5,15 +5,15 @@ use soroban_sdk::{Address, Env, String, contract, contractimpl};
 #[contract]
 pub struct Contract;
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl Administratable for Contract {}
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl Upgradable for Contract {}
 
 #[contractimpl]
 impl Contract {
-    pub fn __constructor(env: &Env, admin: Address) {
+    pub fn __constructor(env: &Env, admin: &Address) {
         Self::set_admin(env, admin);
     }
     pub fn hello(env: &Env) -> String {
