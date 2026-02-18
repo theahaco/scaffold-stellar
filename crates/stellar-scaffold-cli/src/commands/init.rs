@@ -185,6 +185,7 @@ impl Cmd {
             from: Some(contract_path.to_owned()),
             ls: false,
             from_wizard: false,
+            from_cli: false,
             output: Some(
                 contracts_path
                     .join(contract_path)
