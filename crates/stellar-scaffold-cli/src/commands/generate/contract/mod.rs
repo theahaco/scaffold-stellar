@@ -10,10 +10,10 @@ use reqwest;
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::process::Command;
-use std::fmt::Write as _;
 use std::{fs, path::Path};
 use stellar_cli::commands::global;
 use stellar_cli::print::Print;
@@ -1554,7 +1554,8 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> String {
         }
 
         // Fallback to regular imports if NFT-specific not found
-        if is_nft && imports_key == "imports_nft"
+        if is_nft
+            && imports_key == "imports_nft"
             && let Some(feature_imports) =
                 wizard_config["wizard"]["features"][feature]["imports"].as_array()
         {
@@ -1575,10 +1576,7 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> String {
 
 // Generate main contractimpl block
 #[allow(clippy::too_many_lines)]
-fn generate_main_contractimpl(
-    wizard_config: &Value,
-    config: &ContractConfig,
-) -> String {
+fn generate_main_contractimpl(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut code = String::new();
     let is_nft = config.token_type == "Non-Fungible";
     let token_key = if is_nft { "non_fungible" } else { "fungible" };
@@ -1864,10 +1862,7 @@ fn generate_main_contractimpl(
 }
 
 // Generate token trait implementation (FungibleToken or NonFungibleToken)
-fn generate_token_trait_implementation(
-    wizard_config: &Value,
-    config: &ContractConfig,
-) -> String {
+fn generate_token_trait_implementation(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut code = String::new();
 
     let is_nft = config.token_type == "Non-Fungible";
@@ -1945,10 +1940,7 @@ fn generate_token_trait_implementation(
 }
 
 // Generate feature trait extensions (like FungibleBurnable, NonFungibleRoyalties)
-fn generate_feature_extensions(
-    wizard_config: &Value,
-    config: &ContractConfig,
-) -> String {
+fn generate_feature_extensions(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut code = String::new();
     let is_nft = config.token_type == "Non-Fungible";
 
@@ -2027,8 +2019,7 @@ fn generate_utils(wizard_config: &Value, config: &ContractConfig) -> String {
             code.push('\n');
         }
     } else if config.access_control == "Roles"
-        && let Some(utils) =
-            wizard_config["wizard"]["access_control"]["roles"]["utils"].as_array()
+        && let Some(utils) = wizard_config["wizard"]["access_control"]["roles"]["utils"].as_array()
     {
         for line in utils {
             if let Some(line_str) = line.as_str() {
