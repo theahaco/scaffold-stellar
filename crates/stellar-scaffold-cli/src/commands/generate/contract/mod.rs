@@ -13,6 +13,7 @@ use std::collections::HashSet;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::process::Command;
+use std::fmt::Write as _;
 use std::{fs, path::Path};
 use stellar_cli::commands::global;
 use stellar_cli::print::Print;
@@ -30,6 +31,7 @@ struct Release {
     tag_name: String,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug)]
 pub struct Cmd {
     /// Clone contract from `OpenZeppelin` examples or `soroban-examples`
@@ -922,6 +924,7 @@ struct ExamplesInfo {
     #[allow(dead_code)] // TODO: remove if not used
     soroban_version_tag: String,
 }
+#[allow(clippy::too_many_lines)]
 fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
     let printer = Print::new(global_args.quiet);
 
@@ -935,7 +938,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
     let token_types = ["Fungible", "Non-Fungible", "Stablecoin"];
     let token_selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What type of contract do you want to generate?")
-        .items(&token_types)
+        .items(token_types)
         .default(0)
         .interact()
         .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -976,7 +979,9 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
 
     // Step 3: Premint (Fungible and Stablecoin only)
-    let premint = if token_type != "Non-Fungible" {
+    let premint = if token_type == "Non-Fungible" {
+        None
+    } else {
         let premint_str: String = Input::new()
             .with_prompt("Initial supply to premint (0 for none)")
             .default("0".into())
@@ -989,8 +994,6 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
 
         let amount: u128 = premint_str.parse().unwrap_or(0);
         if amount > 0 { Some(premint_str) } else { None }
-    } else {
-        None
     };
 
     // Step 3b: URI for Non-Fungible tokens
@@ -1029,7 +1032,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
 
         let variant_selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select NFT implementation variant")
-            .items(&variant_descriptions)
+            .items(variant_descriptions)
             .default(0)
             .interact()
             .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -1067,12 +1070,11 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
     }
 
     // Add NFT variant for code generation
-    if token_type == "Non-Fungible" {
-        if let Some(ref variant) = nft_variant {
-            if variant != "Base" {
-                selected_features.push(variant.to_lowercase());
-            }
-        }
+    if token_type == "Non-Fungible"
+        && let Some(ref variant) = nft_variant
+        && variant != "Base"
+    {
+        selected_features.push(variant.to_lowercase());
     }
 
     // Step 6: Limitation (Stablecoin only)
@@ -1085,7 +1087,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
 
         let limitation_selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select transfer limitation")
-            .items(&limitation_descriptions)
+            .items(limitation_descriptions)
             .default(0)
             .interact()
             .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -1107,8 +1109,10 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
 
     // Step 7: NFT Minting
     let nft_minting = if token_type == "Non-Fungible" {
-        let variant = nft_variant.as_ref().map(|s| s.as_str()).unwrap_or("Base");
-        if variant != "Consecutive" {
+        let variant = nft_variant.as_deref().unwrap_or("Base");
+        if variant == "Consecutive" {
+            None
+        } else {
             let add_minting = Confirm::new()
                 .with_prompt("Do you want to add a minting function?")
                 .default(true)
@@ -1119,7 +1123,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
                 let mint_types = ["Sequential", "Non-Sequential"];
                 let mint_selection = Select::with_theme(&ColorfulTheme::default())
                     .with_prompt("Select minting type")
-                    .items(&mint_types)
+                    .items(mint_types)
                     .default(0)
                     .interact()
                     .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -1132,8 +1136,6 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
             } else {
                 None
             }
-        } else {
-            None
         }
     } else {
         None
@@ -1151,7 +1153,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         let forced_options = ["Ownable", "Roles"];
         let access_selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select access control method")
-            .items(&forced_options)
+            .items(forced_options)
             .default(0)
             .interact()
             .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -1161,7 +1163,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         let access_control_options = ["Ownable", "Roles", "None"];
         let access_selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("Select access control method")
-            .items(&access_control_options)
+            .items(access_control_options)
             .default(2)
             .interact()
             .map_err(|e| Error::WrongInput(format!("Please enter a valid input: {e}")))?;
@@ -1173,19 +1175,19 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
     printer.println("\n╔════════════════════════════════════════╗");
     printer.println("║   Contract Configuration Summary       ║");
     printer.println("╚════════════════════════════════════════╝");
-    printer.println(format!("  Name:             {}", name));
-    printer.println(format!("  Symbol:           {}", symbol));
+    printer.println(format!("  Name:             {name}"));
+    printer.println(format!("  Symbol:           {symbol}"));
     if let Some(ref premint_val) = premint {
-        printer.println(format!("  Premint:          {}", premint_val));
+        printer.println(format!("  Premint:          {premint_val}"));
     }
-    printer.println(format!("  Type:             {}", token_type));
+    printer.println(format!("  Type:             {token_type}"));
 
     if let Some(ref uri_val) = uri {
-        printer.println(format!("  Base URI:         {}", uri_val));
+        printer.println(format!("  Base URI:         {uri_val}"));
     }
 
     if let Some(ref variant) = nft_variant {
-        printer.println(format!("  NFT Variant:      {}", variant));
+        printer.println(format!("  NFT Variant:      {variant}"));
     }
 
     if let Some(ref mint_type) = nft_minting {
@@ -1194,7 +1196,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         } else {
             "Non-Sequential"
         };
-        printer.println(format!("  NFT Minting:      {}", display));
+        printer.println(format!("  NFT Minting:      {display}"));
     }
 
     if selected_features.is_empty() {
@@ -1203,7 +1205,7 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         let display_features: Vec<String> = selected_features
             .iter()
             .filter(|f| *f != "enumerable" && *f != "consecutive")
-            .map(|f| f.clone())
+            .cloned()
             .collect();
         printer.println(format!(
             "  Features:         {}",
@@ -1217,10 +1219,10 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
             "blocklist" => "Blocklist",
             _ => lim.as_str(),
         };
-        printer.println(format!("  Limitation:       {}", display));
+        printer.println(format!("  Limitation:       {display}"));
     }
 
-    printer.println(format!("  Access Control:   {}", access_control));
+    printer.println(format!("  Access Control:   {access_control}"));
 
     printer.println("");
 
@@ -1252,15 +1254,15 @@ fn open_wizard_cli(global_args: &global::Args) -> Result<(), Error> {
         limitation,
     };
 
-    let contract_code = generate_contract(&wizard_config, &contract_config)?;
+    let contract_code = generate_contract(&wizard_config, &contract_config);
 
     // Step 12: Save the contract
     let output_path = format!("contracts/{}.rs", contract_config.name.to_lowercase());
     save_contract(&output_path, &contract_code)?;
 
-    printer.println(format!("\n✅ Contract generated successfully!"));
-    printer.println(format!("   Location: {}", output_path));
-    printer.println(format!("\n💡 Next steps:"));
+    printer.println("\n✅ Contract generated successfully!");
+    printer.println(format!("   Location: {output_path}"));
+    printer.println("\n💡 Next steps:");
     printer.println("   1. Build with: stellar contract build");
     printer.println("   2. Deploy with: stellar contract deploy\n");
 
@@ -1286,11 +1288,11 @@ struct ContractConfig {
 fn load_wizard_config() -> Result<Value, Error> {
     let config_str = include_str!("wizard_config.json");
     serde_json::from_str(config_str)
-        .map_err(|e| Error::ConfigError(format!("Failed to parse wizard config: {}", e)))
+        .map_err(|e| Error::ConfigError(format!("Failed to parse wizard config: {e}")))
 }
 
 // Generate the contract code from the configuration
-fn generate_contract(wizard_config: &Value, config: &ContractConfig) -> Result<String, Error> {
+fn generate_contract(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut contract = String::new();
 
     // 1. Add license header
@@ -1303,41 +1305,39 @@ fn generate_contract(wizard_config: &Value, config: &ContractConfig) -> Result<S
     }
 
     // 2. Add imports
-    contract.push_str(&generate_imports(wizard_config, config)?);
+    contract.push_str(&generate_imports(wizard_config, config));
     contract.push('\n');
 
     // 3. Add contract struct
     contract.push_str("#[contract]\n");
-    contract.push_str(&format!("pub struct {} {{}}\n\n", config.name));
+    let _ = write!(contract, "pub struct {} {{}}\n\n", config.name);
 
     // 4. Add main contractimpl block
-    contract.push_str(&generate_main_contractimpl(wizard_config, config)?);
+    contract.push_str(&generate_main_contractimpl(wizard_config, config));
     contract.push('\n');
 
     // 5. Add token trait implementation
-    contract.push_str(&generate_token_trait_implementation(wizard_config, config)?);
+    contract.push_str(&generate_token_trait_implementation(wizard_config, config));
     contract.push('\n');
 
     // 6. Add feature trait extensions
-    contract.push_str(&generate_feature_extensions(wizard_config, config)?);
+    contract.push_str(&generate_feature_extensions(wizard_config, config));
 
     // 7. Add utility functions (access control, pausable, etc.)
-    contract.push_str(&generate_utils(wizard_config, config)?);
+    contract.push_str(&generate_utils(wizard_config, config));
 
     // Final pass: replace all remaining name placeholders.
-    let contract = contract.replace("<NAME>", &config.name);
-
-    Ok(contract)
+    contract.replace("<NAME>", &config.name)
 }
 
 // Merge import statements that share the same module path
-fn merge_imports(imports: Vec<String>) -> Vec<String> {
+fn merge_imports(imports: &[String]) -> Vec<String> {
     use std::collections::BTreeMap;
 
     // Map from module path to list of imported items
     let mut module_items: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
-    for import in &imports {
+    for import in imports {
         let trimmed = import.trim();
         if !trimmed.starts_with("use ") || !trimmed.ends_with(';') {
             continue;
@@ -1372,7 +1372,7 @@ fn merge_imports(imports: Vec<String>) -> Vec<String> {
 
     // Merge child module paths into their parent when the parent exists.
     let mut paths: Vec<String> = module_items.keys().cloned().collect();
-    paths.sort_by(|a, b| b.len().cmp(&a.len()));
+    paths.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
     for child_path in &paths {
         if !module_items.contains_key(child_path.as_str()) {
@@ -1387,13 +1387,11 @@ fn merge_imports(imports: Vec<String>) -> Vec<String> {
             }
             if child_path.starts_with(candidate.as_str())
                 && child_path[candidate.len()..].starts_with("::")
-            {
-                if best_parent
+                && best_parent
                     .as_ref()
-                    .map_or(true, |bp| candidate.len() > bp.len())
-                {
-                    best_parent = Some(candidate.clone());
-                }
+                    .is_none_or(|bp| candidate.len() > bp.len())
+            {
+                best_parent = Some(candidate.clone());
             }
         }
 
@@ -1446,7 +1444,8 @@ fn merge_imports(imports: Vec<String>) -> Vec<String> {
 }
 
 // Generate imports based on features
-fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> Result<String, Error> {
+#[allow(clippy::too_many_lines)]
+fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut imports = HashSet::new();
 
     // Base imports - always included
@@ -1459,11 +1458,7 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> Result<St
 
     if is_nft {
         // Determine which base type to import based on variant
-        let variant = config
-            .nft_variant
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("Base");
+        let variant = config.nft_variant.as_deref().unwrap_or("Base");
         match variant {
             "Enumerable" => {
                 imports.insert(
@@ -1516,27 +1511,25 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> Result<St
                 }
             }
         }
-    } else if config.access_control == "Roles" {
-        if let Some(roles_imports) =
+    } else if config.access_control == "Roles"
+        && let Some(roles_imports) =
             wizard_config["wizard"]["access_control"]["roles"]["imports"].as_array()
-        {
-            for import in roles_imports {
-                if let Some(import_str) = import.as_str() {
-                    imports.insert(import_str.to_string());
-                }
+    {
+        for import in roles_imports {
+            if let Some(import_str) = import.as_str() {
+                imports.insert(import_str.to_string());
             }
         }
     }
 
     // Limitation-specific imports from config
-    if let Some(ref lim) = config.limitation {
-        if let Some(lim_imports) =
+    if let Some(ref lim) = config.limitation
+        && let Some(lim_imports) =
             wizard_config["wizard"]["limitations"][lim.as_str()]["imports"].as_array()
-        {
-            for import in lim_imports {
-                if let Some(import_str) = import.as_str() {
-                    imports.insert(import_str.to_string());
-                }
+    {
+        for import in lim_imports {
+            if let Some(import_str) = import.as_str() {
+                imports.insert(import_str.to_string());
             }
         }
     }
@@ -1561,14 +1554,13 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> Result<St
         }
 
         // Fallback to regular imports if NFT-specific not found
-        if is_nft && imports_key == "imports_nft" {
-            if let Some(feature_imports) =
+        if is_nft && imports_key == "imports_nft"
+            && let Some(feature_imports) =
                 wizard_config["wizard"]["features"][feature]["imports"].as_array()
-            {
-                for import in feature_imports {
-                    if let Some(import_str) = import.as_str() {
-                        imports.insert(import_str.to_string());
-                    }
+        {
+            for import in feature_imports {
+                if let Some(import_str) = import.as_str() {
+                    imports.insert(import_str.to_string());
                 }
             }
         }
@@ -1576,23 +1568,24 @@ fn generate_imports(wizard_config: &Value, config: &ContractConfig) -> Result<St
 
     // Convert set to sorted vector, merge common module paths, then output
     let import_vec: Vec<String> = imports.into_iter().collect();
-    let merged = merge_imports(import_vec);
+    let merged = merge_imports(&import_vec);
 
-    Ok(merged.join("\n"))
+    merged.join("\n")
 }
 
 // Generate main contractimpl block
+#[allow(clippy::too_many_lines)]
 fn generate_main_contractimpl(
     wizard_config: &Value,
     config: &ContractConfig,
-) -> Result<String, Error> {
+) -> String {
     let mut code = String::new();
     let is_nft = config.token_type == "Non-Fungible";
     let token_key = if is_nft { "non_fungible" } else { "fungible" };
 
     // Start contractimpl block
     code.push_str("#[contractimpl]\n");
-    code.push_str(&format!("impl {} {{\n", config.name));
+    let _ = writeln!(code, "impl {} {{", config.name);
 
     // Constructor
     code.push_str("    pub fn __constructor(\n");
@@ -1612,14 +1605,13 @@ fn generate_main_contractimpl(
                 }
             }
         }
-    } else if config.access_control == "Roles" {
-        if let Some(args) =
+    } else if config.access_control == "Roles"
+        && let Some(args) =
             wizard_config["wizard"]["access_control"]["roles"]["constructor_args"].as_array()
-        {
-            for arg in args {
-                if let Some(arg_str) = arg.as_str() {
-                    constructor_args.push(arg_str.to_string());
-                }
+    {
+        for arg in args {
+            if let Some(arg_str) = arg.as_str() {
+                constructor_args.push(arg_str.to_string());
             }
         }
     }
@@ -1636,29 +1628,27 @@ fn generate_main_contractimpl(
 
         if let Some(args) = wizard_config["wizard"]["features"][feature][arg_key].as_array() {
             for arg in args {
-                if let Some(arg_str) = arg.as_str() {
-                    if !constructor_args.contains(&arg_str.to_string()) {
-                        constructor_args.push(arg_str.to_string());
-                    }
+                if let Some(arg_str) = arg.as_str()
+                    && !constructor_args.contains(&arg_str.to_string())
+                {
+                    constructor_args.push(arg_str.to_string());
                 }
             }
         }
     }
 
     // Add limitation constructor arguments (manager role for Roles)
-    if let Some(ref lim) = config.limitation {
-        if config.access_control == "Roles" {
-            if let Some(args) =
-                wizard_config["wizard"]["limitations"][lim.as_str()]["constructor_args_roles"]
-                    .as_array()
+    if let Some(ref lim) = config.limitation
+        && config.access_control == "Roles"
+        && let Some(args) =
+            wizard_config["wizard"]["limitations"][lim.as_str()]["constructor_args_roles"]
+                .as_array()
+    {
+        for arg in args {
+            if let Some(arg_str) = arg.as_str()
+                && !constructor_args.contains(&arg_str.to_string())
             {
-                for arg in args {
-                    if let Some(arg_str) = arg.as_str() {
-                        if !constructor_args.contains(&arg_str.to_string()) {
-                            constructor_args.push(arg_str.to_string());
-                        }
-                    }
-                }
+                constructor_args.push(arg_str.to_string());
             }
         }
     }
@@ -1691,10 +1681,10 @@ fn generate_main_contractimpl(
         wizard_config["wizard"]["settings"][token_key]["constructor"].as_array()
     {
         for line in constructor_lines {
-            if let Some(mut line_str) = line.as_str().map(|s| s.to_string()) {
+            if let Some(mut line_str) = line.as_str().map(ToString::to_string) {
                 line_str = line_str.replace("\"<SYMBOL>\"", &format!("\"{}\"", config.symbol));
                 if let Some(ref uri) = config.uri {
-                    line_str = line_str.replace("\"<URI>\"", &format!("\"{}\"", uri));
+                    line_str = line_str.replace("\"<URI>\"", &format!("\"{uri}\""));
                 }
                 code.push_str(&line_str);
                 code.push('\n');
@@ -1714,15 +1704,14 @@ fn generate_main_contractimpl(
                 }
             }
         }
-    } else if config.access_control == "Roles" {
-        if let Some(init) =
+    } else if config.access_control == "Roles"
+        && let Some(init) =
             wizard_config["wizard"]["access_control"]["roles"]["constructor"].as_array()
-        {
-            for line in init {
-                if let Some(line_str) = line.as_str() {
-                    code.push_str(line_str);
-                    code.push('\n');
-                }
+    {
+        for line in init {
+            if let Some(line_str) = line.as_str() {
+                code.push_str(line_str);
+                code.push('\n');
             }
         }
     }
@@ -1748,17 +1737,15 @@ fn generate_main_contractimpl(
     }
 
     // Limitation: grant manager role in constructor if Roles
-    if let Some(ref lim) = config.limitation {
-        if config.access_control == "Roles" {
-            if let Some(init) =
-                wizard_config["wizard"]["limitations"][lim.as_str()]["constructor_roles"].as_array()
-            {
-                for line in init {
-                    if let Some(line_str) = line.as_str() {
-                        code.push_str(line_str);
-                        code.push('\n');
-                    }
-                }
+    if let Some(ref lim) = config.limitation
+        && config.access_control == "Roles"
+        && let Some(init) =
+            wizard_config["wizard"]["limitations"][lim.as_str()]["constructor_roles"].as_array()
+    {
+        for line in init {
+            if let Some(line_str) = line.as_str() {
+                code.push_str(line_str);
+                code.push('\n');
             }
         }
     }
@@ -1777,10 +1764,10 @@ fn generate_main_contractimpl(
         } else {
             "&initial_holder"
         };
-        code.push_str(&format!(
-            "        Base::mint(e, {}, {} * 10i128.pow(18));\n",
-            mint_target, premint_amount
-        ));
+        let _ = writeln!(
+            code,
+            "        Base::mint(e, {mint_target}, {premint_amount} * 10i128.pow(18));"
+        );
     }
 
     code.push_str("    }\n");
@@ -1791,11 +1778,7 @@ fn generate_main_contractimpl(
         let is_pausable = config.features.contains(&"pausable".to_string());
         let base_impl_key = if is_nft && feature == "mintable" {
             // Check NFT variant for mintable
-            let variant = config
-                .nft_variant
-                .as_ref()
-                .map(|s| s.as_str())
-                .unwrap_or("Base");
+            let variant = config.nft_variant.as_deref().unwrap_or("Base");
             match variant {
                 "Enumerable" => "implementation_nft_enumerable",
                 "Consecutive" => "implementation_nft_consecutive",
@@ -1822,17 +1805,17 @@ fn generate_main_contractimpl(
                 })
         };
 
-        if let Some(impl_lines) = impl_array {
-            if !impl_lines.is_empty() {
-                code.push_str("\n");
+        if let Some(impl_lines) = impl_array
+            && !impl_lines.is_empty()
+        {
+            code.push('\n');
 
-                for line in impl_lines {
-                    if let Some(mut line_str) = line.as_str().map(|s| s.to_string()) {
-                        // Replace role macros
-                        line_str = replace_role_macro(&line_str, &config.access_control, feature);
-                        code.push_str(&line_str);
-                        code.push('\n');
-                    }
+            for line in impl_lines {
+                if let Some(mut line_str) = line.as_str().map(ToString::to_string) {
+                    // Replace role macros
+                    line_str = replace_role_macro(&line_str, &config.access_control, feature);
+                    code.push_str(&line_str);
+                    code.push('\n');
                 }
             }
         }
@@ -1841,18 +1824,14 @@ fn generate_main_contractimpl(
     // NFT minting function (sequential or non-sequential)
     if let Some(ref mint_type) = config.nft_minting {
         let is_pausable = config.features.contains(&"pausable".to_string());
-        let variant_type = config
-            .nft_variant
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("Base");
+        let variant_type = config.nft_variant.as_deref().unwrap_or("Base");
         let type_name = if variant_type == "Enumerable" {
             "Enumerable"
         } else {
             "Base"
         };
 
-        code.push_str("\n");
+        code.push('\n');
         if is_pausable {
             code.push_str("    #[when_not_paused]\n");
         }
@@ -1863,14 +1842,15 @@ fn generate_main_contractimpl(
         match mint_type.as_str() {
             "sequential" => {
                 code.push_str("    pub fn mint(e: &Env, to: Address) -> u32 {\n");
-                code.push_str(&format!("        {type_name}::sequential_mint(e, &to)\n"));
+                let _ = writeln!(code, "        {type_name}::sequential_mint(e, &to)");
                 code.push_str("    }\n");
             }
             "non_sequential" => {
                 code.push_str("    pub fn mint(e: &Env, to: Address, token_id: u32) {\n");
-                code.push_str(&format!(
-                    "        {type_name}::non_sequential_mint(e, &to, token_id);\n"
-                ));
+                let _ = writeln!(
+                    code,
+                    "        {type_name}::non_sequential_mint(e, &to, token_id);"
+                );
                 code.push_str("    }\n");
             }
             _ => {}
@@ -1880,14 +1860,14 @@ fn generate_main_contractimpl(
     // Close contractimpl block
     code.push_str("}\n");
 
-    Ok(code)
+    code
 }
 
 // Generate token trait implementation (FungibleToken or NonFungibleToken)
 fn generate_token_trait_implementation(
     wizard_config: &Value,
     config: &ContractConfig,
-) -> Result<String, Error> {
+) -> String {
     let mut code = String::new();
 
     let is_nft = config.token_type == "Non-Fungible";
@@ -1895,11 +1875,7 @@ fn generate_token_trait_implementation(
 
     // Determine which settings_implementation to use
     let impl_key = if is_nft {
-        let variant = config
-            .nft_variant
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("Base");
+        let variant = config.nft_variant.as_deref().unwrap_or("Base");
         match variant {
             "Enumerable" => "settings_implementation_enumerable",
             "Consecutive" => "settings_implementation_consecutive",
@@ -1965,36 +1941,35 @@ fn generate_token_trait_implementation(
         }
     }
 
-    Ok(code)
+    code
 }
 
 // Generate feature trait extensions (like FungibleBurnable, NonFungibleRoyalties)
 fn generate_feature_extensions(
     wizard_config: &Value,
     config: &ContractConfig,
-) -> Result<String, Error> {
+) -> String {
     let mut code = String::new();
     let is_nft = config.token_type == "Non-Fungible";
 
     // Limitation trait extension (FungibleAllowList or FungibleBlockList)
-    if let Some(ref lim) = config.limitation {
-        if let Some(ext_lines) =
+    if let Some(ref lim) = config.limitation
+        && let Some(ext_lines) =
             wizard_config["wizard"]["limitations"][lim.as_str()]["extensions"].as_array()
-        {
-            for line in ext_lines {
-                if let Some(line_str) = line.as_str() {
-                    let mut processed = line_str.replace("<NAME>", &config.name);
-                    processed = replace_role_macro(
-                        &processed,
-                        &config.access_control,
-                        &format!("limitation_{}", lim),
-                    );
-                    code.push_str(&processed);
-                    code.push('\n');
-                }
+    {
+        for line in ext_lines {
+            if let Some(line_str) = line.as_str() {
+                let mut processed = line_str.replace("<NAME>", &config.name);
+                processed = replace_role_macro(
+                    &processed,
+                    &config.access_control,
+                    &format!("limitation_{lim}"),
+                );
+                code.push_str(&processed);
+                code.push('\n');
             }
-            code.push('\n');
         }
+        code.push('\n');
     }
 
     for feature in &config.features {
@@ -2031,11 +2006,11 @@ fn generate_feature_extensions(
         }
     }
 
-    Ok(code)
+    code
 }
 
 // Generate utility functions
-fn generate_utils(wizard_config: &Value, config: &ContractConfig) -> Result<String, Error> {
+fn generate_utils(wizard_config: &Value, config: &ContractConfig) -> String {
     let mut code = String::new();
 
     // Access control utils
@@ -2051,17 +2026,17 @@ fn generate_utils(wizard_config: &Value, config: &ContractConfig) -> Result<Stri
             }
             code.push('\n');
         }
-    } else if config.access_control == "Roles" {
-        if let Some(utils) = wizard_config["wizard"]["access_control"]["roles"]["utils"].as_array()
-        {
-            for line in utils {
-                if let Some(line_str) = line.as_str() {
-                    code.push_str(line_str);
-                    code.push('\n');
-                }
+    } else if config.access_control == "Roles"
+        && let Some(utils) =
+            wizard_config["wizard"]["access_control"]["roles"]["utils"].as_array()
+    {
+        for line in utils {
+            if let Some(line_str) = line.as_str() {
+                code.push_str(line_str);
+                code.push('\n');
             }
-            code.push('\n');
         }
+        code.push('\n');
     }
 
     // Feature utils
@@ -2095,7 +2070,7 @@ fn generate_utils(wizard_config: &Value, config: &ContractConfig) -> Result<Stri
         }
     }
 
-    Ok(code)
+    code
 }
 
 // Helper to replace role macros
@@ -2123,13 +2098,13 @@ fn replace_role_macro(line: &str, access_control: &str, feature: &str) -> String
 fn save_contract(path: &str, code: &str) -> Result<(), Error> {
     if let Some(parent) = Path::new(path).parent() {
         fs::create_dir_all(parent).map_err(|e| {
-            Error::ContractCreationFailed(format!("Failed to create directory: {}", e))
+            Error::ContractCreationFailed(format!("Failed to create directory: {e}"))
         })?;
     }
 
     // Write the contract code
     fs::write(path, code)
-        .map_err(|e| Error::ContractCreationFailed(format!("Failed to write contract: {}", e)))?;
+        .map_err(|e| Error::ContractCreationFailed(format!("Failed to write contract: {e}")))?;
 
     Ok(())
 }
