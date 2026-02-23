@@ -4410,7 +4410,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "toml 0.9.8",
- "toml_edit 0.22.27",
+ "toml_edit 0.23.9",
  "uuid",
  "walkdir",
  "webbrowser",
@@ -4936,6 +4936,7 @@ dependencies = [
  "indexmap 2.12.0",
  "toml_datetime 0.7.3",
  "toml_parser",
+ "toml_writer",
  "winnow",
 ]
 
