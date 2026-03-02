@@ -756,7 +756,7 @@ export default new Client.Client({{
         let deploy_cmd = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&deploy_arg_refs)?;
         let contract_id = deploy_cmd
             .execute(
-                &deploy_cmd.config,
+                &self.config(),
                 self.global_args.quiet,
                 self.global_args.no_cache,
             )
