@@ -184,7 +184,7 @@ soroban_token_contract.client = false
             .success()
             .stderr_as_str();
 
-        println!("output {:?}", output);
+        println!("output {output:?}");
         assert!(output.contains("Warning: No workspace Cargo.toml found in current directory."));
     });
 }
@@ -212,7 +212,7 @@ soroban_token_contract.client = false
         ));
 
         // generate all of these examples into an existing scaffold project
-        for example in vec![
+        for example in [
             "oz/fungible-allowlist",
             "oz/fungible-capped",
             "oz/fungible-pausable",
