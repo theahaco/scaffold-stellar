@@ -29,7 +29,72 @@ use stellar_scaffold_test::{AssertExt, TestEnv, rpc_url};
 #[case::timelock("stellar/timelock")]
 #[case::token("stellar/token")]
 #[case::ttl("stellar/ttl")]
-fn test_adding_and_building_example_work(#[case] input: &str) {
+fn test_adding_and_building_soroban_examples(#[case] input: &str) {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        env.set_environments_toml(format!(
+            r#"
+[development]
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
+
+accounts = [
+    "alice",
+]
+[development.contracts]
+soroban_hello_world_contract.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+            rpc_url()
+        ));
+
+        println!("starting test in directory {:?}", env.cwd);
+        eprintln!("test directory {:?}", env.cwd);
+
+        assert!(
+            env.cwd.join("contracts").is_dir(),
+            "no contracts directory found"
+        );
+        fs_extra::dir::remove(env.cwd.join("contracts"))
+            .expect("failed to remove contracts directory");
+
+        env.scaffold("generate")
+            .arg("contract")
+            .arg("--from")
+            .arg(input)
+            .arg("--output")
+            .arg(format!("{}/contracts/example", env.cwd.display()))
+            .assert()
+            .success()
+            .stdout_as_str();
+
+        // Run scaffold_build and assert success
+        env.scaffold_build("development", true).assert().success();
+    });
+}
+
+// the following are commented out because they currently do not build from a freshly created scaffold project
+// #[case::oz_fungible_merkle_airdrop("oz/fungible-merkle-airdrop")] // also needs hex-literal as a workspace dev dependency
+// #[case::oz_rwa("oz/rwa")] - error: symbol `__constructor` is already defined
+// #[case::oz_sac_admin_generic("oz/sac-admin-generic")] - also needs workspace.dependencies.ed25519-dalek
+
+#[rstest]
+#[case::oz_fungible_allowlist("oz/fungible-allowlist")]
+#[case::oz_fungible_blocklist("oz/fungible-blocklist")]
+#[case::oz_fungible_capped("oz/fungible-capped")]
+#[case::oz_fungible_pausable("oz/fungible-pausable")]
+#[case::oz_fungible_vault("oz/fungible-vault")]
+#[case::oz_merkle_voting("oz/merkle-voting")]
+#[case::oz_nft_access_control("oz/nft-access-control")]
+#[case::oz_nft_consecutive("oz/nft-consecutive")]
+#[case::oz_nft_enumberable("oz/nft-enumerable")]
+#[case::oz_nft_royalties("oz/nft-royalties")]
+#[case::oz_nft_sequential_minting("oz/nft-sequential-minting")]
+#[case::oz_ownable("oz/ownable")]
+#[case::oz_pausable("oz/pausable")]
+#[case::oz_sac_admin_wrapper("oz/sac-admin-wrapper")]
+fn test_adding_and_building_oz_examples(#[case] input: &str) {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(format!(
             r#"
@@ -77,4 +142,92 @@ soroban_token_contract.client = false
         // Run scaffold_build and assert success
         env.scaffold_build("development", true).assert().success();
     });
+}
+
+#[rstest]
+#[case::oz_multisig("oz/multisig")]
+#[case::oz_upgradeable("oz/upgradeable")]
+fn test_adding_and_building_oz_examples_without_manifest_file_at_root(#[case] input: &str) {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        env.set_environments_toml(format!(
+            r#"
+[development]
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
+
+accounts = [
+    "alice",
+]
+[development.contracts]
+soroban_hello_world_contract.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+            rpc_url()
+        ));
+        assert!(
+            env.cwd.join("contracts").is_dir(),
+            "no contracts directory found"
+        );
+        fs_extra::dir::remove(env.cwd.join("contracts"))
+            .expect("failed to remove contracts directory");
+
+        let output = env
+            .scaffold("generate")
+            .arg("contract")
+            .arg("--from")
+            .arg(input)
+            .arg("--output")
+            .arg(format!("{}/contracts/example", env.cwd.display()))
+            .assert()
+            .success()
+            .stderr_as_str();
+
+        println!("output {output:?}");
+        assert!(output.contains("Warning: No workspace Cargo.toml found in current directory."));
+    });
+}
+
+// this test makes sure that the OZ example repo release version that is included in new scaffold projects from the FE template is compatible with the current scaffold binary
+#[tokio::test]
+async fn test_scaffold_project_is_compatible_with_oz_examples() {
+    TestEnv::from_init("test-project", |env| async move {
+        env.set_environments_toml(format!(
+            r#"
+[development]
+network = {{ rpc-url = "{}", network-passphrase = "Standalone Network ; February 2017" }}
+
+accounts = [
+    "alice",
+]
+[development.contracts]
+soroban_hello_world_contract.client = false
+soroban_increment_contract.client = false
+soroban_custom_types_contract.client = false
+soroban_auth_contract.client = false
+soroban_token_contract.client = false
+"#,
+            rpc_url()
+        ));
+
+        // generate all of these examples into an existing scaffold project
+        for example in [
+            "oz/fungible-allowlist",
+            "oz/fungible-capped",
+            "oz/fungible-pausable",
+        ] {
+            env.scaffold("generate")
+                .arg("contract")
+                .arg("--from")
+                .arg(example)
+                .assert()
+                .success()
+                .stdout_as_str();
+        }
+
+        // Run scaffold_build and assert success
+        env.scaffold_build("development", true).assert().success();
+    })
+    .await;
 }
