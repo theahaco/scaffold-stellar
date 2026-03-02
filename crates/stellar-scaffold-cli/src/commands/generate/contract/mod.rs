@@ -128,7 +128,7 @@ impl Cmd {
             let dest_path = self
                 .output
                 .clone()
-                .unwrap_or_else(|| format!("contracts/{example_name}"));
+                .unwrap_or_else(|| self.output_dir(example_name));
             Self::generate_oz_example(
                 example_name,
                 &examples_info.oz_examples_path,
@@ -142,7 +142,7 @@ impl Cmd {
             let dest_path = self
                 .output
                 .clone()
-                .unwrap_or_else(|| format!("contracts/{example_name}"));
+                .unwrap_or_else(|| self.output_dir(example_name));
             self.generate_soroban_example(
                 example_name,
                 &examples_info.soroban_examples_path,
