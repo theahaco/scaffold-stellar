@@ -20,8 +20,12 @@ use toml::Value::Table;
 
 const SOROBAN_EXAMPLES_REPO: &str = "https://github.com/stellar/soroban-examples";
 const STELLAR_PREFIX: &str = "stellar/";
+const SOROBAN_EXAMPLES_GITHUB_API: &str =
+    "https://api.github.com/repos/stellar/soroban-examples/releases/";
 const OZ_EXAMPLES_REPO: &str = "https://github.com/OpenZeppelin/stellar-contracts/examples";
 const OZ_PREFIX: &str = "oz/";
+const OZ_EXAMPLES_GITHUB_API: &str =
+    "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/";
 const LATEST_SUPPORTED_OZ_RELEASE: &str = "v0.6.0";
 
 #[derive(Deserialize)]
@@ -119,9 +123,12 @@ impl Cmd {
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
 
-        if example_name.starts_with(OZ_PREFIX) {
-            let (_, example_name) = example_name.split_at(3);
-            let dest_path = self.output_dir(example_name);
+        if let Some(rest) = example_name.strip_prefix(OZ_PREFIX) {
+            let example_name = rest;
+            let dest_path = self
+                .output
+                .clone()
+                .unwrap_or_else(|| self.output_dir(example_name));
             Self::generate_oz_example(
                 example_name,
                 &examples_info.oz_examples_path,
@@ -130,9 +137,12 @@ impl Cmd {
                 global_args,
                 &printer,
             )
-        } else if example_name.starts_with(STELLAR_PREFIX) {
-            let (_, example_name) = example_name.split_at(8);
-            let dest_path = self.output_dir(example_name);
+        } else if let Some(rest) = example_name.strip_prefix(STELLAR_PREFIX) {
+            let example_name = rest;
+            let dest_path = self
+                .output
+                .clone()
+                .unwrap_or_else(|| self.output_dir(example_name));
             self.generate_soroban_example(
                 example_name,
                 &examples_info.soroban_examples_path,
@@ -580,7 +590,6 @@ members = []
         let printer = Print::new(global_args.quiet);
 
         let examples_info = self.ensure_cache_updated(&printer).await?;
-
         printer.infoln("Fetching available contract examples...");
 
         let oz_examples_path = examples_info.oz_examples_path.join("examples");
@@ -590,14 +599,19 @@ members = []
 
         printer.println("\nAvailable contract examples:");
         printer.println("────────────────────────────────");
-        printer.println(format!("From {SOROBAN_EXAMPLES_REPO}:"));
+        printer.println("From soroban-examples");
+
+        printer.println(format!("Source: {SOROBAN_EXAMPLES_REPO}"));
+        printer.println(format!("Version: {}", examples_info.soroban_version_tag));
 
         for example in &soroban_examples {
             printer.println(format!("  📁 {STELLAR_PREFIX}{example}"));
         }
 
         printer.println("────────────────────────────────");
-        printer.println(format!("From {OZ_EXAMPLES_REPO}"));
+        printer.println("From OpenZeppelin");
+        printer.println(format!("Source: {OZ_EXAMPLES_REPO}"));
+        printer.println(format!("Version: {}", examples_info.oz_version_tag));
 
         for example in &oz_examples {
             printer.println(format!("  📁 {OZ_PREFIX}{example}"));
@@ -613,18 +627,16 @@ members = []
         Ok(())
     }
 
-    async fn fetch_latest_oz_release() -> Result<Release, Error> {
+    async fn fetch_latest_supported_oz_release() -> Result<Release, Error> {
         Self::fetch_latest_release_from_url(&format!(
-            "https://api.github.com/repos/OpenZeppelin/stellar-contracts/releases/tags/{LATEST_SUPPORTED_OZ_RELEASE}",
+            "{OZ_EXAMPLES_GITHUB_API}{LATEST_SUPPORTED_OZ_RELEASE}"
         ))
         .await
     }
 
     async fn fetch_latest_soroban_examples_release() -> Result<Release, Error> {
-        Self::fetch_latest_release_from_url(
-            "https://api.github.com/repos/stellar/soroban-examples/releases/latest",
-        )
-        .await
+        Self::fetch_latest_release_from_url(&format!("{}{}", SOROBAN_EXAMPLES_GITHUB_API, "latest"))
+            .await
     }
 
     async fn fetch_latest_release_from_url(url: &str) -> Result<Release, Error> {
@@ -801,14 +813,15 @@ members = []
         oz_cache_path: &Path,
         soroban_examples_cache_path: &Path,
     ) -> Result<ExamplesInfo, Error> {
-        // Get the latest release tag
-        let Release { tag_name } = Self::fetch_latest_oz_release().await?;
+        // Get the latest supported oz release tag
+        let Release { tag_name } = Self::fetch_latest_supported_oz_release().await?;
         let oz_repo_cache_path = oz_cache_path.join(&tag_name);
         if !oz_repo_cache_path.exists() {
             Self::cache_oz_repository(&oz_repo_cache_path, &tag_name).await?;
         }
         let oz_tag_name = tag_name;
 
+        // Get the latest soroban-examples release tag
         let Release { tag_name } = Self::fetch_latest_soroban_examples_release().await?;
         let soroban_examples_cache_path = soroban_examples_cache_path.join(&tag_name);
         if !soroban_examples_cache_path.exists() {

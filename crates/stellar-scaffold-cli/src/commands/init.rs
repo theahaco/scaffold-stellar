@@ -168,10 +168,9 @@ impl Cmd {
         global_args: &global::Args,
     ) -> Result<(), Error> {
         let mut example_path = example_name;
-        if example_name.starts_with("oz/") {
-            (_, example_path) = example_name.split_at(3);
+        if let Some(rest) = example_name.strip_prefix("oz/") {
+            example_path = rest;
         }
-
         let printer = Print::new(global_args.quiet);
         let original_dir = env::current_dir()?;
         env::set_current_dir(absolute_project_path)?;
