@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.19...stellar-scaffold-cli-v0.0.20) - 2026-03-02
+
+### Fixed
+
+- update docker container running alert ([#392](https://github.com/theahaco/scaffold-stellar/pull/392))
+
+### Other
+
+- *(deps)* bump toml_edit from 0.22.27 to 0.23.7 ([#311](https://github.com/theahaco/scaffold-stellar/pull/311))
+
 ## [0.0.19](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.18...stellar-scaffold-cli-v0.0.19) - 2026-02-16
 
 ### Added

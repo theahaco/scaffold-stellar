@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.17](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.16...stellar-registry-cli-v0.0.17) - 2026-03-02
+
+### Added
+
+- *(create-alias)* check collision; allow override ([#396](https://github.com/theahaco/scaffold-stellar/pull/396))
+
 ## [0.0.16](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.15...stellar-registry-cli-v0.0.16) - 2026-02-16
 
 ### Added
