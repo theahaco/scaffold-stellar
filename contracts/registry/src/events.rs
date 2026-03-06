@@ -24,3 +24,24 @@ pub struct Publish {
     pub version: String,
     pub author: Address,
 }
+
+#[contractevent(topics = ["update_owner"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpdateOwner {
+    pub contract_name: String,
+    pub new_owner: Address,
+}
+
+#[contractevent(topics = ["update_address"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpdateAddress {
+    pub contract_name: String,
+    pub new_address: Address,
+}
+
+#[contractevent(topics = ["rename"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Rename {
+    pub old_name: String,
+    pub new_name: String,
+}
