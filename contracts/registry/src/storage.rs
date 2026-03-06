@@ -11,6 +11,7 @@ pub struct Storage {
     pub wasm: maps::PersistentMap<NormalizedName, PublishedWasm, WasmKey>,
     pub contract: maps::PersistentMap<NormalizedName, ContractEntry, ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
+    pub batch: maps::PersistentMap<u32, BatchEntry, BatchKey>,
 }
 
 impl Storage {
@@ -19,6 +20,7 @@ impl Storage {
             wasm: maps::PersistentMap::new(env),
             contract: maps::PersistentMap::new(env),
             hash: maps::PersistentMap::new(env),
+            batch: maps::PersistentMap::new(env),
         }
     }
 }
@@ -67,6 +69,14 @@ impl ToStorageKey<NormalizedName> for WasmKey {
     }
 }
 
+pub struct BatchKey;
+
+impl ToStorageKey<u32> for BatchKey {
+    fn to_key(env: &Env, k: &u32) -> Val {
+        (symbol_short!("BA"), *k).into_val(env)
+    }
+}
+
 pub struct HashKey;
 
 impl ToStorageKey<BytesN<32>> for HashKey {
@@ -99,6 +109,61 @@ impl TryFromVal<Env, Val> for ContractEntry {
 impl From<(Address, Address)> for ContractEntry {
     fn from((owner, contract): (Address, Address)) -> Self {
         ContractEntry { owner, contract }
+    }
+}
+
+#[derive(Clone)]
+pub struct BatchEntry {
+    pub contract_name: NormalizedName,
+    pub contract_address: Address,
+    pub owner: Address,
+}
+
+impl IntoVal<Env, Val> for BatchEntry {
+    fn into_val(&self, env: &Env) -> Val {
+        (
+            self.contract_name.to_string().to_val(),
+            self.contract_address.to_val(),
+            self.owner.to_val(),
+        )
+            .into_val(env)
+    }
+}
+
+impl TryFromVal<Env, Val> for BatchEntry {
+    type Error = soroban_sdk::Error;
+
+    fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
+        let (name, contract_address, owner): (soroban_sdk::String, Address, Address) =
+            TryFromVal::try_from_val(env, v)?;
+        Ok(BatchEntry {
+            contract_name: NormalizedName::new(&name)?,
+            contract_address,
+            owner,
+        })
+    }
+}
+
+pub struct BatchCounter;
+
+impl ToStorageKey<()> for BatchCounter {
+    fn to_key(_: &Env, (): &()) -> Val {
+        symbol_short!("BATCHCNT").to_val()
+    }
+}
+
+impl Storage {
+    pub fn batch_count(env: &Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&BatchCounter::to_key(env, &()))
+            .unwrap_or(0)
+    }
+
+    pub fn set_batch_count(env: &Env, count: u32) {
+        env.storage()
+            .instance()
+            .set(&BatchCounter::to_key(env, &()), &count);
     }
 }
 

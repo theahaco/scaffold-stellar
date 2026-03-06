@@ -7,12 +7,12 @@ pub mod error;
 pub mod events;
 pub mod name;
 pub mod registry;
-mod storage;
+pub(crate) mod storage;
 pub mod version;
 
 pub use error::Error;
 use registry::{
-    contract::{Deployable, Redeployable},
+    contract::{Batchable, Deployable, Manageable, Redeployable},
     wasm::Publishable,
 };
 use storage::Storage;
@@ -31,6 +31,12 @@ impl Deployable for Contract {}
 
 #[contractimpl(contracttrait)]
 impl Redeployable for Contract {}
+
+#[contractimpl(contracttrait)]
+impl Batchable for Contract {}
+
+#[contractimpl(contracttrait)]
+impl Manageable for Contract {}
 
 #[contractimpl(contracttrait)]
 impl Publishable for Contract {}
