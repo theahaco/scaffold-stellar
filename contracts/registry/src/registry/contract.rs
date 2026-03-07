@@ -279,7 +279,7 @@ pub trait Deployable {
 pub trait Batchable {
     /// Stage a batch of existing contracts for registration.
     /// Requires manager auth if manager is set, otherwise admin auth.
-    /// Each entry is (contract_name, contract_address, owner).
+    /// Each entry is (`contract_name`, `contract_address`, `owner`).
     fn batch_register(
         env: &Env,
         contracts: soroban_sdk::Vec<(
@@ -295,20 +295,28 @@ pub trait Batchable {
         }
 
         let mut count = Storage::batch_count(env);
-        let mut batch_map = Storage::new(env).batch;
+        let contract_map = Storage::new(env).contract;
+        let mut seen: soroban_sdk::Map<soroban_sdk::String, ()> = soroban_sdk::Map::new(env);
 
         for entry in contracts.iter() {
             let (name_str, contract_address, owner) = entry;
             let contract_name: NormalizedName = name_str.try_into()?;
+            let name_key = contract_name.to_string();
 
             // Verify name is not already deployed
-            let is_available = !Storage::new(env).contract.has(&contract_name);
-            if !is_available {
+            if contract_map.has(&contract_name) {
                 return Err(Error::AlreadyDeployed);
             }
 
-            batch_map.set(
-                &count,
+            // Verify no duplicate names within the batch
+            if seen.contains_key(name_key.clone()) {
+                return Err(Error::AlreadyDeployed);
+            }
+            seen.set(name_key, ());
+
+            Storage::set_batch_entry(
+                env,
+                count,
                 &crate::storage::BatchEntry {
                     contract_name,
                     contract_address,
@@ -329,23 +337,21 @@ pub trait Batchable {
             return Err(Error::NoPendingBatch);
         }
 
-        let mut batch_map = Storage::new(env).batch;
         let mut processed = 0u32;
 
         for i in 0..count {
-            if let Some(entry) = batch_map.get(&i) {
-                Contract::register_contract_name(
-                    env,
-                    &entry.contract_name,
-                    &entry.contract_address,
-                    &entry.owner,
-                );
-                batch_map.remove(&i);
-                processed += 1;
-            }
+            let entry = Storage::get_batch_entry(env, i).ok_or(Error::BatchEntryExpired)?;
+            Contract::register_contract_name(
+                env,
+                &entry.contract_name,
+                &entry.contract_address,
+                &entry.owner,
+            );
+            Storage::remove_batch_entry(env, i);
+            processed += 1;
         }
 
-        Storage::set_batch_count(env, 0);
+        Storage::set_batch_count(env, count - processed);
         Ok(processed)
     }
 }
@@ -438,6 +444,7 @@ pub trait Manageable {
 
         storage.contract.remove(&old_name);
         storage.contract.set(&new_name, &entry);
+        storage.contract.extend_ttl_max(&new_name);
 
         crate::events::Rename {
             old_name: old_name.to_string(),

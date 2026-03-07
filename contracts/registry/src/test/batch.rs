@@ -2,9 +2,8 @@ use crate::{
     error::Error,
     test::contracts::{hw_bytes, hw_hash},
     test::registry::{to_string, Registry},
-    ContractArgs,
 };
-use soroban_sdk::{self, testutils::Address as _, vec, Address, InvokeError, Vec};
+use soroban_sdk::{self, testutils::Address as _, vec, Address, Vec};
 
 #[test]
 fn batch_register_and_process() {

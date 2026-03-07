@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use clap::Parser;
 use stellar_cli::{commands::contract::invoke, config};
 use stellar_registry_build::registry::Registry;
@@ -65,7 +67,7 @@ impl Cmd {
             if i > 0 {
                 json_entries.push(',');
             }
-            json_entries.push_str(&format!(r#"["{name}","{address}","{owner}"]"#));
+            let _ = write!(json_entries, r#"["{name}","{address}","{owner}"]"#);
         }
         json_entries.push(']');
 

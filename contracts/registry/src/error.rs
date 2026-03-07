@@ -35,4 +35,6 @@ pub enum Error {
     NoPendingBatch = 13,
     /// Caller is not the contract owner
     NotContractOwner = 14,
+    /// Batch entry missing from temporary storage (likely expired)
+    BatchEntryExpired = 15,
 }

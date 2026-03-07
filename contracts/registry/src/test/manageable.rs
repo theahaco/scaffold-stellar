@@ -3,7 +3,7 @@ use crate::{
     test::contracts::{hw_bytes, hw_hash},
     test::registry::{to_string, Registry},
 };
-use soroban_sdk::{self, testutils::Address as _, Address, InvokeError};
+use soroban_sdk::{self, testutils::Address as _, Address};
 
 fn setup_with_registered_contract<'a>() -> (Registry<'a>, Address) {
     let registry = Registry::new_with_bytes(&hw_bytes, &hw_hash);

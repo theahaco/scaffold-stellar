@@ -11,7 +11,6 @@ pub struct Storage {
     pub wasm: maps::PersistentMap<NormalizedName, PublishedWasm, WasmKey>,
     pub contract: maps::PersistentMap<NormalizedName, ContractEntry, ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
-    pub batch: maps::PersistentMap<u32, BatchEntry, BatchKey>,
 }
 
 impl Storage {
@@ -20,7 +19,6 @@ impl Storage {
             wasm: maps::PersistentMap::new(env),
             contract: maps::PersistentMap::new(env),
             hash: maps::PersistentMap::new(env),
-            batch: maps::PersistentMap::new(env),
         }
     }
 }
@@ -152,6 +150,9 @@ impl ToStorageKey<()> for BatchCounter {
     }
 }
 
+/// ~1 week at 5s/ledger
+pub const BATCH_TTL: u32 = 120_960;
+
 impl Storage {
     pub fn batch_count(env: &Env) -> u32 {
         env.storage()
@@ -164,6 +165,24 @@ impl Storage {
         env.storage()
             .instance()
             .set(&BatchCounter::to_key(env, &()), &count);
+    }
+
+    pub fn get_batch_entry(env: &Env, index: u32) -> Option<BatchEntry> {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().get(&k)
+    }
+
+    pub fn set_batch_entry(env: &Env, index: u32, entry: &BatchEntry) {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().set(&k, entry);
+        env.storage()
+            .temporary()
+            .extend_ttl(&k, BATCH_TTL, BATCH_TTL);
+    }
+
+    pub fn remove_batch_entry(env: &Env, index: u32) {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().remove(&k);
     }
 }
 
