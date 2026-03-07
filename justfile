@@ -88,8 +88,8 @@ create: build
     # just stellar contract deploy --wasm ./target/stellar/local/example_status_message.wasm --alias core --source-account default
 
 clippy *args:
-    cargo clippy --all {{ args }} \
+    @cargo clippy -q --all {{ args }} \
     -- -Dclippy::pedantic -Aclippy::must_use_candidate -Aclippy::missing_errors_doc -Aclippy::missing_panics_doc
 
 clippy-test:
-    just clippy --tests --all-features
+   @just clippy --tests --all-features
