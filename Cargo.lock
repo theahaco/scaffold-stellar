@@ -4417,6 +4417,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-scaffold-ext-types"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "stellar-scaffold-macro"
 version = "0.8.11"
 dependencies = [
