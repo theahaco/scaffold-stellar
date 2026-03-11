@@ -4401,6 +4401,7 @@ dependencies = [
  "soroban-spec-tools",
  "stellar-build",
  "stellar-rpc-client",
+ "stellar-scaffold-ext-types",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.15",
  "stellar-xdr 25.0.0",
