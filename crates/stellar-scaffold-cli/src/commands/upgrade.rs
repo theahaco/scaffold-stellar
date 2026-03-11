@@ -229,6 +229,7 @@ impl Cmd {
                 run_locally: true,
             },
             contracts: (!contract_configs.is_empty()).then_some(contract_configs),
+            extensions: vec![],
         };
 
         let mut doc = DocumentMut::new();
