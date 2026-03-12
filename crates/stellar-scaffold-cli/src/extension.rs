@@ -132,6 +132,78 @@ pub async fn run_hook<C: serde::Serialize>(
     }
 }
 
+/// The resolved status of a single extension entry, used by `ext ls`.
+#[derive(Debug)]
+pub enum ExtensionListStatus {
+    /// Binary found and manifest parsed successfully.
+    Found { version: String, hooks: Vec<String> },
+    /// Binary `stellar-scaffold-<name>` not found on PATH.
+    MissingBinary,
+    /// Binary found but `manifest` subcommand failed or returned malformed JSON.
+    ManifestError(String),
+}
+
+/// Per-entry result returned by [`list`].
+#[derive(Debug)]
+pub struct ExtensionListEntry {
+    pub name: String,
+    pub status: ExtensionListStatus,
+}
+
+/// Returns one [`ExtensionListEntry`] per entry in `entries`, including entries
+/// whose binary is missing or whose manifest is broken. Unlike [`discover`],
+/// this never skips entries — it is intended for display, not for hook dispatch.
+pub fn list(entries: &[ExtensionEntry]) -> Vec<ExtensionListEntry> {
+    list_in(entries, &path_dirs())
+}
+
+fn list_in(entries: &[ExtensionEntry], search_dirs: &[PathBuf]) -> Vec<ExtensionListEntry> {
+    entries
+        .iter()
+        .map(|entry| {
+            let name = &entry.name;
+            let Some(binary) = find_binary(name, search_dirs) else {
+                return ExtensionListEntry {
+                    name: name.clone(),
+                    status: ExtensionListStatus::MissingBinary,
+                };
+            };
+
+            let output = match std::process::Command::new(&binary).arg("manifest").output() {
+                Err(e) => {
+                    return ExtensionListEntry {
+                        name: name.clone(),
+                        status: ExtensionListStatus::ManifestError(e.to_string()),
+                    };
+                }
+                Ok(o) => o,
+            };
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                return ExtensionListEntry {
+                    name: name.clone(),
+                    status: ExtensionListStatus::ManifestError(stderr),
+                };
+            }
+
+            match serde_json::from_slice::<ExtensionManifest>(&output.stdout) {
+                Err(e) => ExtensionListEntry {
+                    name: name.clone(),
+                    status: ExtensionListStatus::ManifestError(e.to_string()),
+                },
+                Ok(manifest) => ExtensionListEntry {
+                    name: name.clone(),
+                    status: ExtensionListStatus::Found {
+                        version: manifest.version,
+                        hooks: manifest.hooks,
+                    },
+                },
+            }
+        })
+        .collect()
+}
+
 fn path_dirs() -> Vec<PathBuf> {
     std::env::var_os("PATH")
         .map(|p| std::env::split_paths(&p).collect())
