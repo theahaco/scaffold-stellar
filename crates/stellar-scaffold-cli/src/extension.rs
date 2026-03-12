@@ -1,7 +1,9 @@
+use std::io::Write as _;
 use std::path::PathBuf;
 
 use stellar_cli::print::Print;
 use stellar_scaffold_ext_types::ExtensionManifest;
+use tokio::io::AsyncWriteExt as _;
 
 use crate::commands::build::env_toml::ExtensionEntry;
 
@@ -27,6 +29,105 @@ pub struct ResolvedExtension {
 pub fn discover(entries: &[ExtensionEntry], printer: &Print) -> Vec<ResolvedExtension> {
     let search_dirs = path_dirs();
     discover_in(entries, printer, &search_dirs)
+}
+
+/// Runs a single lifecycle hook across all registered extensions.
+///
+/// For each extension whose manifest lists `hook`, spawns
+/// `stellar-scaffold-<name> <hook>` as a subprocess, serializes `context` as
+/// JSON to its stdin, waits for it to exit, then forwards its stdout to
+/// Scaffold's own stdout.
+///
+/// Non-zero exits are logged as errors but do not abort the loop — all
+/// extensions are given a chance to run regardless of whether an earlier one
+/// failed. The function itself is infallible from the caller's perspective.
+pub async fn run_hook<C: serde::Serialize>(
+    extensions: &[ResolvedExtension],
+    hook: &str,
+    context: &C,
+    printer: &Print,
+) {
+    // Serialize once; every extension for this hook receives identical JSON.
+    let context_json = match serde_json::to_vec(context) {
+        Ok(json) => json,
+        Err(e) => {
+            printer.errorln(format!(
+                "Extension hook {hook:?}: failed to serialize context: {e}"
+            ));
+            return;
+        }
+    };
+
+    for ext in extensions {
+        if !ext.manifest.hooks.iter().any(|h| h == hook) {
+            continue;
+        }
+
+        let binary_name = binary_name(&ext.name);
+
+        let mut child = match tokio::process::Command::new(&ext.binary)
+            .arg(hook)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(e) => {
+                printer.errorln(format!(
+                    "Extension {:?} hook {hook:?}: failed to spawn \
+                     `{binary_name}`: {e}",
+                    ext.name
+                ));
+                continue;
+            }
+        };
+
+        // Write context JSON then shut down stdin so the child sees EOF.
+        // Dropping without shutdown() could leave the pipe open on some
+        // platforms, causing the child to block waiting for more input.
+        if let Some(mut stdin) = child.stdin.take() {
+            if let Err(e) = stdin.write_all(&context_json).await {
+                printer.errorln(format!(
+                    "Extension {:?} hook {hook:?}: failed to write context \
+                     to stdin: {e}",
+                    ext.name
+                ));
+                let _ = child.kill().await;
+                continue;
+            }
+            let _ = stdin.shutdown().await;
+        }
+
+        let output = match child.wait_with_output().await {
+            Ok(output) => output,
+            Err(e) => {
+                printer.errorln(format!(
+                    "Extension {:?} hook {hook:?}: failed to wait for \
+                     `{binary_name}`: {e}",
+                    ext.name
+                ));
+                continue;
+            }
+        };
+
+        // Forward the extension's stdout verbatim to Scaffold's stdout so
+        // extensions can emit progress, JSON payloads, or human-readable
+        // output without any added formatting.
+        if !output.stdout.is_empty() {
+            let _ = std::io::stdout().write_all(&output.stdout);
+        }
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            printer.errorln(format!(
+                "Extension {:?} hook {hook:?}: `{binary_name}` exited \
+                 with {}: {stderr}",
+                ext.name, output.status
+            ));
+            // Continue — give remaining extensions a chance to run.
+        }
+    }
 }
 
 fn path_dirs() -> Vec<PathBuf> {
@@ -246,5 +347,112 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "first");
         assert_eq!(result[1].name, "third");
+    }
+
+    // -----------------------------------------------------------------------
+    // run_hook tests
+    // -----------------------------------------------------------------------
+
+    /// Build a `ResolvedExtension` directly, bypassing discovery.
+    #[cfg(unix)]
+    fn make_resolved(name: &str, binary: PathBuf, hooks: &[&str]) -> ResolvedExtension {
+        ResolvedExtension {
+            name: name.to_owned(),
+            binary,
+            manifest: ExtensionManifest {
+                name: name.to_owned(),
+                version: "1.0.0".to_owned(),
+                hooks: hooks.iter().map(|h| h.to_string()).collect(),
+            },
+            config: None,
+        }
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn run_hook_sends_context_to_stdin() {
+        let dir = tempfile::TempDir::new().unwrap();
+        // Script writes whatever it receives on stdin into received.json
+        // next to the script itself.
+        make_script(&dir, "reporter", r#"cat > "$(dirname "$0")/received.json""#);
+
+        #[derive(serde::Serialize)]
+        struct Ctx {
+            env: String,
+        }
+        let ext = make_resolved(
+            "reporter",
+            dir.path().join(binary_name("reporter")),
+            &["post-compile"],
+        );
+
+        run_hook(
+            &[ext],
+            "post-compile",
+            &Ctx {
+                env: "development".to_owned(),
+            },
+            &printer(),
+        )
+        .await;
+
+        let received = std::fs::read_to_string(dir.path().join("received.json")).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&received).unwrap();
+        assert_eq!(parsed["env"], "development");
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn run_hook_skips_extension_not_registered_for_hook() {
+        let dir = tempfile::TempDir::new().unwrap();
+        // Script creates a sentinel file when invoked.
+        make_script(&dir, "reporter", r#"touch "$(dirname "$0")/was_invoked""#);
+        let ext = make_resolved(
+            "reporter",
+            dir.path().join(binary_name("reporter")),
+            &["post-compile"], // registered for post-compile, not post-deploy
+        );
+
+        run_hook(&[ext], "post-deploy", &serde_json::json!({}), &printer()).await;
+
+        assert!(!dir.path().join("was_invoked").exists());
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn run_hook_continues_after_non_zero_exit() {
+        let dir = tempfile::TempDir::new().unwrap();
+        // First extension: exits 1, writes nothing.
+        make_script(&dir, "failing", "exit 1");
+        // Second extension: writes received context to a file.
+        make_script(
+            &dir,
+            "succeeding",
+            r#"cat > "$(dirname "$0")/received.json""#,
+        );
+
+        let exts = vec![
+            make_resolved(
+                "failing",
+                dir.path().join(binary_name("failing")),
+                &["post-compile"],
+            ),
+            make_resolved(
+                "succeeding",
+                dir.path().join(binary_name("succeeding")),
+                &["post-compile"],
+            ),
+        ];
+
+        run_hook(
+            &exts,
+            "post-compile",
+            &serde_json::json!({ "env": "test" }),
+            &printer(),
+        )
+        .await;
+
+        // The second extension ran despite the first one failing.
+        assert!(dir.path().join("received.json").exists());
     }
 }
