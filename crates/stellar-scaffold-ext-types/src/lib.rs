@@ -31,22 +31,84 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
+// HookName
+// ---------------------------------------------------------------------------
+
+/// The complete set of lifecycle hooks that Scaffold can fire.
+///
+/// Use this enum at internal call sites (e.g. passing to `run_hook`) to get
+/// compile-time exhaustiveness checking and typo safety.
+///
+/// [`ExtensionManifest::hooks`] intentionally stays `Vec<String>` because
+/// that field is decoded from JSON written by *external* extension authors —
+/// deserializing it as `Vec<HookName>` would hard-error on any hook name your
+/// version of Scaffold doesn't recognise (future hooks, third-party hooks,
+/// etc.). Use [`HookName::as_str`] to compare against manifest entries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HookName {
+    /// Fired once before `cargo build` runs for any contract.
+    PreCompile,
+    /// Fired once after all contracts have been compiled to WASM.
+    PostCompile,
+    /// Fired per-contract before it is uploaded and deployed/upgraded.
+    PreDeploy,
+    /// Fired per-contract after it has been deployed or upgraded.
+    PostDeploy,
+    /// Fired per-contract before TypeScript bindings are generated.
+    PreCodegen,
+    /// Fired per-contract after TypeScript bindings have been generated.
+    PostCodegen,
+    /// Fired once at the start of a `watch` cycle, before any build work.
+    PreDev,
+    /// Fired once at the end of a successful `watch` cycle.
+    PostDev,
+}
+
+impl HookName {
+    /// The kebab-case string used as the CLI subcommand argument and in
+    /// `ExtensionManifest::hooks`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::PreCompile => "pre-compile",
+            Self::PostCompile => "post-compile",
+            Self::PreDeploy => "pre-deploy",
+            Self::PostDeploy => "post-deploy",
+            Self::PreCodegen => "pre-codegen",
+            Self::PostCodegen => "post-codegen",
+            Self::PreDev => "pre-dev",
+            Self::PostDev => "post-dev",
+        }
+    }
+}
+
+impl std::fmt::Display for HookName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+// ---------------------------------------------------------------------------
 // ExtensionManifest
 // ---------------------------------------------------------------------------
 
 /// Declares what an extension is and which hooks it wants to receive.
 ///
-/// Extensions must write this as JSON to stdout when invoked with
-/// `STELLAR_SCAFFOLD_HOOK=manifest`, so the scaffold tool can discover
-/// capabilities without running the full hook.
+/// Extensions must write this as JSON to stdout when invoked with the
+/// `manifest` subcommand, so the scaffold tool can discover capabilities
+/// without running a full hook.
 ///
 /// # Hook names
 ///
-/// Valid values for `hooks` entries:
+/// Valid values for `hooks` entries (see [`HookName`]):
 /// - `"pre-compile"` / `"post-compile"` — fired once per build, receives [`CompileContext`]
 /// - `"pre-deploy"` / `"post-deploy"` — fired per contract, receives [`DeployContext`]
 /// - `"pre-codegen"` / `"post-codegen"` — fired per contract, receives [`CodegenContext`]
 /// - `"pre-dev"` / `"post-dev"` — fired per watch cycle, receives [`ProjectContext`]
+///
+/// `hooks` is `Vec<String>` rather than `Vec<HookName>` so that manifests
+/// from extensions built against a newer version of this crate (which may
+/// declare hooks this version doesn't know about) deserialize without error.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtensionManifest {
     /// Extension name, e.g. `"my-audit-tool"`.

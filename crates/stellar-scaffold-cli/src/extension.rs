@@ -2,7 +2,7 @@ use std::io::Write as _;
 use std::path::PathBuf;
 
 use stellar_cli::print::Print;
-use stellar_scaffold_ext_types::ExtensionManifest;
+use stellar_scaffold_ext_types::{ExtensionManifest, HookName};
 use tokio::io::AsyncWriteExt as _;
 
 use crate::commands::build::env_toml::ExtensionEntry;
@@ -43,30 +43,32 @@ pub fn discover(entries: &[ExtensionEntry], printer: &Print) -> Vec<ResolvedExte
 /// failed. The function itself is infallible from the caller's perspective.
 pub async fn run_hook<C: serde::Serialize>(
     extensions: &[ResolvedExtension],
-    hook: &str,
+    hook: HookName,
     context: &C,
     printer: &Print,
 ) {
+    let hook_str = hook.as_str();
+
     // Serialize once; every extension for this hook receives identical JSON.
     let context_json = match serde_json::to_vec(context) {
         Ok(json) => json,
         Err(e) => {
             printer.errorln(format!(
-                "Extension hook {hook:?}: failed to serialize context: {e}"
+                "Extension hook {hook_str:?}: failed to serialize context: {e}"
             ));
             return;
         }
     };
 
     for ext in extensions {
-        if !ext.manifest.hooks.iter().any(|h| h == hook) {
+        if !ext.manifest.hooks.iter().any(|h| h == hook_str) {
             continue;
         }
 
         let binary_name = binary_name(&ext.name);
 
         let mut child = match tokio::process::Command::new(&ext.binary)
-            .arg(hook)
+            .arg(hook_str)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -75,7 +77,7 @@ pub async fn run_hook<C: serde::Serialize>(
             Ok(child) => child,
             Err(e) => {
                 printer.errorln(format!(
-                    "Extension {:?} hook {hook:?}: failed to spawn \
+                    "Extension {:?} hook {hook_str:?}: failed to spawn \
                      `{binary_name}`: {e}",
                     ext.name
                 ));
@@ -89,7 +91,7 @@ pub async fn run_hook<C: serde::Serialize>(
         if let Some(mut stdin) = child.stdin.take() {
             if let Err(e) = stdin.write_all(&context_json).await {
                 printer.errorln(format!(
-                    "Extension {:?} hook {hook:?}: failed to write context \
+                    "Extension {:?} hook {hook_str:?}: failed to write context \
                      to stdin: {e}",
                     ext.name
                 ));
@@ -103,7 +105,7 @@ pub async fn run_hook<C: serde::Serialize>(
             Ok(output) => output,
             Err(e) => {
                 printer.errorln(format!(
-                    "Extension {:?} hook {hook:?}: failed to wait for \
+                    "Extension {:?} hook {hook_str:?}: failed to wait for \
                      `{binary_name}`: {e}",
                     ext.name
                 ));
@@ -121,7 +123,7 @@ pub async fn run_hook<C: serde::Serialize>(
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             printer.errorln(format!(
-                "Extension {:?} hook {hook:?}: `{binary_name}` exited \
+                "Extension {:?} hook {hook_str:?}: `{binary_name}` exited \
                  with {}: {stderr}",
                 ext.name, output.status
             ));
@@ -221,6 +223,7 @@ fn discover_in(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use stellar_scaffold_ext_types::HookName;
 
     fn printer() -> Print {
         Print::new(true) // quiet — we assert on return values, not output
@@ -388,7 +391,7 @@ mod tests {
 
         run_hook(
             &[ext],
-            "post-compile",
+            HookName::PostCompile,
             &Ctx {
                 env: "development".to_owned(),
             },
@@ -413,7 +416,13 @@ mod tests {
             &["post-compile"], // registered for post-compile, not post-deploy
         );
 
-        run_hook(&[ext], "post-deploy", &serde_json::json!({}), &printer()).await;
+        run_hook(
+            &[ext],
+            HookName::PostDeploy,
+            &serde_json::json!({}),
+            &printer(),
+        )
+        .await;
 
         assert!(!dir.path().join("was_invoked").exists());
     }
@@ -446,7 +455,7 @@ mod tests {
 
         run_hook(
             &exts,
-            "post-compile",
+            HookName::PostCompile,
             &serde_json::json!({ "env": "test" }),
             &printer(),
         )
