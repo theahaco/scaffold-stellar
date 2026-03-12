@@ -306,10 +306,10 @@ extensions = ["reporter", "indexer"]
     #[test]
     fn extensions_empty_array() {
         let toml = format!(
-            r#"{NETWORK_STUB}
+            r"{NETWORK_STUB}
 [development]
 extensions = []
-"#
+"
         );
 
         let env = parse_dev(&toml);

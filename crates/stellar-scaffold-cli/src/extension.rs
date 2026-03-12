@@ -437,7 +437,7 @@ mod tests {
             manifest: ExtensionManifest {
                 name: name.to_owned(),
                 version: "1.0.0".to_owned(),
-                hooks: hooks.iter().map(|h| h.to_string()).collect(),
+                hooks: hooks.iter().map(|h| (*h).to_string()).collect(),
             },
             config: None,
         }
@@ -452,6 +452,7 @@ mod tests {
         make_script(&dir, "reporter", r#"cat > "$(dirname "$0")/received.json""#);
 
         #[derive(serde::Serialize)]
+        #[allow(clippy::items_after_statements)]
         struct Ctx {
             env: String,
         }
