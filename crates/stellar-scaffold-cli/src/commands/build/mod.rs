@@ -117,8 +117,7 @@ impl Command {
 
         let target_dir = &metadata.target_directory;
 
-        // Discover extensions for the active environment (always, not just when --build-clients
-        // is active — compile hooks fire on every build regardless of client generation).
+        // Discover extensions for the active environment
         let scaffold_env = self
             .build_clients_args
             .env

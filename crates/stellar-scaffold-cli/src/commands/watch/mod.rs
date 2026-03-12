@@ -12,6 +12,8 @@ use tokio::sync::mpsc;
 use tokio::time;
 
 use crate::commands::build::{self, env_toml};
+use crate::extension;
+use stellar_scaffold_ext_types::{HookName, ProjectContext, ProjectContractInfo};
 
 use super::build::clients::ScaffoldEnv;
 use super::build::env_toml::ENV_FILE;
@@ -129,6 +131,7 @@ impl Watcher {
 }
 
 impl Cmd {
+    #[allow(clippy::too_many_lines)]
     pub async fn run(
         &mut self,
         global_args: &stellar_cli::commands::global::Args,
@@ -137,25 +140,39 @@ impl Cmd {
         let (tx, mut rx) = mpsc::channel::<Message>(100);
         let rebuild_state = Arc::new(Mutex::new(false));
         let metadata = &self.build_cmd.metadata()?;
-        let env_toml_dir = metadata.workspace_root.as_std_path();
-        if env_toml::Environment::get(env_toml_dir, &ScaffoldEnv::Development)?.is_none() {
-            return Ok(());
-        }
-        let packages = self
+        let workspace_root = metadata.workspace_root.as_std_path();
+
+        let scaffold_env = self
             .build_cmd
-            .list_packages(metadata)?
-            .into_iter()
-            .map(|package| {
-                package
-                    .manifest_path
+            .build_clients_args
+            .env
+            .unwrap_or(ScaffoldEnv::Development);
+
+        let Some(current_env) = env_toml::Environment::get(workspace_root, &scaffold_env)? else {
+            return Ok(());
+        };
+
+        // Discover extensions for pre/post-dev hooks. The build pipeline hooks
+        // (compile/deploy/codegen) are handled inside build::Command::run().
+        let extensions = if current_env.extensions.is_empty() {
+            vec![]
+        } else {
+            extension::discover(&current_env.extensions, &printer)
+        };
+
+        let all_packages = self.build_cmd.list_packages(metadata)?;
+        let packages: Vec<PathBuf> = all_packages
+            .iter()
+            .map(|p| {
+                p.manifest_path
                     .parent()
                     .unwrap()
                     .to_path_buf()
                     .into_std_path_buf()
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        let watcher = Watcher::new(env_toml_dir, &packages);
+        let watcher = Watcher::new(workspace_root, &packages);
 
         for package_path in watcher.packages.iter() {
             printer.infoln(format!("Watching {}", package_path.display()));
@@ -170,11 +187,50 @@ impl Cmd {
             .unwrap();
 
         notify_watcher.watch(
-            &canonicalize_path(env_toml_dir),
+            &canonicalize_path(workspace_root),
             RecursiveMode::NonRecursive,
         )?;
-        for package_path in packages {
-            notify_watcher.watch(&canonicalize_path(&package_path), RecursiveMode::Recursive)?;
+        for package_path in &packages {
+            notify_watcher.watch(&canonicalize_path(package_path), RecursiveMode::Recursive)?;
+        }
+
+        // Build a ProjectContext for pre/post-dev hooks. Both hooks receive the
+        // same context: per-contract wasm/deploy fields are not available at
+        // this level (extensions that need them should use compile/deploy/codegen
+        // hooks instead).
+        let target_dir = metadata.target_directory.as_std_path();
+        let watch_paths: Vec<PathBuf> = std::iter::once(workspace_root.to_path_buf())
+            .chain(packages.iter().cloned())
+            .collect();
+        let project_ctx = ProjectContext {
+            project_root: workspace_root.to_path_buf(),
+            env: scaffold_env.to_string(),
+            wasm_out_dir: stellar_build::deps::stellar_wasm_out_dir(target_dir),
+            source_dirs: packages.clone(),
+            network: None,
+            contracts: all_packages
+                .iter()
+                .map(|p| ProjectContractInfo {
+                    name: p.name.replace('-', "_"),
+                    source_dir: p
+                        .manifest_path
+                        .parent()
+                        .unwrap()
+                        .as_std_path()
+                        .to_path_buf(),
+                    wasm_path: None,
+                    wasm_hash: None,
+                    contract_id: None,
+                    ts_package_dir: None,
+                    src_template_path: None,
+                })
+                .collect(),
+            watch_paths,
+        };
+
+        // Fire pre-dev once before any build work begins.
+        if !extensions.is_empty() {
+            extension::run_hook(&extensions, HookName::PreDev, &project_ctx, &printer).await;
         }
 
         let build_command = self.cloned_build_command(global_args);
@@ -183,9 +239,28 @@ impl Cmd {
         }
         printer.infoln("Watching for changes. Press Ctrl+C to stop.");
 
+        // Set up SIGTERM handler so graceful shutdown fires post-dev on both
+        // Ctrl+C (SIGINT) and SIGTERM.
+        #[cfg(unix)]
+        let mut sigterm =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+
         let rebuild_state_clone = rebuild_state.clone();
         let printer_clone = printer.clone();
         loop {
+            // `tokio::select!` doesn't support `#[cfg]` on arms, so the SIGTERM
+            // future is expressed as an async block whose body is platform-gated.
+            // On non-Unix it becomes `pending()` and never resolves.
+            let stop = async {
+                #[cfg(unix)]
+                {
+                    sigterm.recv().await;
+                }
+                #[cfg(not(unix))]
+                {
+                    std::future::pending::<()>().await;
+                }
+            };
             tokio::select! {
                 _ = rx.recv() => {
                     let mut state = rebuild_state_clone.lock().await;
@@ -199,8 +274,19 @@ impl Cmd {
                     printer.infoln("Stopping dev mode.");
                     break;
                 }
+                () = stop => {
+                    printer.infoln("Stopping dev mode.");
+                    break;
+                }
             }
         }
+
+        // Fire post-dev after the loop — guaranteed to run for both Ctrl+C and
+        // SIGTERM shutdowns.
+        if !extensions.is_empty() {
+            extension::run_hook(&extensions, HookName::PostDev, &project_ctx, &printer).await;
+        }
+
         Ok(())
     }
 
