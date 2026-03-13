@@ -102,8 +102,7 @@ impl<'de> Deserialize<'de> for Environment {
             })
             .transpose()?;
 
-        let extensions =
-            parse_extensions(helper.extensions, helper.ext).map_err(serde::de::Error::custom)?;
+        let extensions = parse_extensions(helper.extensions, helper.ext);
 
         Ok(Environment {
             accounts: helper.accounts,
@@ -120,7 +119,7 @@ impl<'de> Deserialize<'de> for Environment {
 /// Extensions listed in `ext` but absent from `names` are silently ignored so
 /// that leftover config tables don't cause errors when an extension is
 /// temporarily removed from the run list.
-fn parse_extensions(names: Vec<String>, ext: Option<Table>) -> Result<Vec<ExtensionEntry>, String> {
+fn parse_extensions(names: Vec<String>, ext: Option<Table>) -> Vec<ExtensionEntry> {
     let mut configs = ext.unwrap_or_default();
     names
         .into_iter()
@@ -132,7 +131,7 @@ fn parse_extensions(names: Vec<String>, ext: Option<Table>) -> Result<Vec<Extens
                     _ => serde_json::to_value(&val).ok(),
                 }
             });
-            Ok(ExtensionEntry { name, config })
+            ExtensionEntry { name, config }
         })
         .collect()
 }

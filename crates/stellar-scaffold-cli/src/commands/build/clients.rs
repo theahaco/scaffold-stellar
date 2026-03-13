@@ -229,6 +229,45 @@ impl Builder {
         })
     }
 
+    fn deploy_ctx(
+        &self,
+        name: &str,
+        wasm_path: PathBuf,
+        wasm_hash: &str,
+        contract_id: Option<String>,
+    ) -> DeployContext {
+        DeployContext {
+            compile: self.base_compile_ctx(),
+            network: self.network_config(),
+            contract_name: name.to_string(),
+            wasm_path,
+            wasm_hash: wasm_hash.to_string(),
+            contract_id,
+        }
+    }
+
+    fn codegen_ctx(
+        &self,
+        name: &str,
+        contract_id: &str,
+        wasm_hash: Option<&str>,
+        ts_package_dir: PathBuf,
+        src_template_path: PathBuf,
+    ) -> CodegenContext {
+        CodegenContext {
+            deploy: DeployContext {
+                compile: self.base_compile_ctx(),
+                network: self.network_config(),
+                contract_name: name.to_string(),
+                wasm_path: self.get_wasm_path(name),
+                wasm_hash: wasm_hash.unwrap_or("").to_string(),
+                contract_id: Some(contract_id.to_string()),
+            },
+            ts_package_dir,
+            src_template_path,
+        }
+    }
+
     fn get_contract_alias(
         &self,
         name: &str,
@@ -328,21 +367,19 @@ export default new Client.Client({{
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
 
-        if !self.extensions.is_empty() {
-            let ctx = CodegenContext {
-                deploy: DeployContext {
-                    compile: self.base_compile_ctx(),
-                    network: self.network_config(),
-                    contract_name: name.to_string(),
-                    wasm_path: self.get_wasm_path(name),
-                    wasm_hash: wasm_hash.unwrap_or("").to_string(),
-                    contract_id: Some(contract_id.to_string()),
-                },
-                ts_package_dir: final_output_dir.clone(),
-                src_template_path: src_template_path.clone(),
-            };
-            extension::run_hook(&self.extensions, HookName::PreCodegen, &ctx, printer).await;
-        }
+        extension::run_hook(
+            &self.extensions,
+            HookName::PreCodegen,
+            &self.codegen_ctx(
+                name,
+                contract_id,
+                wasm_hash,
+                final_output_dir.clone(),
+                src_template_path.clone(),
+            ),
+            printer,
+        )
+        .await;
 
         let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
@@ -441,21 +478,19 @@ export default new Client.Client({{
 
         self.create_contract_template(name, contract_id, network)?;
 
-        if !self.extensions.is_empty() {
-            let ctx = CodegenContext {
-                deploy: DeployContext {
-                    compile: self.base_compile_ctx(),
-                    network: self.network_config(),
-                    contract_name: name.to_string(),
-                    wasm_path: self.get_wasm_path(name),
-                    wasm_hash: wasm_hash.unwrap_or("").to_string(),
-                    contract_id: Some(contract_id.to_string()),
-                },
-                ts_package_dir: final_output_dir,
+        extension::run_hook(
+            &self.extensions,
+            HookName::PostCodegen,
+            &self.codegen_ctx(
+                name,
+                contract_id,
+                wasm_hash,
+                final_output_dir,
                 src_template_path,
-            };
-            extension::run_hook(&self.extensions, HookName::PostCodegen, &ctx, printer).await;
-        }
+            ),
+            printer,
+        )
+        .await;
 
         Ok(())
     }
@@ -718,17 +753,13 @@ export default new Client.Client({{
             }
 
             // Fire pre-deploy hook before the actual deploy/upgrade.
-            if !self.extensions.is_empty() {
-                let ctx = DeployContext {
-                    compile: self.base_compile_ctx(),
-                    network: self.network_config(),
-                    contract_name: name.to_string(),
-                    wasm_path: wasm_path.clone(),
-                    wasm_hash: new_hash.clone(),
-                    contract_id: None,
-                };
-                extension::run_hook(&self.extensions, HookName::PreDeploy, &ctx, printer).await;
-            }
+            extension::run_hook(
+                &self.extensions,
+                HookName::PreDeploy,
+                &self.deploy_ctx(name, wasm_path.clone(), &new_hash, None),
+                printer,
+            )
+            .await;
 
             // Deploy new contract if we got here (don't deploy if we already run an upgrade)
             let contract_id = if let Some(upgraded) = upgraded_contract {
@@ -747,17 +778,13 @@ export default new Client.Client({{
             self.save_contract_alias(name, &contract_id, network)?;
 
             // Fire post-deploy hook after the contract ID is confirmed.
-            if !self.extensions.is_empty() {
-                let ctx = DeployContext {
-                    compile: self.base_compile_ctx(),
-                    network: self.network_config(),
-                    contract_name: name.to_string(),
-                    wasm_path,
-                    wasm_hash: new_hash.clone(),
-                    contract_id: Some(contract_id.to_string()),
-                };
-                extension::run_hook(&self.extensions, HookName::PostDeploy, &ctx, printer).await;
-            }
+            extension::run_hook(
+                &self.extensions,
+                HookName::PostDeploy,
+                &self.deploy_ctx(name, wasm_path, &new_hash, Some(contract_id.to_string())),
+                printer,
+            )
+            .await;
 
             (contract_id, Some(new_hash))
         };

@@ -229,9 +229,7 @@ impl Cmd {
         };
 
         // Fire pre-dev once before any build work begins.
-        if !extensions.is_empty() {
-            extension::run_hook(&extensions, HookName::PreDev, &project_ctx, &printer).await;
-        }
+        extension::run_hook(&extensions, HookName::PreDev, &project_ctx, &printer).await;
 
         let build_command = self.cloned_build_command(global_args);
         if let Err(e) = build_command.0.run(&build_command.1).await {
@@ -283,9 +281,7 @@ impl Cmd {
 
         // Fire post-dev after the loop — guaranteed to run for both Ctrl+C and
         // SIGTERM shutdowns.
-        if !extensions.is_empty() {
-            extension::run_hook(&extensions, HookName::PostDev, &project_ctx, &printer).await;
-        }
+        extension::run_hook(&extensions, HookName::PostDev, &project_ctx, &printer).await;
 
         Ok(())
     }

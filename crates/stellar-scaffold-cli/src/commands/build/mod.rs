@@ -147,15 +147,13 @@ impl Command {
             wasm_paths: BTreeMap::new(),
         };
 
-        if !extensions.is_empty() {
-            extension::run_hook(
-                &extensions,
-                HookName::PreCompile,
-                &pre_compile_ctx,
-                &printer,
-            )
-            .await;
-        }
+        extension::run_hook(
+            &extensions,
+            HookName::PreCompile,
+            &pre_compile_ctx,
+            &printer,
+        )
+        .await;
 
         for p in &packages {
             self.create_cmd(p, target_dir)?.run(global_args)?;
@@ -164,7 +162,6 @@ impl Command {
         // Build post-compile context with populated wasm_paths.
         let wasm_paths: BTreeMap<String, std::path::PathBuf> = packages
             .iter()
-            .filter(|p| !p.name.is_empty())
             .map(|p| {
                 let name = p.name.replace('-', "_");
                 let path = stellar_build::stellar_wasm_out_file(target_dir.as_std_path(), &name);
@@ -179,15 +176,13 @@ impl Command {
             wasm_paths,
         };
 
-        if !extensions.is_empty() {
-            extension::run_hook(
-                &extensions,
-                HookName::PostCompile,
-                &post_compile_ctx,
-                &printer,
-            )
-            .await;
-        }
+        extension::run_hook(
+            &extensions,
+            HookName::PostCompile,
+            &post_compile_ctx,
+            &printer,
+        )
+        .await;
 
         if self.build_clients {
             let mut build_clients_args = self.build_clients_args.clone();
