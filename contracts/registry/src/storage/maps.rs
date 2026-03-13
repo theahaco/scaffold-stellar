@@ -52,6 +52,11 @@ where
         self.env.storage().persistent().has(&k)
     }
 
+    pub fn remove(&mut self, key: &K) {
+        let k = W::to_key(&self.env, key);
+        self.env.storage().persistent().remove(&k);
+    }
+
     pub fn extend_ttl(&self, key: &K, threshold: u32, extend_to: u32) {
         let k = W::to_key(&self.env, key);
         self.env

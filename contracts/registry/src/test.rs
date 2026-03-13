@@ -8,6 +8,8 @@ extern crate std;
 mod contracts;
 mod registry;
 
+mod batch;
+mod manageable;
 mod names;
 mod unverified;
 mod verified;

@@ -67,6 +67,14 @@ impl ToStorageKey<NormalizedName> for WasmKey {
     }
 }
 
+pub struct BatchKey;
+
+impl ToStorageKey<u32> for BatchKey {
+    fn to_key(env: &Env, k: &u32) -> Val {
+        (symbol_short!("BA"), *k).into_val(env)
+    }
+}
+
 pub struct HashKey;
 
 impl ToStorageKey<BytesN<32>> for HashKey {
@@ -99,6 +107,82 @@ impl TryFromVal<Env, Val> for ContractEntry {
 impl From<(Address, Address)> for ContractEntry {
     fn from((owner, contract): (Address, Address)) -> Self {
         ContractEntry { owner, contract }
+    }
+}
+
+#[derive(Clone)]
+pub struct BatchEntry {
+    pub contract_name: NormalizedName,
+    pub contract_address: Address,
+    pub owner: Address,
+}
+
+impl IntoVal<Env, Val> for BatchEntry {
+    fn into_val(&self, env: &Env) -> Val {
+        (
+            self.contract_name.to_string().to_val(),
+            self.contract_address.to_val(),
+            self.owner.to_val(),
+        )
+            .into_val(env)
+    }
+}
+
+impl TryFromVal<Env, Val> for BatchEntry {
+    type Error = soroban_sdk::Error;
+
+    fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
+        let (name, contract_address, owner): (soroban_sdk::String, Address, Address) =
+            TryFromVal::try_from_val(env, v)?;
+        Ok(BatchEntry {
+            contract_name: NormalizedName::new(&name)?,
+            contract_address,
+            owner,
+        })
+    }
+}
+
+pub struct BatchCounter;
+
+impl ToStorageKey<()> for BatchCounter {
+    fn to_key(_: &Env, (): &()) -> Val {
+        symbol_short!("BATCHCNT").to_val()
+    }
+}
+
+/// ~1 week at 5s/ledger
+pub const BATCH_TTL: u32 = 120_960;
+
+impl Storage {
+    pub fn batch_count(env: &Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&BatchCounter::to_key(env, &()))
+            .unwrap_or(0)
+    }
+
+    pub fn set_batch_count(env: &Env, count: u32) {
+        env.storage()
+            .instance()
+            .set(&BatchCounter::to_key(env, &()), &count);
+    }
+
+    pub fn get_batch_entry(env: &Env, index: u32) -> Option<BatchEntry> {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().get(&k)
+    }
+
+    pub fn set_batch_entry(env: &Env, index: u32, entry: &BatchEntry) {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().set(&k, entry);
+        env.storage()
+            .temporary()
+            .extend_ttl(&k, BATCH_TTL, BATCH_TTL);
+    }
+
+    pub fn remove_batch_entry(env: &Env, index: u32) {
+        let k = BatchKey::to_key(env, &index);
+        env.storage().temporary().remove(&k);
     }
 }
 
