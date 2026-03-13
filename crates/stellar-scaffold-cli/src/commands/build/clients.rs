@@ -5,6 +5,7 @@ use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml::{self, Environment};
 use crate::commands::npm_cmd;
+use crate::extension::{self, ResolvedExtension};
 use indexmap::IndexMap;
 use regex::Regex;
 use serde_json;
@@ -22,6 +23,9 @@ use stellar_cli::{
     print::Print,
     utils::contract_hash,
     utils::contract_spec::Spec,
+};
+use stellar_scaffold_ext_types::{
+    CodegenContext, CompileContext, DeployContext, HookName, NetworkConfig,
 };
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::ScSpecEntry::FunctionV0;
@@ -57,6 +61,10 @@ pub struct Args {
     pub out_dir: Option<std::path::PathBuf>,
     #[arg(skip)]
     pub global_args: Option<stellar_cli::commands::global::Args>,
+    #[arg(skip)]
+    pub extensions: Vec<ResolvedExtension>,
+    #[arg(skip)]
+    pub compile_ctx: Option<CompileContext>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -142,9 +150,12 @@ pub struct Builder {
     printer: Print,
     pub(crate) out_dir: Option<PathBuf>,
     env: Environment,
+    extensions: Vec<ResolvedExtension>,
+    compile_ctx: Option<CompileContext>,
 }
 
 impl Builder {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global_args: stellar_cli::commands::global::Args,
         network: network::Network,
@@ -153,6 +164,8 @@ impl Builder {
         scaffold_env: ScaffoldEnv,
         out_dir: Option<PathBuf>,
         env: Environment,
+        extensions: Vec<ResolvedExtension>,
+        compile_ctx: Option<CompileContext>,
     ) -> Self {
         Self {
             printer: Print::new(global_args.quiet),
@@ -163,6 +176,8 @@ impl Builder {
             workspace_root,
             out_dir,
             env,
+            extensions,
+            compile_ctx,
         }
     }
 
@@ -191,6 +206,66 @@ impl Builder {
 
     fn printer(&self) -> &Print {
         &self.printer
+    }
+
+    fn network_config(&self) -> NetworkConfig {
+        NetworkConfig {
+            rpc_url: self.network.rpc_url.clone(),
+            network_passphrase: self.network.network_passphrase.clone(),
+            network_name: self.env.network.name.clone(),
+        }
+    }
+
+    fn base_compile_ctx(&self) -> CompileContext {
+        self.compile_ctx.clone().unwrap_or_else(|| {
+            let target = self.workspace_root.join("target");
+            CompileContext {
+                project_root: self.workspace_root.clone(),
+                env: self.scaffold_env.to_string(),
+                wasm_out_dir: stellar_build::deps::stellar_wasm_out_dir(&target),
+                source_dirs: vec![],
+                wasm_paths: std::collections::BTreeMap::new(),
+            }
+        })
+    }
+
+    fn deploy_ctx(
+        &self,
+        name: &str,
+        wasm_path: PathBuf,
+        wasm_hash: &str,
+        contract_id: Option<String>,
+    ) -> DeployContext {
+        DeployContext {
+            compile: self.base_compile_ctx(),
+            network: self.network_config(),
+            contract_name: name.to_string(),
+            wasm_path,
+            wasm_hash: wasm_hash.to_string(),
+            contract_id,
+        }
+    }
+
+    fn codegen_ctx(
+        &self,
+        name: &str,
+        contract_id: &str,
+        wasm_hash: Option<&str>,
+        ts_package_dir: PathBuf,
+        src_template_path: PathBuf,
+    ) -> CodegenContext {
+        CodegenContext {
+            deploy: DeployContext {
+                compile: self.base_compile_ctx(),
+                network: self.network_config(),
+                contract_name: name.to_string(),
+                wasm_path: self.get_wasm_path(name),
+                wasm_hash: wasm_hash.unwrap_or("").to_string(),
+                contract_id: Some(contract_id.to_string()),
+            },
+            ts_package_dir,
+            src_template_path,
+        }
     }
 
     fn get_contract_alias(
@@ -273,17 +348,39 @@ export default new Client.Client({{
         Ok(())
     }
 
-    async fn generate_contract_bindings(&self, name: &str, contract_id: &str) -> Result<(), Error> {
+    #[allow(clippy::too_many_lines)]
+    async fn generate_contract_bindings(
+        &self,
+        name: &str,
+        contract_id: &str,
+        wasm_hash: Option<&str>,
+    ) -> Result<(), Error> {
         let network = &self.network;
         let printer = self.printer();
         printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = &self.workspace_root;
         let final_output_dir = workspace_root.join(format!("packages/{name}"));
+        let src_template_path = workspace_root.join(format!("src/contracts/{name}.ts"));
 
         // Create a temporary directory for building the new client
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
         let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
+
+        extension::run_hook(
+            &self.extensions,
+            HookName::PreCodegen,
+            &self.codegen_ctx(
+                name,
+                contract_id,
+                wasm_hash,
+                final_output_dir.clone(),
+                src_template_path.clone(),
+            ),
+            printer,
+        )
+        .await;
+
         let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
             "--contract-id",
             contract_id,
@@ -380,6 +477,21 @@ export default new Client.Client({{
         }
 
         self.create_contract_template(name, contract_id, network)?;
+
+        extension::run_hook(
+            &self.extensions,
+            HookName::PostCodegen,
+            &self.codegen_ctx(
+                name,
+                contract_id,
+                wasm_hash,
+                final_output_dir,
+                src_template_path,
+            ),
+            printer,
+        )
+        .await;
+
         Ok(())
     }
 
@@ -475,7 +587,7 @@ export default new Client.Client({{
                 if stellar_strkey::Contract::from_string(id).is_err() {
                     return Err(Error::InvalidContractID(id.to_string()));
                 }
-                self.generate_contract_bindings(name, id).await?;
+                self.generate_contract_bindings(name, id, None).await?;
             } else {
                 return Err(Error::MissingContractID(name.to_string()));
             }
@@ -594,9 +706,12 @@ export default new Client.Client({{
         env: ScaffoldEnv,
     ) -> Result<(), Error> {
         let printer = self.printer();
-        // First check if we have an ID in settings
-        let contract_id = if let Some(id) = &settings.id {
-            Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?
+        // First check if we have an ID in settings.
+        // Returns (contract_id, wasm_hash) — wasm_hash is None for pinned-ID contracts.
+        let (contract_id, wasm_hash) = if let Some(id) = &settings.id {
+            let contract_id =
+                Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?;
+            (contract_id, None::<String>)
         } else {
             let wasm_path = self.get_wasm_path(name);
             if !wasm_path.exists() {
@@ -618,6 +733,7 @@ export default new Client.Client({{
                             self.generate_contract_bindings(
                                 name,
                                 &existing_contract_id.to_string(),
+                                Some(&new_hash),
                             )
                             .await?;
                         }
@@ -636,6 +752,15 @@ export default new Client.Client({{
                 printer.infoln(format!("Updating contract {name:?}"));
             }
 
+            // Fire pre-deploy hook before the actual deploy/upgrade.
+            extension::run_hook(
+                &self.extensions,
+                HookName::PreDeploy,
+                &self.deploy_ctx(name, wasm_path.clone(), &new_hash, None),
+                printer,
+            )
+            .await;
+
             // Deploy new contract if we got here (don't deploy if we already run an upgrade)
             let contract_id = if let Some(upgraded) = upgraded_contract {
                 upgraded
@@ -651,10 +776,20 @@ export default new Client.Client({{
                     .await?;
             }
             self.save_contract_alias(name, &contract_id, network)?;
-            contract_id
+
+            // Fire post-deploy hook after the contract ID is confirmed.
+            extension::run_hook(
+                &self.extensions,
+                HookName::PostDeploy,
+                &self.deploy_ctx(name, wasm_path, &new_hash, Some(contract_id.to_string())),
+                printer,
+            )
+            .await;
+
+            (contract_id, Some(new_hash))
         };
 
-        self.generate_contract_bindings(name, &contract_id.to_string())
+        self.generate_contract_bindings(name, &contract_id.to_string(), wasm_hash.as_deref())
             .await?;
 
         Ok(())
@@ -962,6 +1097,8 @@ impl Args {
             env,
             self.out_dir.clone(),
             current_env,
+            self.extensions.clone(),
+            self.compile_ctx.clone(),
         );
         Ok(builder)
     }

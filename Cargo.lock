@@ -4401,6 +4401,7 @@ dependencies = [
  "soroban-spec-tools",
  "stellar-build",
  "stellar-rpc-client",
+ "stellar-scaffold-ext-types",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.15",
  "stellar-xdr 25.0.0",
@@ -4414,6 +4415,14 @@ dependencies = [
  "uuid",
  "walkdir",
  "webbrowser",
+]
+
+[[package]]
+name = "stellar-scaffold-ext-types"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
