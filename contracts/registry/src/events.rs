@@ -5,6 +5,8 @@ use soroban_sdk::{contractevent, Address, BytesN, String};
 pub struct Register {
     pub contract_name: String,
     pub contract_id: Address,
+    pub sac: bool,
+    pub wasm_hash: Option<BytesN<32>>,
 }
 
 #[contractevent(topics = ["deploy"])]

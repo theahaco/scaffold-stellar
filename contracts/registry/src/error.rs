@@ -37,4 +37,6 @@ pub enum Error {
     NotContractOwner = 14,
     /// Batch entry missing from temporary storage (likely expired)
     BatchEntryExpired = 15,
+    AccountAddressNotValid = 16,
+    ContractIdAddressDoesNotExist = 17,
 }
