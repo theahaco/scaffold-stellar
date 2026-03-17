@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
 
-pub mod batch_register;
 pub mod create_alias;
 pub mod current_version;
 pub mod deploy;
@@ -11,7 +10,6 @@ pub mod download;
 pub mod fetch_contract_id;
 pub mod fetch_hash;
 pub mod global;
-pub mod process_batch;
 pub mod publish;
 pub mod publish_hash;
 pub mod register_contract;
@@ -51,14 +49,12 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::BatchRegister(cmd) => cmd.run().await?,
             Cmd::CurrentVersion(cmd) => cmd.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
             Cmd::DeployUnnamed(cmd) => cmd.run().await?,
             Cmd::Download(cmd) => cmd.run().await?,
             Cmd::FetchContractId(cmd) => cmd.run().await?,
             Cmd::FetchHash(cmd) => cmd.run().await?,
-            Cmd::ProcessBatch(cmd) => cmd.run().await?,
             Cmd::Publish(p) => p.run().await?,
             Cmd::PublishHash(cmd) => cmd.run().await?,
             Cmd::CreateAlias(i) => i.run().await?,
@@ -83,8 +79,6 @@ impl FromStr for Root {
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
-    /// Stage multiple contracts for batch registration
-    BatchRegister(Box<batch_register::Cmd>),
     /// Create a local `stellar contract alias` from a named registry contract
     CreateAlias(Box<create_alias::Cmd>),
     /// Get the current (latest) version of a published Wasm
@@ -99,8 +93,6 @@ pub enum Cmd {
     FetchContractId(Box<fetch_contract_id::Cmd>),
     /// Fetch the hash of a published Wasm binary
     FetchHash(Box<fetch_hash::Cmd>),
-    /// Process staged batch entries, registering each contract
-    ProcessBatch(Box<process_batch::Cmd>),
     /// Publish Wasm to registry with package name and semantic version
     Publish(Box<publish::Cmd>),
     /// Publish a Wasm hash (already uploaded) to registry
@@ -122,8 +114,6 @@ pub enum Cmd {
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    BatchRegister(#[from] batch_register::Error),
-    #[error(transparent)]
     CreateAlias(#[from] create_alias::Error),
     #[error(transparent)]
     CurrentVersion(#[from] current_version::Error),
@@ -137,8 +127,6 @@ pub enum Error {
     FetchContractId(#[from] fetch_contract_id::Error),
     #[error(transparent)]
     FetchHash(#[from] fetch_hash::Error),
-    #[error(transparent)]
-    ProcessBatch(#[from] process_batch::Error),
     #[error(transparent)]
     Publish(#[from] publish::Error),
     #[error(transparent)]

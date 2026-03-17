@@ -1,16 +1,20 @@
 use crate::{
     error::Error,
-    test::contracts::{hw_bytes, hw_hash},
+    test::contracts::{hello_world, hw_bytes, hw_hash},
     test::registry::{to_string, Registry},
 };
-use soroban_sdk::{self, testutils::Address as _, Address};
+use soroban_sdk::{self, testutils::Address as _, testutils::Register, Address};
+
+fn deploy_hw(env: &soroban_sdk::Env, owner: &Address) -> Address {
+    hello_world::WASM.register(env, None, hello_world::Args::__constructor(owner))
+}
 
 fn setup_with_registered_contract<'a>() -> (Registry<'a>, Address) {
     let registry = Registry::new_with_bytes(&hw_bytes, &hw_hash);
     let env = registry.env();
-    let addr = Address::generate(env);
-    env.mock_all_auths();
     let owner = registry.admin().clone();
+    env.mock_all_auths();
+    let addr = deploy_hw(env, &owner);
     registry
         .client()
         .register_contract(&to_string(env, "my-contract"), &addr, &owner);
@@ -77,9 +81,9 @@ fn rename_to_taken_name() {
     let client = registry.client();
 
     // Register another contract
-    let addr2 = Address::generate(env);
     let owner = registry.admin();
     env.mock_all_auths();
+    let addr2 = deploy_hw(env, owner);
     client.register_contract(&to_string(env, "other-contract"), &addr2, owner);
 
     // Try to rename to taken name
@@ -116,9 +120,9 @@ fn non_owner_without_manager_fails() {
     let env = registry.env();
     let client = registry.client();
 
-    let addr = Address::generate(env);
     let owner = Address::generate(env);
     env.mock_all_auths();
+    let addr = deploy_hw(env, &owner);
     client.register_contract(&to_string(env, "my-contract"), &addr, &owner);
 
     // Non-owner trying to update (no manager, so owner auth required)

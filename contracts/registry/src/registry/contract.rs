@@ -280,6 +280,7 @@ pub trait Batchable {
     /// Stage a batch of existing contracts for registration.
     /// Requires manager auth if manager is set, otherwise admin auth.
     /// Each entry is (`contract_name`, `contract_address`, `owner`).
+    /// The entire batch is stored in a single write after validation.
     fn batch_register(
         env: &Env,
         contracts: soroban_sdk::Vec<(
