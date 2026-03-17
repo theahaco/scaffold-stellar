@@ -5,6 +5,7 @@ use stellar_cli;
 
 pub mod build;
 pub mod clean;
+pub mod ext;
 pub mod generate;
 pub mod init;
 pub mod update_env;
@@ -49,6 +50,9 @@ impl Root {
             Cmd::Generate(generate) => match &mut generate.cmd {
                 generate::Command::Contract(contract) => contract.run(&self.global_args).await?,
             },
+            Cmd::Ext(ext_cmd) => match &ext_cmd.cmd {
+                ext::Command::Ls(ls) => ls.run(&self.global_args).map_err(ext::Error::from)?,
+            },
             Cmd::Upgrade(upgrade_info) => upgrade_info.run(&self.global_args).await?,
             Cmd::UpdateEnv(e) => e.run()?,
             Cmd::Watch(watch_info) => watch_info.run(&self.global_args).await?,
@@ -79,6 +83,9 @@ pub enum Cmd {
     /// generate contracts
     Generate(generate::Cmd),
 
+    /// Inspect and manage extensions
+    Ext(ext::Cmd),
+
     /// Upgrade an existing Soroban workspace to a scaffold project
     Upgrade(upgrade::Cmd),
 
@@ -101,6 +108,8 @@ pub enum Error {
     BuildContracts(#[from] build::Error),
     #[error(transparent)]
     Contract(#[from] generate::contract::Error),
+    #[error(transparent)]
+    Ext(#[from] ext::Error),
     #[error(transparent)]
     Upgrade(#[from] upgrade::Error),
     #[error(transparent)]
