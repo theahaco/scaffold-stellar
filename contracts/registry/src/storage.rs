@@ -113,10 +113,7 @@ impl Storage {
         env.storage().temporary().get(&k)
     }
 
-    pub fn set_batch(
-        env: &Env,
-        batch: &soroban_sdk::Vec<(soroban_sdk::String, Address, Address)>,
-    ) {
+    pub fn set_batch(env: &Env, batch: &soroban_sdk::Vec<(soroban_sdk::String, Address, Address)>) {
         let k = symbol_short!("BATCH").to_val();
         env.storage().temporary().set(&k, batch);
         env.storage()
