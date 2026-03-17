@@ -3,7 +3,7 @@ use crate::{
     test::contracts::{hello_world, hw_bytes, hw_hash},
     test::registry::{to_string, Registry},
 };
-use soroban_sdk::{self, testutils::Address as _, testutils::Register, vec, Address, Vec};
+use soroban_sdk::{self, testutils::Register, vec, Address, Vec};
 
 fn deploy_hw(env: &soroban_sdk::Env, owner: &Address) -> Address {
     hello_world::WASM.register(env, None, hello_world::Args::__constructor(owner))

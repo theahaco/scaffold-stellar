@@ -295,64 +295,58 @@ pub trait Batchable {
             Contract::require_admin(env);
         }
 
-        let mut count = Storage::batch_count(env);
         let contract_map = Storage::new(env).contract;
         let mut seen: soroban_sdk::Map<soroban_sdk::String, ()> = soroban_sdk::Map::new(env);
 
         for entry in contracts.iter() {
-            let (name_str, contract_address, owner) = entry;
+            let (name_str, _contract_address, _owner) = entry;
             let contract_name: NormalizedName = name_str.try_into()?;
             let name_key = contract_name.to_string();
 
-            // Verify name is not already deployed
             if contract_map.has(&contract_name) {
                 return Err(Error::AlreadyDeployed);
             }
 
-            // Verify no duplicate names within the batch
             if seen.contains_key(name_key.clone()) {
                 return Err(Error::AlreadyDeployed);
             }
             seen.set(name_key, ());
-
-            Storage::set_batch_entry(
-                env,
-                count,
-                &crate::storage::BatchEntry {
-                    contract_name,
-                    contract_address,
-                    owner,
-                },
-            );
-            count += 1;
         }
-        Storage::set_batch_count(env, count);
+
+        Storage::set_batch(env, &contracts);
         Ok(())
     }
 
-    /// Process pending batch entries, registering each contract.
+    /// Process up to `limit` pending batch entries, registering each contract.
     /// Callable by anyone. Returns the number of contracts processed.
-    fn process_batch(env: &Env) -> Result<u32, Error> {
-        let count = Storage::batch_count(env);
-        if count == 0 {
+    /// Call repeatedly to iterate through all entries.
+    fn process_batch(env: &Env, limit: u32) -> Result<u32, Error> {
+        let batch = Storage::get_batch(env).ok_or(Error::NoPendingBatch)?;
+        let len = batch.len();
+        let cursor = Storage::batch_cursor(env);
+
+        if cursor >= len {
             return Err(Error::NoPendingBatch);
         }
 
+        let end = (cursor + limit).min(len);
         let mut processed = 0u32;
 
-        for i in 0..count {
-            let entry = Storage::get_batch_entry(env, i).ok_or(Error::BatchEntryExpired)?;
-            Contract::register_contract_name(
-                env,
-                &entry.contract_name,
-                &entry.contract_address,
-                &entry.owner,
-            );
-            Storage::remove_batch_entry(env, i);
+        for i in cursor..end {
+            let (name_str, contract_address, owner) =
+                batch.get(i).ok_or(Error::BatchEntryExpired)?;
+            let contract_name: NormalizedName = name_str.try_into()?;
+            Contract::register_contract_name(env, &contract_name, &contract_address, &owner);
             processed += 1;
         }
 
-        Storage::set_batch_count(env, count - processed);
+        if end >= len {
+            Storage::remove_batch(env);
+            Storage::remove_batch_cursor(env);
+        } else {
+            Storage::set_batch_cursor(env, end);
+        }
+
         Ok(processed)
     }
 }
