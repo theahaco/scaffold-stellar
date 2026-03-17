@@ -243,8 +243,8 @@ mod tests {
     /// Parse a TOML string that contains exactly one environment keyed by
     /// `"development"` and return its [`Environment`].
     fn parse_dev(toml: &str) -> Environment {
-        let mut envs: Environments = toml::from_str(toml).expect("valid TOML");
-        envs.remove("development").expect("development key present")
+        let mut envs: Environments = toml::from_str(toml).expect("invalid TOML");
+        envs.remove("development").expect("missing development key")
     }
 
     // Minimal required fields for a valid Environment.

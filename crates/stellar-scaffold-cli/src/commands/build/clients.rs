@@ -255,14 +255,12 @@ impl Builder {
         src_template_path: PathBuf,
     ) -> CodegenContext {
         CodegenContext {
-            deploy: DeployContext {
-                compile: self.base_compile_ctx(),
-                network: self.network_config(),
-                contract_name: name.to_string(),
-                wasm_path: self.get_wasm_path(name),
-                wasm_hash: wasm_hash.unwrap_or("").to_string(),
-                contract_id: Some(contract_id.to_string()),
-            },
+            deploy: self.deploy_ctx(
+                name,
+                self.get_wasm_path(name),
+                wasm_hash.unwrap_or(""),
+                Some(contract_id.to_string()),
+            ),
             ts_package_dir,
             src_template_path,
         }
@@ -752,7 +750,7 @@ export default new Client.Client({{
                 printer.infoln(format!("Updating contract {name:?}"));
             }
 
-            // Fire pre-deploy hook before the actual deploy/upgrade.
+            // Fire pre-deploy hook before the actual deploy
             extension::run_hook(
                 &self.extensions,
                 HookName::PreDeploy,
