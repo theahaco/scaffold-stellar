@@ -37,4 +37,8 @@ pub enum Error {
     NotContractOwner = 14,
     /// Batch entry missing from temporary storage (likely expired)
     BatchEntryExpired = 15,
+    /// Given "contract ID" appears to be a G-address, not a contract ID
+    AccountAddressNotValid = 16,
+    /// Given contract ID does not exist on this network
+    ContractIdAddressDoesNotExist = 17,
 }

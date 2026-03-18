@@ -47,15 +47,21 @@ impl Contract {
     /// - `manager`: optional. If set, makes this a *managed* registry, meaning `publish`, `register_contract`, & `deploy` must be approved by the manager before caller's account is considered trusted for that contract/wasm name.
     /// - `is_root`: if true, this registry is the root registry, meaning it has no namespace. Other Registry contracts, like the `unverified` one, are themselves registered in the root Registry. If `is_root` is true, this constructor will also auto-deploy the `unverified` Registry.
     #[allow(clippy::needless_pass_by_value)]
-    pub fn __constructor(env: &Env, admin: &Address, manager: Option<Address>, is_root: bool) {
+    pub fn __constructor(
+        env: &Env,
+        admin: &Address,
+        manager: Option<Address>,
+        is_root: bool,
+    ) -> Result<(), Error> {
         Self::set_admin(env, admin);
         if let Some(manager) = &manager {
             Storage::set_manager_no_auth(env, manager);
         }
         if is_root {
             assert_with_error!(env, manager.is_some(), Error::ManagerRequired);
-            Self::deploy_unverified_and_claim_registry(env, admin);
+            Self::deploy_unverified_and_claim_registry(env, admin)?;
         }
+        Ok(())
     }
 
     /// The manager account which if set authorizes initial publishes and claiming a contract id
