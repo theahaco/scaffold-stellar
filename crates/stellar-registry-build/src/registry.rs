@@ -77,11 +77,7 @@ pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Cont
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(network_passphrase, "verified")
-}
-
-pub fn unverified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(network_passphrase, "unverified")
+    contract_id(network_passphrase, "v0.4.0")
 }
 
 #[cfg(test)]
@@ -99,7 +95,7 @@ mod generate_id {
     fn futurenet() {
         test_contract_id((
             FUTURENET,
-            "CBUP2U7IY4GBZWILAGFGBOGEJEVSWZ6FAIKAX2L7PYOEE7R556LNXRJM",
+            "CBZFKVRJ5TQV4QUJWOUTEKITPXC5SK3R6GA6YY2JWE27PEWYKCNHBTSX",
         ));
     }
 
@@ -107,7 +103,7 @@ mod generate_id {
     fn testnet() {
         test_contract_id((
             TESTNET,
-            "CBFFTTX7QKA76FS4LHHQG54BC7JF5RMEX4RTNNJ5KEL76LYHVO3E3OEE",
+            "CDYHYDLKBRYOGWG5R4J2AEMIPRI5U5KHPVHGYLKPSMXHZJMZCEHVUYVH",
         ));
     }
 
@@ -115,7 +111,7 @@ mod generate_id {
     fn mainnet() {
         test_contract_id((
             MAINNET,
-            "CCRKU6NT4CRG4TVKLCCJFU7EOSAUBHWGBJF2JWZJSKTJTXCXXTKOJIUS",
+            "CBUYDTVHEKW4UQALES6ZK4ORSZDRGZJSQ3WLD4R462Y6XK33J6VY6ENC",
         ));
     }
 
@@ -123,7 +119,7 @@ mod generate_id {
     fn local() {
         test_contract_id((
             LOCAL,
-            "CDUK4O7FPAPZWAMS6PBKM7E4IO5MCBJ2ZPZ6K2GOHK33YW7Q4H7YZ35Z",
+            "CC7IDMNHYXKJFD6H2ET5BYDFSSJKQRBIZD5XBMYHKRJRSUOCZSSAVBW4",
         ));
     }
 }
