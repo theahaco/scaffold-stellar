@@ -99,7 +99,7 @@ impl Contract {
         contract_name: &NormalizedName,
         contract_id: &Address,
         contract_admin: &Address,
-    ) {
+    ) -> Result<(), Error> {
         let mut contract_map = Storage::new(env).contract;
         contract_map.set(
             contract_name,
@@ -108,11 +108,22 @@ impl Contract {
                 contract: contract_id.clone(),
             },
         );
+        let wasm_hash = match contract_id
+            .executable()
+            .ok_or(Error::ContractIdAddressDoesNotExist)?
+        {
+            Executable::Wasm(bytes_n) => Some(bytes_n),
+            Executable::StellarAsset => None,
+            Executable::Account => return Err(Error::AccountAddressNotValid),
+        };
         crate::events::Register {
             contract_name: contract_name.to_string(),
             contract_id: contract_id.clone(),
+            sac: wasm_hash.is_none(),
+            wasm_hash,
         }
         .publish(env);
+        Ok(())
     }
 
     pub(crate) fn fetch_hash_and_deploy(
@@ -147,7 +158,10 @@ impl Contract {
     ///
     /// Furthermore it uses the `NormalizedName::new_unchecked`, which is unsafe because it skips validating
     /// the name, which we know already to be valid.
-    pub(crate) fn deploy_unverified_and_claim_registry(env: &Env, admin: &Address) {
+    pub(crate) fn deploy_unverified_and_claim_registry(
+        env: &Env,
+        admin: &Address,
+    ) -> Result<(), Error> {
         unsafe {
             if let Executable::Wasm(wasm_hash) = env
                 .current_contract_address()
@@ -169,14 +183,15 @@ impl Contract {
                     Some(args),
                     env.current_contract_address(),
                 );
-                Self::register_contract_name(env, &contract_name, &contract_address, admin);
+                Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
                 Self::register_contract_name(
                     env,
                     &name::registry(env),
                     &env.current_contract_address(),
                     admin,
-                );
+                )?;
             }
+            Ok(())
         }
     }
 }
@@ -226,7 +241,7 @@ pub trait Deployable {
             init,
             deployer.clone(),
         )?;
-        Contract::register_contract_name(env, &contract_name, &contract_id, &admin);
+        Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
         Ok(contract_id)
     }
 
@@ -254,7 +269,7 @@ pub trait Deployable {
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
         Contract::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Contract::register_contract_name(env, &contract_name, &contract_address, &owner);
+        Contract::register_contract_name(env, &contract_name, &contract_address, &owner)?;
         Ok(())
     }
 
