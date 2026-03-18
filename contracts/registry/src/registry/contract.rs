@@ -369,6 +369,7 @@ pub trait Manageable {
 
         Contract::require_owner_or_manager(env, &entry.owner);
 
+        storage.contract.extend_ttl_max(&contract_name);
         storage.contract.set(
             &contract_name,
             &ContractEntry {
@@ -399,7 +400,7 @@ pub trait Manageable {
             .ok_or(Error::NoSuchContractDeployed)?;
 
         Contract::require_owner_or_manager(env, &entry.owner);
-
+        storage.contract.extend_ttl_max(&contract_name);
         storage.contract.set(
             &contract_name,
             &ContractEntry {
