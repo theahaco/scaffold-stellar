@@ -14,6 +14,7 @@ use soroban_sdk::{
 };
 
 use crate::{error::Error, Contract};
+use admin_sep::AdministratableExtension;
 
 impl Contract {
     pub(crate) fn assert_no_contract_entry_and_authorize(
@@ -83,6 +84,14 @@ impl Contract {
         let r = env.try_invoke_contract::<(), InvokeError>(&contract_id, &fn_name, vec![&env, val]);
         let _ = r.map_err(|_| Error::UpgradeInvokeFailed)?;
         Ok(contract_id)
+    }
+
+    pub(crate) fn require_owner_or_manager(env: &Env, owner: &Address) {
+        if let Some(manager) = Storage::manager(env) {
+            manager.require_auth();
+        } else {
+            owner.require_auth();
+        }
     }
 
     pub(crate) fn register_contract_name(
@@ -263,6 +272,182 @@ pub trait Deployable {
         contract_name: soroban_sdk::String,
     ) -> Result<soroban_sdk::Address, Error> {
         Contract::get_contract_owner(env, &contract_name.try_into()?)
+    }
+}
+
+#[contracttrait]
+pub trait Batchable {
+    /// Stage a batch of existing contracts for registration.
+    /// Requires manager auth if manager is set, otherwise admin auth.
+    /// Each entry is (`contract_name`, `contract_address`, `owner`).
+    /// The entire batch is stored in a single write after validation.
+    fn batch_register(
+        env: &Env,
+        contracts: soroban_sdk::Vec<(
+            soroban_sdk::String,
+            soroban_sdk::Address,
+            soroban_sdk::Address,
+        )>,
+    ) -> Result<(), Error> {
+        if let Some(manager) = Storage::manager(env) {
+            manager.require_auth();
+        } else {
+            Contract::require_admin(env);
+        }
+
+        let contract_map = Storage::new(env).contract;
+        let mut seen: soroban_sdk::Map<soroban_sdk::String, ()> = soroban_sdk::Map::new(env);
+
+        for entry in contracts.iter() {
+            let (name_str, _contract_address, _owner) = entry;
+            let contract_name: NormalizedName = name_str.try_into()?;
+            let name_key = contract_name.to_string();
+
+            if contract_map.has(&contract_name) {
+                return Err(Error::AlreadyDeployed);
+            }
+
+            if seen.contains_key(name_key.clone()) {
+                return Err(Error::AlreadyDeployed);
+            }
+            seen.set(name_key, ());
+        }
+
+        Storage::set_batch(env, &contracts);
+        Ok(())
+    }
+
+    /// Process up to `limit` pending batch entries, registering each contract.
+    /// Callable by anyone. Returns the number of contracts processed.
+    /// Call repeatedly to iterate through all entries.
+    fn process_batch(env: &Env, limit: u32) -> Result<u32, Error> {
+        let batch = Storage::get_batch(env).ok_or(Error::NoPendingBatch)?;
+        let len = batch.len();
+        let cursor = Storage::batch_cursor(env);
+
+        if cursor >= len {
+            return Err(Error::NoPendingBatch);
+        }
+
+        let end = (cursor + limit).min(len);
+        let mut processed = 0u32;
+
+        for i in cursor..end {
+            let (name_str, contract_address, owner) =
+                batch.get(i).ok_or(Error::BatchEntryExpired)?;
+            let contract_name: NormalizedName = name_str.try_into()?;
+            Contract::register_contract_name(env, &contract_name, &contract_address, &owner);
+            processed += 1;
+        }
+
+        if end >= len {
+            Storage::remove_batch(env);
+            Storage::remove_batch_cursor(env);
+        } else {
+            Storage::set_batch_cursor(env, end);
+        }
+
+        Ok(processed)
+    }
+}
+
+#[contracttrait]
+pub trait Manageable {
+    /// Update the owner of a registered contract.
+    /// Requires current owner auth, or manager auth if manager is set.
+    fn update_contract_owner(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        new_owner: soroban_sdk::Address,
+    ) -> Result<(), Error> {
+        let contract_name: NormalizedName = contract_name.try_into()?;
+        let mut storage = Storage::new(env);
+        let entry = storage
+            .contract
+            .get(&contract_name)
+            .ok_or(Error::NoSuchContractDeployed)?;
+
+        Contract::require_owner_or_manager(env, &entry.owner);
+
+        storage.contract.extend_ttl_max(&contract_name);
+        storage.contract.set(
+            &contract_name,
+            &ContractEntry {
+                owner: new_owner.clone(),
+                contract: entry.contract,
+            },
+        );
+        crate::events::UpdateOwner {
+            contract_name: contract_name.to_string(),
+            new_owner,
+        }
+        .publish(env);
+        Ok(())
+    }
+
+    /// Update the contract address of a registered contract.
+    /// Requires current owner auth, or manager auth if manager is set.
+    fn update_contract_address(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        new_address: soroban_sdk::Address,
+    ) -> Result<(), Error> {
+        let contract_name: NormalizedName = contract_name.try_into()?;
+        let mut storage = Storage::new(env);
+        let entry = storage
+            .contract
+            .get(&contract_name)
+            .ok_or(Error::NoSuchContractDeployed)?;
+
+        Contract::require_owner_or_manager(env, &entry.owner);
+        storage.contract.extend_ttl_max(&contract_name);
+        storage.contract.set(
+            &contract_name,
+            &ContractEntry {
+                owner: entry.owner,
+                contract: new_address.clone(),
+            },
+        );
+        crate::events::UpdateAddress {
+            contract_name: contract_name.to_string(),
+            new_address,
+        }
+        .publish(env);
+        Ok(())
+    }
+
+    /// Rename a registered contract.
+    /// Requires current owner auth, or manager auth if manager is set.
+    fn rename_contract(
+        env: &Env,
+        old_name: soroban_sdk::String,
+        new_name: soroban_sdk::String,
+    ) -> Result<(), Error> {
+        let old_name: NormalizedName = old_name.try_into()?;
+        let new_name: NormalizedName = new_name.try_into()?;
+
+        let mut storage = Storage::new(env);
+        let entry = storage
+            .contract
+            .get(&old_name)
+            .ok_or(Error::NoSuchContractDeployed)?;
+
+        Contract::require_owner_or_manager(env, &entry.owner);
+
+        if storage.contract.has(&new_name) {
+            return Err(Error::AlreadyDeployed);
+        }
+
+        storage.contract.remove(&old_name);
+        storage.contract.set(&new_name, &entry);
+        storage.contract.extend_ttl_max(&new_name);
+
+        crate::events::Rename {
+            old_name: old_name.to_string(),
+            new_name: new_name.to_string(),
+        }
+        .publish(env);
+        Ok(())
     }
 }
 

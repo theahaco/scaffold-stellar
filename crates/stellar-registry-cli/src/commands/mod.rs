@@ -13,6 +13,9 @@ pub mod global;
 pub mod publish;
 pub mod publish_hash;
 pub mod register_contract;
+pub mod rename_contract;
+pub mod update_contract_address;
+pub mod update_contract_owner;
 pub mod upgrade;
 pub mod version;
 
@@ -56,6 +59,9 @@ impl Root {
             Cmd::PublishHash(cmd) => cmd.run().await?,
             Cmd::CreateAlias(i) => i.run().await?,
             Cmd::RegisterContract(cmd) => cmd.run().await?,
+            Cmd::RenameContract(cmd) => cmd.run().await?,
+            Cmd::UpdateContractAddress(cmd) => cmd.run().await?,
+            Cmd::UpdateContractOwner(cmd) => cmd.run().await?,
             Cmd::Version(p) => p.run(),
             Cmd::Upgrade(u) => u.run().await?,
         }
@@ -93,6 +99,12 @@ pub enum Cmd {
     PublishHash(Box<publish_hash::Cmd>),
     /// Register an existing contract with a name in the registry
     RegisterContract(Box<register_contract::Cmd>),
+    /// Rename a registered contract
+    RenameContract(Box<rename_contract::Cmd>),
+    /// Update the contract address of a registered contract
+    UpdateContractAddress(Box<update_contract_address::Cmd>),
+    /// Update the owner of a registered contract
+    UpdateContractOwner(Box<update_contract_owner::Cmd>),
     /// Upgrade a contract using a published Wasm
     Upgrade(Box<upgrade::Cmd>),
     /// Version of the scaffold-registry-cli
@@ -121,6 +133,12 @@ pub enum Error {
     PublishHash(#[from] publish_hash::Error),
     #[error(transparent)]
     RegisterContract(#[from] register_contract::Error),
+    #[error(transparent)]
+    RenameContract(#[from] rename_contract::Error),
+    #[error(transparent)]
+    UpdateContractAddress(#[from] update_contract_address::Error),
+    #[error(transparent)]
+    UpdateContractOwner(#[from] update_contract_owner::Error),
     #[error(transparent)]
     Upgrade(#[from] upgrade::Error),
 }

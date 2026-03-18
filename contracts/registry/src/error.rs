@@ -31,4 +31,10 @@ pub enum Error {
     HashAlreadyPublished = 11,
     /// Root registry requires manager when deploying
     ManagerRequired = 12,
+    /// No pending batch entries to process
+    NoPendingBatch = 13,
+    /// Caller is not the contract owner
+    NotContractOwner = 14,
+    /// Batch entry missing from temporary storage (likely expired)
+    BatchEntryExpired = 15,
 }
