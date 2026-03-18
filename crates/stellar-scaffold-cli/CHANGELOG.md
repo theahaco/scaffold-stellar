@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.20...stellar-scaffold-cli-v0.0.21) - 2026-03-18
+
+### Added
+
+- extension system ([#414](https://github.com/theahaco/scaffold-stellar/pull/414))
+- update OZ release to v0.7.0-rc.1 ([#398](https://github.com/theahaco/scaffold-stellar/pull/398))
+
 ## [0.0.20](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.19...stellar-scaffold-cli-v0.0.20) - 2026-03-02
 
 ### Fixed
