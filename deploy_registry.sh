@@ -3,12 +3,9 @@ set -e
 
 PATH=./target/bin:$PATH
 
-# ifndef STELLAR_NETWORK
-#    override STELLAR_NETWORK = local
-# endif
-
-VERIFED=$(sha256 -s verified)
-UNVERIFIED=$(sha256 -s unverified)
+# sha256 -s verified
+# echo -n verified | sha256sum
+VERIFED=1c34f88707b55e6104c4eb20e71ffa3d33e414b71ef689a15fad0640d0ac58cb
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 
@@ -18,14 +15,8 @@ stellar contract deploy --alias registry \
                         --salt $VERIFED \
                         -- \
                         --admin "$ADMIN" \
-                        --manager "\"$ADDRESS\""
-
-stellar contract deploy --alias registry \
-                        --wasm ./target/stellar/local/registry.wasm \
-                        --source "$ADMIN" \
-                        --salt $UNVERIFIED \
-                        -- \
-                        --admin "$ADMIN" 
+                        --manager "\"$ADDRESS\"" \
+                        --is-root true
 
 
 registry="stellar contract invoke --id registry --"
