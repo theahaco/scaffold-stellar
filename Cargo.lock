@@ -4440,6 +4440,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-scaffold-reporter"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde",
+ "serde_json",
+ "stellar-scaffold-ext-types",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "stellar-scaffold-test"
 version = "0.1.0"
 dependencies = [
