@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.17...stellar-registry-cli-v0.0.18) - 2026-03-18
+
+### Added
+
+- *(registry)* add batch registration and contract management ([#404](https://github.com/theahaco/scaffold-stellar/pull/404))
+
 ## [0.0.17](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.16...stellar-registry-cli-v0.0.17) - 2026-03-02
 
 ### Added
