@@ -1,5 +1,8 @@
+use crate::report::Reporter;
 use clap::{Parser, Subcommand};
-use stellar_scaffold_ext_types::{CompileContext, ExtensionManifest, HookName};
+use stellar_scaffold_ext_types::{
+    CodegenContext, CompileContext, DeployContext, ExtensionManifest, HookName, ProjectContext,
+};
 pub mod report;
 pub mod state;
 
@@ -14,12 +17,12 @@ enum Command {
     Manifest,
     PreCompile,
     PostCompile,
-    // PreDeploy,
-    // PostDeploy,
-    // PreCodegen,
-    // PostCodegen,
-    // PreDev,
-    // PostDev,
+    PreDeploy,
+    PostDeploy,
+    PreCodegen,
+    PostCodegen,
+    PreDev,
+    PostDev,
 }
 
 fn log_path(_project_root: &std::path::Path) -> Option<std::path::PathBuf> {
@@ -33,12 +36,12 @@ fn main() {
         Command::Manifest => cmd_manifest(),
         Command::PreCompile => cmd_pre_compile(),
         Command::PostCompile => cmd_post_compile(),
-        // Command::PreDeploy => cmd_pre_deploy(),
-        // Command::PostDeploy => cmd_post_deploy(),
-        // Command::PreCodegen => cmd_pre_codegen(),
-        // Command::PostCodegen => cmd_post_codegen(),
-        // Command::PreDev => cmd_pre_dev(),
-        // Command::PostDev => cmd_post_dev(),
+        Command::PreDeploy => cmd_pre_deploy(),
+        Command::PostDeploy => cmd_post_deploy(),
+        Command::PreCodegen => cmd_pre_codegen(),
+        Command::PostCodegen => cmd_post_codegen(),
+        Command::PreDev => cmd_pre_dev(),
+        Command::PostDev => cmd_post_dev(),
     }
 }
 
@@ -49,12 +52,12 @@ fn cmd_manifest() {
         hooks: [
             HookName::PreCompile,
             HookName::PostCompile,
-            // HookName::PreDeploy,
-            // HookName::PostDeploy,
-            // HookName::PreCodegen,
-            // HookName::PostCodegen,
-            // HookName::PreDev,
-            // HookName::PostDev,
+            HookName::PreDeploy,
+            HookName::PostDeploy,
+            HookName::PreCodegen,
+            HookName::PostCodegen,
+            HookName::PreDev,
+            HookName::PostDev,
         ]
         .map(|h| h.as_str().to_string())
         .to_vec(),
@@ -81,7 +84,7 @@ fn cmd_pre_compile() {
 fn cmd_post_compile() {
     let ctx: CompileContext = read_stdin();
     let mut state = state::load(&ctx.project_root);
-    let mut reporter = report::Reporter::new(log_path(&ctx.project_root).as_deref());
+    let mut reporter = Reporter::new(log_path(&ctx.project_root).as_deref());
 
     // Compile duration
     if let Some(start) = state.compile_start {
@@ -128,5 +131,117 @@ fn cmd_post_compile() {
         })
         .collect();
     state.compile_start = None;
+    state::save(&ctx.project_root, &state);
+}
+
+fn cmd_pre_deploy() {
+    let ctx: DeployContext = read_stdin();
+    let mut reporter = Reporter::new(log_path(&ctx.compile.project_root).as_deref());
+    reporter.log("📋 pre deploy hook");
+    let mut state = state::load(&ctx.compile.project_root);
+    state
+        .deploy_start
+        .insert(ctx.contract_name.clone(), state::now());
+    state::save(&ctx.compile.project_root, &state);
+}
+
+fn cmd_post_deploy() {
+    let ctx: DeployContext = read_stdin();
+    let mut state = state::load(&ctx.compile.project_root);
+    let mut reporter = Reporter::new(log_path(&ctx.compile.project_root).as_deref());
+    reporter.log("📋 post deploy hook");
+
+    let elapsed = state.deploy_start.remove(&ctx.contract_name).map_or_else(
+        || "?".to_string(),
+        |start| format!("{:.2}s", state::elapsed_since(start)),
+    );
+
+    let contract_id = ctx.contract_id.as_deref().unwrap_or("(unknown)");
+
+    reporter.log(&format!(
+        "📋 Deployed {}:\n    id = {}\n    hash = {}\n    duration = {}",
+        ctx.contract_name, &contract_id, &ctx.wasm_hash, elapsed,
+    ));
+
+    state::save(&ctx.compile.project_root, &state);
+}
+
+fn cmd_pre_codegen() {
+    let ctx: CodegenContext = read_stdin();
+    let mut reporter = Reporter::new(log_path(&ctx.deploy.compile.project_root).as_deref());
+    reporter.log("📋 pre codegen hook");
+    let mut state = state::load(&ctx.deploy.compile.project_root);
+    state
+        .codegen_start
+        .insert(ctx.deploy.contract_name, state::now());
+    state::save(&ctx.deploy.compile.project_root, &state);
+}
+
+fn cmd_post_codegen() {
+    let ctx: CodegenContext = read_stdin();
+    let mut state = state::load(&ctx.deploy.compile.project_root);
+    let mut reporter = Reporter::new(log_path(&ctx.deploy.compile.project_root).as_deref());
+    reporter.log("📋 post codegen hook");
+
+    let elapsed = state
+        .codegen_start
+        .remove(&ctx.deploy.contract_name)
+        .map_or_else(
+            || "?".to_string(),
+            |start| format!("{:.2}s", state::elapsed_since(start)),
+        );
+
+    // Sum the sizes of all files in ts_package_dir recursively
+    let ts_size_kb = dir_size_kb(&ctx.ts_package_dir);
+
+    reporter.log(&format!(
+        "📋 Codegen {}:\n    duration = {}\n    package size = {}",
+        ctx.deploy.contract_name, elapsed, ts_size_kb,
+    ));
+
+    state::save(&ctx.deploy.compile.project_root, &state);
+}
+
+/// Returns total size of all files under `dir` recursively, in KB.
+#[allow(clippy::cast_precision_loss)]
+fn dir_size_kb(dir: &std::path::Path) -> f64 {
+    fn visit(dir: &std::path::Path, total: &mut u64) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                visit(&path, total);
+            } else if let Ok(meta) = path.metadata() {
+                *total += meta.len();
+            }
+        }
+    }
+    let mut total = 0u64;
+    visit(dir, &mut total);
+    total as f64 / 1024.0
+}
+
+fn cmd_pre_dev() {
+    let ctx: ProjectContext = read_stdin();
+    let mut state = state::load(&ctx.project_root);
+    state.dev_start = Some(state::now());
+    state::save(&ctx.project_root, &state);
+}
+
+fn cmd_post_dev() {
+    let ctx: ProjectContext = read_stdin();
+    let mut state = state::load(&ctx.project_root);
+    let mut reporter = Reporter::new(log_path(&ctx.project_root).as_deref());
+
+    if let Some(start) = state.dev_start.take() {
+        let elapsed = state::elapsed_since(start);
+        let contract_count = ctx.contracts.len();
+        reporter.log(&format!(
+            "📋 build cycle complete: {contract_count} contract(s) in {elapsed:.2}s"
+        ));
+    }
+
     state::save(&ctx.project_root, &state);
 }
