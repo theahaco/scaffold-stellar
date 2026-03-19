@@ -4,13 +4,14 @@ set -e
 PATH=./target/bin:$PATH
 
 # sha256 -s verified
-# echo -n verified | sha256sum
-VERIFED=1c34f88707b55e6104c4eb20e71ffa3d33e414b71ef689a15fad0640d0ac58cb
+
+VERIFED=$(sha256 -s v0.4.1)
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
+echo "$VERIFED"
 
 stellar contract deploy --alias registry \
-                        --wasm ./target/stellar/local/registry.wasm \
+                        --wasm ./target/stellar/registry.wasm \
                         --source "$ADMIN" \
                         --salt $VERIFED \
                         -- \
@@ -23,6 +24,6 @@ registry="stellar contract invoke --id registry --"
 
 $registry --help
 
-just registry publish  --wasm ./target/stellar/local/registry.wasm \
+just registry publish  --wasm ./target/stellar/registry.wasm \
                          --author "$ADMIN" \
                          --source "$ADMIN"
