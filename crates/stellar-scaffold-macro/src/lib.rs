@@ -24,18 +24,13 @@ pub(crate) fn manifest() -> std::path::PathBuf {
 /// - If the canonical path cannot be converted to a string
 #[proc_macro]
 pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
-    let cargo_file = manifest();
-    let mut dir = stellar_build::get_target_dir(&cargo_file)
-        .unwrap()
-        .join(tokens.to_string());
-    let name = syn::parse::<syn::Ident>(tokens).expect("The input must be a valid identifier");
-    dir.set_extension("wasm");
-    let binding = dir.canonicalize().unwrap();
-    let file = binding.to_str().unwrap();
-    assert!(
-        std::path::PathBuf::from(file).exists(),
-        "The file does not exist: {file}"
-    );
+    let name =
+        syn::parse::<syn::Ident>(tokens.clone()).expect("The input must be a valid identifier");
+    let name_str = name.to_string();
+
+    let wasm_path = resolve_wasm_path(&name_str);
+    let file = wasm_path.to_str().unwrap();
+
     quote! {
         pub(crate) mod #name {
             #![allow(clippy::ref_option, clippy::too_many_arguments)]
@@ -44,6 +39,50 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+fn resolve_wasm_path(name: &str) -> std::path::PathBuf {
+    let target_dir = stellar_build::get_target_dir(&manifest()).unwrap();
+    let mut local_path = target_dir.join(name);
+    local_path.set_extension("wasm");
+
+    // 1. Check local build target
+    if local_path.exists() {
+        return local_path.canonicalize().unwrap();
+    }
+
+    // 2. Try registry download (unless opted out)
+    if env::var("STELLAR_NO_REGISTRY").is_err()
+        && let Ok(path) = download_from_registry(name, &target_dir)
+    {
+        return path;
+    }
+
+    panic!(
+        "Could not find wasm for '{name}'. Checked local target ({}) and registry. \
+         Build the contract or ensure registry access. \
+         Set STELLAR_NO_REGISTRY=1 to skip registry lookup.",
+        local_path.display()
+    );
+}
+
+fn download_from_registry(
+    name: &str,
+    target_dir: &std::path::Path,
+) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    let output = target_dir.join(name).with_extension("wasm");
+    if let Some(parent) = output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let output_str = output.display().to_string();
+    let status = std::process::Command::new("stellar")
+        .args(["registry", "download", name, "--out-file", &output_str])
+        .status()?;
+    if status.success() && output.exists() {
+        Ok(output.canonicalize()?)
+    } else {
+        Err("registry download failed".into())
+    }
 }
 
 /// Generates a contract Client for a given asset.
