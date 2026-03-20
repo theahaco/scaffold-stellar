@@ -120,18 +120,6 @@ pub struct ExtensionManifest {
 }
 
 // ---------------------------------------------------------------------------
-// ExtensionConfig
-// ---------------------------------------------------------------------------
-
-/// Arbitrary per-extension configuration, sourced from `environments.toml`.
-///
-/// The scaffold tool passes this opaque value to extensions alongside the hook
-/// context. Extensions are responsible for deserializing it into their own
-/// config struct.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtensionConfig(pub serde_json::Value);
-
-// ---------------------------------------------------------------------------
 // NetworkConfig
 // ---------------------------------------------------------------------------
 
@@ -172,6 +160,11 @@ pub struct NetworkConfig {
 /// | `wasm_paths` | empty | populated |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompileContext {
+    /// Per-extension config from `[env.ext.<name>]` in `environments.toml`.
+    /// `None` when no config was provided for this extension.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<serde_json::Value>,
+
     /// Absolute path to the Cargo workspace root (where `Cargo.toml` and
     /// `environments.toml` live).
     pub project_root: PathBuf,
@@ -345,6 +338,11 @@ pub struct ProjectContractInfo {
 /// | `contracts[*].wasm_path` etc. | `None` | populated |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectContext {
+    /// Per-extension config from `[env.ext.<name>]` in `environments.toml`.
+    /// `None` when no config was provided for this extension.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<serde_json::Value>,
+
     /// Absolute path to the Cargo workspace root.
     pub project_root: PathBuf,
 

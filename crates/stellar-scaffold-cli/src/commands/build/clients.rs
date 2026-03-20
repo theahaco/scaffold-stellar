@@ -220,6 +220,7 @@ impl Builder {
         self.compile_ctx.clone().unwrap_or_else(|| {
             let target = self.workspace_root.join("target");
             CompileContext {
+                config: None,
                 project_root: self.workspace_root.clone(),
                 env: self.scaffold_env.to_string(),
                 wasm_out_dir: stellar_build::deps::stellar_wasm_out_dir(&target),

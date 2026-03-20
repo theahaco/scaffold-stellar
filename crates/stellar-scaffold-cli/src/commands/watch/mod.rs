@@ -159,7 +159,6 @@ impl Cmd {
         } else {
             extension::discover(&current_env.extensions, &printer)
         };
-
         let all_packages = self.build_cmd.list_packages(metadata)?;
         let packages: Vec<PathBuf> = all_packages
             .iter()
@@ -203,6 +202,7 @@ impl Cmd {
             .chain(packages.iter().cloned())
             .collect();
         let project_ctx = ProjectContext {
+            config: None,
             project_root: workspace_root.to_path_buf(),
             env: scaffold_env.to_string(),
             wasm_out_dir: stellar_build::deps::stellar_wasm_out_dir(target_dir),

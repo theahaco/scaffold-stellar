@@ -75,14 +75,14 @@ fn read_stdin<T: serde::de::DeserializeOwned>() -> T {
 }
 
 fn cmd_pre_compile() {
-    let ctx: CompileContext = read_stdin();
+    let ctx = read_stdin::<CompileContext>();
     let mut state = state::load(&ctx.project_root);
     state.compile_start = Some(state::now());
     state::save(&ctx.project_root, &state);
 }
 
 fn cmd_post_compile() {
-    let ctx: CompileContext = read_stdin();
+    let ctx = read_stdin::<CompileContext>();
     let mut state = state::load(&ctx.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.project_root).as_deref());
 
@@ -135,7 +135,7 @@ fn cmd_post_compile() {
 }
 
 fn cmd_pre_deploy() {
-    let ctx: DeployContext = read_stdin();
+    let ctx = read_stdin::<DeployContext>();
     let mut reporter = Reporter::new(log_path(&ctx.compile.project_root).as_deref());
     reporter.log("📋 pre deploy hook");
     let mut state = state::load(&ctx.compile.project_root);
@@ -146,7 +146,7 @@ fn cmd_pre_deploy() {
 }
 
 fn cmd_post_deploy() {
-    let ctx: DeployContext = read_stdin();
+    let ctx = read_stdin::<DeployContext>();
     let mut state = state::load(&ctx.compile.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.compile.project_root).as_deref());
     reporter.log("📋 post deploy hook");
@@ -167,7 +167,7 @@ fn cmd_post_deploy() {
 }
 
 fn cmd_pre_codegen() {
-    let ctx: CodegenContext = read_stdin();
+    let ctx = read_stdin::<CodegenContext>();
     let mut reporter = Reporter::new(log_path(&ctx.deploy.compile.project_root).as_deref());
     reporter.log("📋 pre codegen hook");
     let mut state = state::load(&ctx.deploy.compile.project_root);
@@ -178,7 +178,7 @@ fn cmd_pre_codegen() {
 }
 
 fn cmd_post_codegen() {
-    let ctx: CodegenContext = read_stdin();
+    let ctx = read_stdin::<CodegenContext>();
     let mut state = state::load(&ctx.deploy.compile.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.deploy.compile.project_root).as_deref());
     reporter.log("📋 post codegen hook");
@@ -224,14 +224,14 @@ fn dir_size_kb(dir: &std::path::Path) -> f64 {
 }
 
 fn cmd_pre_dev() {
-    let ctx: ProjectContext = read_stdin();
+    let ctx = read_stdin::<ProjectContext>();
     let mut state = state::load(&ctx.project_root);
     state.dev_start = Some(state::now());
     state::save(&ctx.project_root, &state);
 }
 
 fn cmd_post_dev() {
-    let ctx: ProjectContext = read_stdin();
+    let ctx = read_stdin::<ProjectContext>();
     let mut state = state::load(&ctx.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.project_root).as_deref());
 
