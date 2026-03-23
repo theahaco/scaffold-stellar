@@ -32,7 +32,7 @@
     "@docusaurus/types": "3.9.2",
     "@stellar/prettier-config": "^1.2.0",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.3"
+    "typescript": "~6.0.2"
   },
   "browserslist": {
     "production": [
