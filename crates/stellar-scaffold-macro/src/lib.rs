@@ -1,9 +1,12 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::quote;
 use std::env;
 use stellar_build::Network;
+use syn::parse::{Parse, ParseStream, Result};
+use syn::parse_macro_input;
 
 mod asset;
 
@@ -23,19 +26,9 @@ pub(crate) fn manifest() -> std::path::PathBuf {
 /// - If the directory path cannot be canonicalized
 /// - If the canonical path cannot be converted to a string
 #[proc_macro]
-pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
-    let cargo_file = manifest();
-    let mut dir = stellar_build::get_target_dir(&cargo_file)
-        .unwrap()
-        .join(tokens.to_string());
-    let name = syn::parse::<syn::Ident>(tokens).expect("The input must be a valid identifier");
-    dir.set_extension("wasm");
-    let binding = dir.canonicalize().unwrap();
-    let file = binding.to_str().unwrap();
-    assert!(
-        std::path::PathBuf::from(file).exists(),
-        "The file does not exist: {file}"
-    );
+pub fn import_contract_client(wasm_binary: TokenStream) -> TokenStream {
+    let WasmBinary { name, file } = parse_macro_input!(wasm_binary as WasmBinary);
+
     quote! {
         pub(crate) mod #name {
             #![allow(clippy::ref_option, clippy::too_many_arguments)]
@@ -44,6 +37,83 @@ pub fn import_contract_client(tokens: TokenStream) -> TokenStream {
         }
     }
     .into()
+}
+
+struct WasmBinary {
+    pub name: Ident,
+    pub file: String,
+}
+
+impl Parse for WasmBinary {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name = input.parse()?;
+        let wasm_path = resolve_wasm_path(&name)?;
+        let file = wasm_path.display().to_string();
+        Ok(Self { name, file })
+    }
+}
+
+fn resolve_wasm_path(name: &Ident) -> Result<std::path::PathBuf> {
+    let target_dir = stellar_build::get_target_dir(&manifest()).unwrap();
+    let local_path = target_dir.join(name.to_string()).with_extension("wasm");
+
+    // 1. Check local build target
+    if local_path.exists() {
+        return Ok(local_path.canonicalize().expect("canonicalize failed"));
+    }
+
+    // 2. If STELLAR_NO_REGISTRY set to 1, error
+    if let Ok(v) = env::var("STELLAR_NO_REGISTRY")
+        && &v == "1"
+    {
+        return Err(syn::Error::new(
+            name.span(),
+            "No local wasm found and STELLAR_NO_REGISTRY=1 so not checking Registry. \
+            Download manually with `stellar registry download [wasm_name]`",
+        ));
+    }
+
+    // 3. if var absent or set to something else, try to download
+    download_from_registry(name, &local_path)
+}
+
+fn download_from_registry(
+    name: &Ident,
+    local_path: &std::path::Path,
+) -> Result<std::path::PathBuf> {
+    // 1. create `target/stellar/[network]` directory, if not already present
+    let parent = local_path.parent().expect("no parent");
+    if !parent.exists() {
+        std::fs::create_dir_all(parent).expect("creating parent directory failed");
+    }
+
+    // 2. download using `stellar registry download`
+    let status = std::process::Command::new("stellar")
+        .args([
+            "registry",
+            "download",
+            &name.to_string(),
+            "--out-file",
+            &local_path.display().to_string(),
+        ])
+        .status()
+        .expect("failed to execute `stellar registry download`");
+
+    // 3. check status
+    if status.success() && local_path.exists() {
+        Ok(local_path.canonicalize().expect("canonicalize failed"))
+    } else {
+        Err(syn::Error::new(
+            name.span(),
+            "Could not find a Wasm with this name in local `target` directory \
+            or in Stellar Registry. You can: \
+            \n\n1. check the name & network and try again (https://stellar.rgstry.xyz) \
+            \n2. add this Wasm to your local `target` directory manually \
+            (perhaps by compiling a contract) \
+            \n3. run `stellar registry download [wasm_name]`. \
+            \n\nSet STELLAR_NO_REGISTRY=1 to skip registry lookup.",
+        ))
+    }
 }
 
 /// Generates a contract Client for a given asset.
