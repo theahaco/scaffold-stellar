@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.6...stellar-registry-v0.0.7) - 2026-03-28
+
+### Added
+
+- *(macro)* add registry fallback for import_contract_client ([#406](https://github.com/theahaco/scaffold-stellar/pull/406))
+
 ## [0.0.6](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.5...stellar-registry-v0.0.6) - 2026-02-16
 
 ### Other
