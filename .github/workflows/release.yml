@@ -30,7 +30,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install needed Ubuntu Deps
-        run: sudo apt install libdbus-1-dev pkg-config libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing libdbus-1-dev pkg-config libudev-dev
       - name: clear cache
         run: cargo clean
       - name: Run release-plz
