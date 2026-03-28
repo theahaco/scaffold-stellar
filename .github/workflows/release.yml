@@ -32,7 +32,7 @@ jobs:
       - name: Install needed Ubuntu Deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y --fix-missing libdbus-1-dev pkg-config libudev-dev
+          sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
       - name: clear cache
         run: cargo clean
       - name: Run release-plz
