@@ -20,14 +20,20 @@ just build
 # Run unit tests (builds first)
 just test
 
+# Run a single test
+cargo t <test_name>
+
 # Run integration tests (requires local Stellar RPC via Docker)
 just test-integration
 
 # Format check
 cargo fmt --all -- --check
 
-# Lint (requires contracts built first)
-cargo clippy --all
+# Lint with pedantic flags (requires contracts built first)
+just clippy
+
+# Lint including tests
+just clippy-test
 
 # Run CLI directly during development
 just scaffold <args>    # runs stellar-scaffold
@@ -67,12 +73,19 @@ just registry <args>    # runs stellar-registry
 - `deploy` - Instantiates a published wasm as a named contract
 - `create-alias` - Creates local stellar contract alias from registry
 
+## Key Configuration
+
+**`environments.toml`** (in the user's project root) drives the `build` command. It maps environment names (`development`, `testing`, `staging`, `production`) to network config and contract definitions. The active environment is set via `STELLAR_SCAFFOLD_ENV` env var. Each contract entry can specify `client`, `constructor_args`, `after_deploy`, and `id`.
+
+**`OZ_RELEASE_TAG`** env var overrides the pinned OpenZeppelin release used by `generate contract --from oz/...`.
+
 ## Testing
 
 - Unit tests run without external dependencies: `cargo t`
 - Integration tests require local Stellar RPC running via Docker (stellar/quickstart image)
 - Feature flag `integration-tests` enables RPC-dependent tests
 - Test fixtures in `crates/stellar-scaffold-test/fixtures/`
+- Build CLI test contracts first to speed up tests: `just build-cli-test-contracts`
 
 ## Build Profile
 
