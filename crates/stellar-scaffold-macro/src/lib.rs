@@ -57,6 +57,83 @@ struct WasmBinary {
     pub file: String,
 }
 
+#[derive(Debug)]
+#[cfg_attr(not(test), allow(dead_code))]
+struct ParsedInput {
+    /// Optional channel prefix (e.g., "unverified")
+    channel: Option<String>,
+    /// Contract name without channel prefix (e.g., "guess-the-number")
+    contract_name: String,
+    /// Sanitized name suitable for use as a Rust module identifier
+    module_name: String,
+    /// Full input string including channel prefix (e.g., "unverified/guess-the-number")
+    full_name: String,
+}
+
+fn parse_contract_input(raw: &str, span: proc_macro2::Span) -> Result<ParsedInput> {
+    if raw.is_empty() {
+        return Err(syn::Error::new(span, "contract name cannot be empty"));
+    }
+
+    let (channel, contract_name) = if let Some((ch, name)) = raw.split_once('/') {
+        if ch.is_empty() {
+            return Err(syn::Error::new(
+                span,
+                format!("invalid contract path `{raw}`: channel prefix before `/` cannot be empty"),
+            ));
+        }
+        if name.is_empty() {
+            return Err(syn::Error::new(
+                span,
+                format!("invalid contract path `{raw}`: contract name after `/` cannot be empty"),
+            ));
+        }
+        if name.contains('/') {
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "invalid contract path `{raw}`: expected at most one `/` \
+                    separating channel from contract name (e.g., `\"unverified/my-contract\"`)"
+                ),
+            ));
+        }
+        (Some(ch.to_string()), name.to_string())
+    } else {
+        (None, raw.to_string())
+    };
+
+    let module_name = contract_name.replace('-', "_");
+
+    if !module_name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_') {
+        return Err(syn::Error::new(
+            span,
+            format!(
+                "contract name `{contract_name}` cannot be used as a Rust module name: \
+                must start with a letter or underscore"
+            ),
+        ));
+    }
+    if let Some(c) = module_name
+        .chars()
+        .find(|c| !c.is_ascii_alphanumeric() && *c != '_')
+    {
+        return Err(syn::Error::new(
+            span,
+            format!(
+                "contract name `{contract_name}` contains invalid character `{c}`: \
+                only ASCII letters, digits, hyphens, and underscores are allowed"
+            ),
+        ));
+    }
+
+    Ok(ParsedInput {
+        channel,
+        contract_name,
+        module_name,
+        full_name: raw.to_string(),
+    })
+}
+
 impl Parse for WasmBinary {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.lookahead1();
@@ -65,11 +142,10 @@ impl Parse for WasmBinary {
             let raw = lit.value();
             let span = lit.span();
 
-            let contract_name = raw.rsplit('/').next().unwrap_or(&raw);
-            let mod_name = contract_name.replace('-', "_");
-            let name = format_ident!("{}", mod_name, span = span);
+            let parsed = parse_contract_input(&raw, span)?;
+            let name = format_ident!("{}", parsed.module_name, span = span);
 
-            let wasm_path = resolve_wasm_path(contract_name, &raw, span)?;
+            let wasm_path = resolve_wasm_path(&parsed.contract_name, &parsed.full_name, span)?;
             let file = wasm_path.display().to_string();
             Ok(Self { name, file })
         } else if lookahead.peek(syn::Ident) {
@@ -164,4 +240,122 @@ pub fn import_asset(input: TokenStream) -> TokenStream {
     // Parse the input as a string literal
     let input_str = syn::parse_macro_input!(input as syn::LitStr);
     asset::parse_literal(&input_str, &Network::passphrase_from_env()).into()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn span() -> proc_macro2::Span {
+        proc_macro2::Span::call_site()
+    }
+
+    #[test]
+    fn parse_simple_name() {
+        let parsed = parse_contract_input("registry", span()).unwrap();
+        assert_eq!(parsed.module_name, "registry");
+        assert_eq!(parsed.contract_name, "registry");
+        assert_eq!(parsed.full_name, "registry");
+        assert!(parsed.channel.is_none());
+    }
+
+    #[test]
+    fn parse_hyphenated_name() {
+        let parsed = parse_contract_input("guess-the-number", span()).unwrap();
+        assert_eq!(parsed.module_name, "guess_the_number");
+        assert_eq!(parsed.contract_name, "guess-the-number");
+        assert_eq!(parsed.full_name, "guess-the-number");
+        assert!(parsed.channel.is_none());
+    }
+
+    #[test]
+    fn parse_channel_prefixed_name() {
+        let parsed = parse_contract_input("unverified/guess-the-number", span()).unwrap();
+        assert_eq!(parsed.module_name, "guess_the_number");
+        assert_eq!(parsed.contract_name, "guess-the-number");
+        assert_eq!(parsed.full_name, "unverified/guess-the-number");
+        assert_eq!(parsed.channel.as_deref(), Some("unverified"));
+    }
+
+    #[test]
+    fn parse_channel_simple_name() {
+        let parsed = parse_contract_input("unverified/hello", span()).unwrap();
+        assert_eq!(parsed.module_name, "hello");
+        assert_eq!(parsed.contract_name, "hello");
+        assert_eq!(parsed.channel.as_deref(), Some("unverified"));
+    }
+
+    #[test]
+    fn parse_underscored_name() {
+        let parsed = parse_contract_input("my_contract", span()).unwrap();
+        assert_eq!(parsed.module_name, "my_contract");
+        assert_eq!(parsed.contract_name, "my_contract");
+    }
+
+    #[test]
+    fn error_empty_string() {
+        let err = parse_contract_input("", span()).unwrap_err();
+        assert!(
+            err.to_string().contains("cannot be empty"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_trailing_slash() {
+        let err = parse_contract_input("unverified/", span()).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("contract name after `/` cannot be empty"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_leading_slash() {
+        let err = parse_contract_input("/hello", span()).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("channel prefix before `/` cannot be empty"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_multiple_slashes() {
+        let err = parse_contract_input("a/b/c", span()).unwrap_err();
+        assert!(
+            err.to_string().contains("at most one `/`"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_starts_with_digit() {
+        let err = parse_contract_input("123bad", span()).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("must start with a letter or underscore"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_invalid_characters() {
+        let err = parse_contract_input("hello world", span()).unwrap_err();
+        assert!(
+            err.to_string().contains("invalid character"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn error_channel_prefixed_starts_with_digit() {
+        let err = parse_contract_input("unverified/1bad", span()).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("must start with a letter or underscore"),
+            "unexpected error: {err}"
+        );
+    }
 }
