@@ -2,7 +2,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use quote::quote;
+use quote::{format_ident, quote};
 use std::env;
 use stellar_build::Network;
 use syn::parse::{Parse, ParseStream, Result};
@@ -16,13 +16,26 @@ pub(crate) fn manifest() -> std::path::PathBuf {
 }
 
 /// Generates a contract Client for a given contract.
-/// It is expected that the name should be the same as the published contract or a contract in your current workspace.
+/// The name should match a published contract or a contract in your current workspace.
+///
+/// # Usage
+///
+/// ```ignore
+/// // For simple names (workspace contracts or registry names without hyphens):
+/// import_contract_client!(registry);
+///
+/// // For hyphenated names or channel-prefixed registry paths:
+/// import_contract_client!("unverified/guess-the-number");
+/// ```
+///
+/// When using a string literal, the module name is derived from the contract
+/// name with hyphens replaced by underscores (e.g., `guess_the_number`).
 ///
 /// # Panics
 ///
 /// This function may panic in the following situations:
 /// - If `stellar_build::get_target_dir()` fails to retrieve the target directory
-/// - If the input tokens cannot be parsed as a valid identifier
+/// - If the input tokens cannot be parsed as a valid identifier or string literal
 /// - If the directory path cannot be canonicalized
 /// - If the canonical path cannot be converted to a string
 #[proc_macro]
@@ -46,16 +59,40 @@ struct WasmBinary {
 
 impl Parse for WasmBinary {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name = input.parse()?;
-        let wasm_path = resolve_wasm_path(&name)?;
-        let file = wasm_path.display().to_string();
-        Ok(Self { name, file })
+        let lookahead = input.lookahead1();
+        if lookahead.peek(syn::LitStr) {
+            let lit: syn::LitStr = input.parse()?;
+            let raw = lit.value();
+            let span = lit.span();
+
+            let contract_name = raw.rsplit('/').next().unwrap_or(&raw);
+            let mod_name = contract_name.replace('-', "_");
+            let name = format_ident!("{}", mod_name, span = span);
+
+            let wasm_path = resolve_wasm_path(contract_name, &raw, span)?;
+            let file = wasm_path.display().to_string();
+            Ok(Self { name, file })
+        } else if lookahead.peek(syn::Ident) {
+            let ident: Ident = input.parse()?;
+            let ident_str = ident.to_string();
+            let span = ident.span();
+
+            let wasm_path = resolve_wasm_path(&ident_str, &ident_str, span)?;
+            let file = wasm_path.display().to_string();
+            Ok(Self { name: ident, file })
+        } else {
+            Err(lookahead.error())
+        }
     }
 }
 
-fn resolve_wasm_path(name: &Ident) -> Result<std::path::PathBuf> {
+fn resolve_wasm_path(
+    contract_name: &str,
+    full_name: &str,
+    span: proc_macro2::Span,
+) -> Result<std::path::PathBuf> {
     let target_dir = stellar_build::get_target_dir(&manifest()).unwrap();
-    let local_path = target_dir.join(name.to_string()).with_extension("wasm");
+    let local_path = target_dir.join(contract_name).with_extension("wasm");
 
     // 1. Check local build target
     if local_path.exists() {
@@ -67,19 +104,20 @@ fn resolve_wasm_path(name: &Ident) -> Result<std::path::PathBuf> {
         && &v == "1"
     {
         return Err(syn::Error::new(
-            name.span(),
+            span,
             "No local wasm found and STELLAR_NO_REGISTRY=1 so not checking Registry. \
             Download manually with `stellar registry download [wasm_name]`",
         ));
     }
 
     // 3. if var absent or set to something else, try to download
-    download_from_registry(name, &local_path)
+    download_from_registry(full_name, &local_path, span)
 }
 
 fn download_from_registry(
-    name: &Ident,
+    full_name: &str,
     local_path: &std::path::Path,
+    span: proc_macro2::Span,
 ) -> Result<std::path::PathBuf> {
     // 1. create `target/stellar/[network]` directory, if not already present
     let parent = local_path.parent().expect("no parent");
@@ -92,7 +130,7 @@ fn download_from_registry(
         .args([
             "registry",
             "download",
-            &name.to_string(),
+            full_name,
             "--out-file",
             &local_path.display().to_string(),
         ])
@@ -104,7 +142,7 @@ fn download_from_registry(
         Ok(local_path.canonicalize().expect("canonicalize failed"))
     } else {
         Err(syn::Error::new(
-            name.span(),
+            span,
             "Could not find a Wasm with this name in local `target` directory \
             or in Stellar Registry. You can: \
             \n\n1. check the name & network and try again (https://stellar.rgstry.xyz) \
