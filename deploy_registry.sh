@@ -3,6 +3,9 @@ set -e
 
 PATH=./target/bin:$PATH
 
+curl -L https://github.com/theahaco/scaffold-stellar/releases/download/registry-v0.4.1/registry_v0.4.1.wasm > ./target/stellar/registry.wasm
+
+
 # sha256 -s verified
 
 VERIFED=$(sha256 -s v0.4.1)
@@ -22,7 +25,7 @@ stellar contract deploy --alias registry \
 
 registry="stellar contract invoke --id registry --"
 
-$registry --help
+
 
 just registry publish  --wasm ./target/stellar/registry.wasm \
                          --author "$ADMIN" \
