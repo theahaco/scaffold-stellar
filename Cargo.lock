@@ -287,6 +287,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "asset_test"
+version = "0.0.0"
+dependencies = [
+ "admin-sep",
+ "soroban-sdk",
+ "stellar-registry",
+]
+
+[[package]]
 name = "async-compression"
 version = "0.4.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4433,6 +4442,7 @@ dependencies = [
  "quote",
  "regex",
  "sha2 0.10.9",
+ "soroban-sdk",
  "stellar-build",
  "stellar-strkey 0.0.13",
  "stellar-xdr 23.0.0",
