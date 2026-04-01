@@ -163,8 +163,11 @@ impl Cmd {
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         // Read and update workspace Cargo.toml
-        let workspace_cargo_path =
-            Self::get_workspace_root(&example_source_path.join("Cargo.toml"));
+        // Use dest_path (the project's contract directory) rather than
+        // example_source_path (the cache) so that `cargo locate-project
+        // --workspace` finds the project's Cargo.toml, not the cached
+        // OZ repo's workspace.
+        let workspace_cargo_path = Self::get_workspace_root(&dest_path.join("Cargo.toml"));
         if let Ok(workspace_cargo_path) = workspace_cargo_path {
             Self::update_workspace_dependencies(
                 &workspace_cargo_path,
