@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.13](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.12...stellar-scaffold-macro-v0.8.13) - 2026-03-31
+
+### Fixed
+
+- *(stellar-registry)* allow quotes for unverified channel ([#443](https://github.com/theahaco/scaffold-stellar/pull/443))
+
 ## [0.8.12](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.11...stellar-scaffold-macro-v0.8.12) - 2026-03-28
 
 ### Added
