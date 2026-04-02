@@ -54,6 +54,20 @@ First, you should know that this macro doesn't make a network call _first_. It s
 
 If you want to avoid network calls in your build-time macro logic, you can set environment variable `STELLAR_NO_REGISTRY` to `1`.
 
+# More Options
+
+`import_contract_client` is designed to make it easy to paste in Wasm names from https://stellar.rgstry.xyz. If you want to use a channel-prefixed contract or one with hypens in the name, you can use quotes:
+
+```rs
+import_contract_client!("unverified/guess-the-number");
+```
+
+If you need a specific (historic) version:
+
+```rs
+import_contract_client!("registry@v1.0.0");
+```
+
 # Future
 
 Eventually, this crate will also export an `import_contract!` macro which will allow importing the _contract_ by name, rather than only the _Wasm_ by name. This will simplify the client creation logic shown above.
