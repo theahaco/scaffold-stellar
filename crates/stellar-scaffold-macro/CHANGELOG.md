@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.14](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.13...stellar-scaffold-macro-v0.8.14) - 2026-04-02
+
+### Added
+
+- *(stellar-registry)* allow specifying version ([#444](https://github.com/theahaco/scaffold-stellar/pull/444))
+
 ## [0.8.13](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-macro-v0.8.12...stellar-scaffold-macro-v0.8.13) - 2026-03-31
 
 ### Fixed

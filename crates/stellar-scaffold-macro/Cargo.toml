@@ -1,6 +1,6 @@
 [package]
 name = "stellar-scaffold-macro"
-version = "0.8.13"
+version = "0.8.14"
 edition = "2024"
 description = "Macros needed by stellar-scaffold"
 license = "Apache-2.0"
