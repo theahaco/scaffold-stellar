@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.21...stellar-scaffold-cli-v0.0.22) - 2026-04-03
+
+### Fixed
+
+- use dest_path for workspace root lookup when updating OZ deps ([#451](https://github.com/theahaco/scaffold-stellar/pull/451))
+
 ## [0.0.21](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.20...stellar-scaffold-cli-v0.0.21) - 2026-03-18
 
 ### Added
