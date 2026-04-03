@@ -22,7 +22,7 @@ const SOROBAN_EXAMPLES_REPO: &str = "https://github.com/stellar/soroban-examples
 const STELLAR_PREFIX: &str = "stellar/";
 const OZ_EXAMPLES_REPO: &str = "https://github.com/OpenZeppelin/stellar-contracts/examples";
 const OZ_PREFIX: &str = "oz/";
-const LATEST_SUPPORTED_OZ_RELEASE: &str = "v0.7.0-rc.1";
+const LATEST_SUPPORTED_OZ_RELEASE: &str = "v0.6.0";
 
 #[derive(Deserialize)]
 struct Release {
@@ -163,8 +163,11 @@ impl Cmd {
         Self::copy_directory_contents(&example_source_path, Path::new(&dest_path))?;
 
         // Read and update workspace Cargo.toml
-        let workspace_cargo_path =
-            Self::get_workspace_root(&example_source_path.join("Cargo.toml"));
+        // Use dest_path (the project's contract directory) rather than
+        // example_source_path (the cache) so that `cargo locate-project
+        // --workspace` finds the project's Cargo.toml, not the cached
+        // OZ repo's workspace.
+        let workspace_cargo_path = Self::get_workspace_root(&dest_path.join("Cargo.toml"));
         if let Ok(workspace_cargo_path) = workspace_cargo_path {
             Self::update_workspace_dependencies(
                 &workspace_cargo_path,
