@@ -199,6 +199,19 @@ pub struct CompileContext {
 // DeployContext  (pre-deploy / post-deploy)
 // ---------------------------------------------------------------------------
 
+/// Whether a contract was freshly instantiated or upgraded in-place.
+///
+/// Available at `post-deploy` via [`DeployContext::deploy_kind`].
+/// Always `None` at `pre-deploy` (the action has not yet occurred).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DeployKind {
+    /// The contract was instantiated for the first time.
+    Fresh,
+    /// The contract already existed; its WASM was upgraded via the `upgrade` function.
+    Upgraded,
+}
+
 /// Context passed to `pre-deploy` and `post-deploy` hooks.
 ///
 /// Fired once per contract. Includes all fields from [`CompileContext`] (via
@@ -214,6 +227,7 @@ pub struct CompileContext {
 /// | `wasm_path` | ✓ | ✓ |
 /// | `wasm_hash` | ✓ | ✓ |
 /// | `contract_id` | `None` | `Some(…)` |
+/// | `deploy_kind` | `None` | `Some(…)` |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeployContext {
     /// All compile-stage fields (project root, env, wasm paths, etc.).
@@ -242,6 +256,12 @@ pub struct DeployContext {
     /// confirmed to exist at this hash). `Some` at `post-deploy`, regardless
     /// of whether the contract was freshly deployed or upgraded in-place.
     pub contract_id: Option<String>,
+
+    /// Whether the contract was freshly instantiated or upgraded in-place.
+    ///
+    /// `None` at `pre-deploy` (the action has not yet occurred).
+    /// `Some` at `post-deploy`.
+    pub deploy_kind: Option<DeployKind>,
 }
 
 // ---------------------------------------------------------------------------

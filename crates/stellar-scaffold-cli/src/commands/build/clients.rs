@@ -25,7 +25,7 @@ use stellar_cli::{
     utils::contract_spec::Spec,
 };
 use stellar_scaffold_ext_types::{
-    CodegenContext, CompileContext, DeployContext, HookName, NetworkConfig,
+    CodegenContext, CompileContext, DeployContext, DeployKind, HookName, NetworkConfig,
 };
 use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::ScSpecEntry::FunctionV0;
@@ -236,6 +236,7 @@ impl Builder {
         wasm_path: PathBuf,
         wasm_hash: &str,
         contract_id: Option<String>,
+        deploy_kind: Option<DeployKind>,
     ) -> DeployContext {
         DeployContext {
             compile: self.base_compile_ctx(),
@@ -244,6 +245,7 @@ impl Builder {
             wasm_path,
             wasm_hash: wasm_hash.to_string(),
             contract_id,
+            deploy_kind,
         }
     }
 
@@ -261,6 +263,7 @@ impl Builder {
                 self.get_wasm_path(name),
                 wasm_hash.unwrap_or(""),
                 Some(contract_id.to_string()),
+                None,
             ),
             ts_package_dir,
             src_template_path,
@@ -356,14 +359,12 @@ export default new Client.Client({{
     ) -> Result<(), Error> {
         let network = &self.network;
         let printer = self.printer();
-        printer.infoln(format!("Binding {name:?} contract"));
         let workspace_root = &self.workspace_root;
         let final_output_dir = workspace_root.join(format!("packages/{name}"));
         let src_template_path = workspace_root.join(format!("src/contracts/{name}.ts"));
 
         // Create a temporary directory for building the new client
         let temp_dir = workspace_root.join(format!("target/packages/{name}"));
-        let temp_dir_display = temp_dir.display();
         let config_dir = self.get_config_dir()?;
 
         extension::run_hook(
@@ -398,7 +399,6 @@ export default new Client.Client({{
         bindings_cmd.execute(self.global_args.quiet).await?;
 
         // Run `npm i` in the temp directory
-        printer.infoln(format!("Running 'npm install' in {temp_dir_display:?}"));
         let output = std::process::Command::new(npm_cmd())
             .current_dir(&temp_dir)
             .arg("install")
@@ -418,9 +418,7 @@ export default new Client.Client({{
                 ),
             ));
         }
-        printer.checkln(format!("'npm install' succeeded in {temp_dir_display}"));
 
-        printer.infoln(format!("Running 'npm run build' in {temp_dir_display}"));
         let output = std::process::Command::new(npm_cmd())
             .current_dir(&temp_dir)
             .arg("run")
@@ -440,7 +438,6 @@ export default new Client.Client({{
                 ),
             ));
         }
-        printer.checkln(format!("'npm run build' succeeded in {temp_dir_display}"));
 
         // Now atomically replace the old directory with the new one
         if final_output_dir.exists() {
@@ -613,8 +610,6 @@ export default new Client.Client({{
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
 
-        let mut results: Vec<(String, Result<(), String>)> = Vec::new();
-
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -632,29 +627,9 @@ export default new Client.Client({{
             {
                 Ok(()) => {
                     printer.checkln(format!("Successfully generated client for: {name}"));
-                    results.push((name, Ok(())));
                 }
                 Err(e) => {
-                    printer.errorln(format!("Failed to generate client for: {name}"));
-                    results.push((name, Err(e.to_string())));
-                }
-            }
-        }
-
-        // Partition results into successes and failures
-        let (successes, failures): (Vec<_>, Vec<_>) =
-            results.into_iter().partition(|(_, result)| result.is_ok());
-
-        // Print summary
-        printer.infoln("Client Generation Summary:");
-        printer.blankln(format!("Successfully processed: {}", successes.len()));
-        printer.blankln(format!("Failed: {}", failures.len()));
-
-        if !failures.is_empty() {
-            printer.infoln("Failures:");
-            for (name, result) in &failures {
-                if let Err(e) = result {
-                    printer.blankln(format!("{name}: {e}"));
+                    printer.errorln(format!("Failed to generate client for: {name}: {e}"));
                 }
             }
         }
@@ -748,23 +723,23 @@ export default new Client.Client({{
                         )
                         .await?;
                 }
-                printer.infoln(format!("Updating contract {name:?}"));
             }
 
             // Fire pre-deploy hook before the actual deploy
             extension::run_hook(
                 &self.extensions,
                 HookName::PreDeploy,
-                &self.deploy_ctx(name, wasm_path.clone(), &new_hash, None),
+                &self.deploy_ctx(name, wasm_path.clone(), &new_hash, None, None),
                 printer,
             )
             .await;
 
             // Deploy new contract if we got here (don't deploy if we already run an upgrade)
-            let contract_id = if let Some(upgraded) = upgraded_contract {
-                upgraded
+            let (contract_id, deploy_kind) = if let Some(upgraded) = upgraded_contract {
+                (upgraded, DeployKind::Upgraded)
             } else {
-                self.deploy_contract(name, &new_hash, &settings).await?
+                let id = self.deploy_contract(name, &new_hash, &settings).await?;
+                (id, DeployKind::Fresh)
             };
             // Run after_deploy script if in development or test environment
             if let Some(after_deploy) = settings.after_deploy.as_deref()
@@ -780,7 +755,13 @@ export default new Client.Client({{
             extension::run_hook(
                 &self.extensions,
                 HookName::PostDeploy,
-                &self.deploy_ctx(name, wasm_path, &new_hash, Some(contract_id.to_string())),
+                &self.deploy_ctx(
+                    name,
+                    wasm_path,
+                    &new_hash,
+                    Some(contract_id.to_string()),
+                    Some(deploy_kind),
+                ),
                 printer,
             )
             .await;
@@ -796,11 +777,9 @@ export default new Client.Client({{
 
     async fn upload_contract_wasm(
         &self,
-        name: &str,
+        _name: &str,
         wasm_path: &std::path::Path,
     ) -> Result<String, Error> {
-        let printer = self.printer();
-        printer.infoln(format!("Uploading {name:?} wasm bytecode on-chain..."));
         let cmd = cli::contract::upload::Cmd {
             config: self.config(),
             resources: stellar_cli::resources::Args::default(),
@@ -820,7 +799,6 @@ export default new Client.Client({{
             .into_result()
             .expect("no hash returned by 'contract upload'")
             .to_string();
-        printer.infoln(format!("    ↳ hash: {hash}"));
         Ok(hash)
     }
 
@@ -856,7 +834,6 @@ export default new Client.Client({{
         hash: &str,
         settings: &env_toml::Contract,
     ) -> Result<Contract, Error> {
-        let printer = self.printer();
         let source = self.source_account.to_string();
         let mut deploy_args = vec![
             format!("--alias={name}"),
@@ -882,7 +859,6 @@ export default new Client.Client({{
             deploy_args.extend_from_slice(&["--source".to_string(), source]);
         }
 
-        printer.infoln(format!("Instantiating {name:?} smart contract"));
         let deploy_arg_refs: Vec<&str> = deploy_args
             .iter()
             .map(std::string::String::as_str)
@@ -897,7 +873,6 @@ export default new Client.Client({{
             .await?
             .into_result()
             .expect("no contract id returned by 'contract deploy'");
-        printer.infoln(format!("    ↳ contract_id: {contract_id}"));
 
         Ok(contract_id)
     }
@@ -922,9 +897,6 @@ export default new Client.Client({{
             return Ok(None);
         }
 
-        printer
-            .infoln("Upgradable contract found, will use 'upgrade' function instead of redeploy");
-
         let existing_contract_id_str = existing_contract_id.to_string();
         let source = self.source_account.to_string();
         let mut redeploy_args = vec![
@@ -945,7 +917,6 @@ export default new Client.Client({{
         } else {
             cli::contract::invoke::Cmd::parse_arg_vec(&redeploy_args)
         }?;
-        printer.infoln(format!("Upgrading {name:?} smart contract"));
         invoke_cmd
             .execute(
                 &self.config(),
@@ -955,7 +926,6 @@ export default new Client.Client({{
             .await?
             .into_result()
             .expect("no result returned by 'contract invoke'");
-        printer.infoln(format!("Contract upgraded: {existing_contract_id}"));
 
         Ok(Some(existing_contract_id))
     }
