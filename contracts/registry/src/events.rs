@@ -47,3 +47,9 @@ pub struct Rename {
     pub old_name: String,
     pub new_name: String,
 }
+
+#[contractevent(topics = ["security_flag"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SecurityFlagContract {
+    pub is_compromised: bool,
+}

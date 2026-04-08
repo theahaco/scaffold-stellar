@@ -6,13 +6,14 @@ use crate::{
     test::registry::{default_version, to_string, Registry},
     ContractArgs,
 };
-use soroban_sdk::InvokeError;
+use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
 use soroban_sdk::TryIntoVal;
 use soroban_sdk::{
     self,
     testutils::{Address as _, BytesN as _},
     vec, Address, BytesN, IntoVal,
 };
+use soroban_sdk::{symbol_short, InvokeError, Val, Vec};
 
 #[test]
 fn use_publish_method() {
@@ -746,4 +747,69 @@ fn non_root_unmanaged_registry_deploy_requires_only_admin() {
     );
 
     assert_eq!(client.fetch_contract_id(contract_name), contract_id);
+}
+
+#[test]
+fn hello_world_proxy_call() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let client = registry.client();
+
+    let version = registry.default_version();
+
+    let name = &to_string(env, "contract");
+    let wasm_name = &to_string(env, "wasm");
+
+    let author = &Address::generate(env);
+
+    env.deployer().upload_contract_wasm(hw_bytes(env));
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "publish_hash",
+        ContractArgs::publish_hash(wasm_name, author, &hw_hash(env), &version),
+    );
+    client.publish_hash(wasm_name, author, &hw_hash(env), &version);
+
+    assert_eq!(client.fetch_hash(wasm_name, &None), hw_hash(env));
+
+    let address = registry.mock_auth_and_deploy(
+        author,
+        wasm_name,
+        name,
+        None,
+        &Some(contracts::hello_world::Args::__constructor(author)),
+    );
+
+    let hw_client = contracts::hw_client(env, &address);
+
+    assert_eq!(
+        to_string(env, "registry"),
+        hw_client.hello(&to_string(env, "registry"))
+    );
+
+    let hello_args: Vec<Val> = vec![env, to_string(env, "test").into_val(env)];
+
+    let invoke_contract_args: Vec<Val> = vec![
+        env,
+        name.into_val(env),
+        symbol_short!("hello").into_val(env),
+        hello_args.into_val(env),
+    ];
+
+    env.mock_auths(&[MockAuth {
+        address: author,
+        invoke: &MockAuthInvoke {
+            contract: &registry.client().address,
+            fn_name: "proxy_invoke_contract",
+            args: invoke_contract_args,
+            sub_invokes: &[MockAuthInvoke {
+                contract: &hw_client.address,
+                fn_name: "hello",
+                args: hello_args.clone(),
+                sub_invokes: &[],
+            }],
+        },
+    }]);
+
+    let _ = client.proxy_invoke_contract(name, &symbol_short!("hello"), &hello_args);
 }

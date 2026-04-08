@@ -32,6 +32,9 @@ sha2 = "0.10.9"
 clap = "4.1.8"
 reqwest = { version = "0.12.9", default-features = false }
 
+[profile.release]
+overflow-checks = true
+
 [profile.contracts]
 inherits = "release"
 opt-level = "z"

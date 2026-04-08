@@ -79,6 +79,7 @@ impl ToStorageKey<BytesN<32>> for HashKey {
 pub struct ContractEntry {
     pub owner: Address,
     pub contract: Address,
+    pub flagged: bool,
 }
 
 impl IntoVal<Env, Val> for ContractEntry {
@@ -91,14 +92,18 @@ impl TryFromVal<Env, Val> for ContractEntry {
     type Error = soroban_sdk::Error;
 
     fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
-        let entry: (Address, Address) = TryFromVal::try_from_val(env, v)?;
+        let entry: (Address, Address, bool) = TryFromVal::try_from_val(env, v)?;
         Ok(entry.into())
     }
 }
 
-impl From<(Address, Address)> for ContractEntry {
-    fn from((owner, contract): (Address, Address)) -> Self {
-        ContractEntry { owner, contract }
+impl From<(Address, Address, bool)> for ContractEntry {
+    fn from((owner, contract, flagged): (Address, Address, bool)) -> Self {
+        ContractEntry {
+            owner,
+            contract,
+            flagged,
+        }
     }
 }
 
@@ -151,9 +156,15 @@ impl Storage {
     }
 }
 
-impl From<ContractEntry> for (Address, Address) {
-    fn from(ContractEntry { owner, contract }: ContractEntry) -> Self {
-        (owner, contract)
+impl From<ContractEntry> for (Address, Address, bool) {
+    fn from(
+        ContractEntry {
+            owner,
+            contract,
+            flagged,
+        }: ContractEntry,
+    ) -> Self {
+        (owner, contract, flagged)
     }
 }
 

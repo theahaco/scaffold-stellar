@@ -99,6 +99,7 @@ impl Contract {
         contract_name: &NormalizedName,
         contract_id: &Address,
         contract_admin: &Address,
+        flagged: bool, // Note: currently false in every call
     ) -> Result<(), Error> {
         let mut contract_map = Storage::new(env).contract;
         contract_map.set(
@@ -106,6 +107,7 @@ impl Contract {
             &ContractEntry {
                 owner: contract_admin.clone(),
                 contract: contract_id.clone(),
+                flagged,
             },
         );
         let wasm_hash = match contract_id
@@ -183,12 +185,13 @@ impl Contract {
                     Some(args),
                     env.current_contract_address(),
                 );
-                Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
+                Self::register_contract_name(env, &contract_name, &contract_address, admin, false)?;
                 Self::register_contract_name(
                     env,
                     &name::registry(env),
                     &env.current_contract_address(),
                     admin,
+                    false,
                 )?;
             }
             Ok(())
@@ -241,7 +244,7 @@ pub trait Deployable {
             init,
             deployer.clone(),
         )?;
-        Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
+        Contract::register_contract_name(env, &contract_name, &contract_id, &admin, false)?;
         Ok(contract_id)
     }
 
@@ -269,7 +272,7 @@ pub trait Deployable {
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
         Contract::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Contract::register_contract_name(env, &contract_name, &contract_address, &owner)?;
+        Contract::register_contract_name(env, &contract_name, &contract_address, &owner, false)?;
         Ok(())
     }
 
@@ -351,7 +354,13 @@ pub trait Batchable {
             let (name_str, contract_address, owner) =
                 batch.get(i).ok_or(Error::BatchEntryExpired)?;
             let contract_name: NormalizedName = name_str.try_into()?;
-            Contract::register_contract_name(env, &contract_name, &contract_address, &owner)?;
+            Contract::register_contract_name(
+                env,
+                &contract_name,
+                &contract_address,
+                &owner,
+                false,
+            )?;
             processed += 1;
         }
 
@@ -390,6 +399,7 @@ pub trait Manageable {
             &ContractEntry {
                 owner: new_owner.clone(),
                 contract: entry.contract,
+                flagged: entry.flagged,
             },
         );
         crate::events::UpdateOwner {
@@ -421,6 +431,7 @@ pub trait Manageable {
             &ContractEntry {
                 owner: entry.owner,
                 contract: new_address.clone(),
+                flagged: entry.flagged,
             },
         );
         crate::events::UpdateAddress {
@@ -464,6 +475,37 @@ pub trait Manageable {
         .publish(env);
         Ok(())
     }
+
+    /// Flag contract, marking contract as compromised or
+    /// un-marking it as being compromised
+    fn flag_contract(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        is_compromised: bool,
+    ) -> Result<(), Error> {
+        let contract_name: NormalizedName = contract_name.try_into()?;
+
+        let mut storage = Storage::new(env);
+        let entry = storage
+            .contract
+            .get(&contract_name)
+            .ok_or(Error::NoSuchContractDeployed)?;
+
+        Contract::require_owner_or_manager(env, &entry.owner);
+
+        storage.contract.extend_ttl_max(&contract_name);
+        storage.contract.set(
+            &contract_name,
+            &ContractEntry {
+                owner: entry.owner,
+                contract: entry.contract,
+                flagged: is_compromised,
+            },
+        );
+
+        crate::events::SecurityFlagContract { is_compromised }.publish(env);
+        Ok(())
+    }
 }
 
 #[contracttrait]
@@ -490,5 +532,35 @@ pub trait Redeployable {
     ) -> Result<soroban_sdk::Address, Error> {
         let wasm_hash = Contract::get_hash_and_bump(env, &wasm_name.try_into()?, version)?;
         Contract::upgrade_internal(env, &name.try_into()?, &wasm_hash, upgrade_fn)
+    }
+}
+
+#[contracttrait]
+pub trait Proxyable {
+    /// Invokes contract with the given contract name, using given function name and arguments
+    fn proxy_invoke_contract(
+        env: &Env,
+        contract_name: soroban_sdk::String,
+        contract_fn: soroban_sdk::Symbol,
+        args: Vec<Val>,
+    ) -> Result<soroban_sdk::Val, Error> {
+        let contract_name: NormalizedName = contract_name.try_into()?;
+
+        let storage = Storage::new(env);
+        let entry = storage
+            .contract
+            .get(&contract_name)
+            .ok_or(Error::NoSuchContractDeployed)?;
+
+        if entry.flagged {
+            return Err(Error::ProxyContractCompromised);
+        }
+
+        let r = env.try_invoke_contract::<Val, InvokeError>(&entry.contract, &contract_fn, args);
+
+        match r {
+            Ok(ok_result) => Ok(ok_result.expect("unexpected conversion error")),
+            Err(_) => Err(Error::ProxyInvocationFailed),
+        }
     }
 }
