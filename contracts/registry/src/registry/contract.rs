@@ -99,7 +99,6 @@ impl Contract {
         contract_name: &NormalizedName,
         contract_id: &Address,
         contract_admin: &Address,
-        flagged: bool, // Note: currently false in every call
     ) -> Result<(), Error> {
         let mut contract_map = Storage::new(env).contract;
         contract_map.set(
@@ -107,7 +106,7 @@ impl Contract {
             &ContractEntry {
                 owner: contract_admin.clone(),
                 contract: contract_id.clone(),
-                flagged,
+                flagged: false,
             },
         );
         let wasm_hash = match contract_id
@@ -185,7 +184,7 @@ impl Contract {
                     Some(args),
                     env.current_contract_address(),
                 );
-                Self::register_contract_name(env, &contract_name, &contract_address, admin, false)?;
+                Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
                 Self::register_contract_name(
                     env,
                     &name::registry(env),
@@ -244,7 +243,7 @@ pub trait Deployable {
             init,
             deployer.clone(),
         )?;
-        Contract::register_contract_name(env, &contract_name, &contract_id, &admin, false)?;
+        Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
         Ok(contract_id)
     }
 
@@ -272,7 +271,7 @@ pub trait Deployable {
     ) -> Result<(), Error> {
         let contract_name = contract_name.try_into()?;
         Contract::assert_no_contract_entry_and_authorize(env, &owner, &contract_name)?;
-        Contract::register_contract_name(env, &contract_name, &contract_address, &owner, false)?;
+        Contract::register_contract_name(env, &contract_name, &contract_address, &owner)?;
         Ok(())
     }
 
@@ -354,13 +353,7 @@ pub trait Batchable {
             let (name_str, contract_address, owner) =
                 batch.get(i).ok_or(Error::BatchEntryExpired)?;
             let contract_name: NormalizedName = name_str.try_into()?;
-            Contract::register_contract_name(
-                env,
-                &contract_name,
-                &contract_address,
-                &owner,
-                false,
-            )?;
+            Contract::register_contract_name(env, &contract_name, &contract_address, &owner)?;
             processed += 1;
         }
 
@@ -481,7 +474,7 @@ pub trait Manageable {
     fn flag_contract(
         env: &Env,
         contract_name: soroban_sdk::String,
-        is_compromised: bool,
+        flagged: bool,
     ) -> Result<(), Error> {
         let contract_name: NormalizedName = contract_name.try_into()?;
 
@@ -499,11 +492,11 @@ pub trait Manageable {
             &ContractEntry {
                 owner: entry.owner,
                 contract: entry.contract,
-                flagged: is_compromised,
+                flagged,
             },
         );
 
-        crate::events::SecurityFlagContract { is_compromised }.publish(env);
+        crate::events::SecurityFlagContract { flagged }.publish(env);
         Ok(())
     }
 }
@@ -559,7 +552,7 @@ pub trait Proxyable {
         let r = env.try_invoke_contract::<Val, InvokeError>(&entry.contract, &contract_fn, args);
 
         match r {
-            Ok(ok_result) => Ok(ok_result.expect("unexpected conversion error")),
+            Ok(res @ Ok(ok_result)) => res,
             Err(_) => Err(Error::ProxyInvocationFailed),
         }
     }

@@ -51,5 +51,5 @@ pub struct Rename {
 #[contractevent(topics = ["security_flag"])]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SecurityFlagContract {
-    pub is_compromised: bool,
+    pub lagged: bool,
 }
