@@ -478,7 +478,7 @@ pub trait Manageable {
         let contract_name: NormalizedName = contract_name.try_into()?;
 
         let mut storage = Storage::new(env);
-        let entry = Contract::get_contract_entry(&contract_name)?;
+        let entry = Contract::get_contract_entry(env, &contract_name)?;
 
         Contract::require_owner_or_manager(env, &entry.owner);
 
@@ -534,19 +534,16 @@ pub trait Proxyable {
         args: Vec<Val>,
     ) -> Result<soroban_sdk::Val, Error> {
         let contract_name: NormalizedName = contract_name.try_into()?;
-
-        let storage = Storage::new(env);
-        let entry = Contract::get_contract_entry(&contract_name)?;
-
+        let entry = Contract::get_contract_entry(env, &contract_name)?;
         if entry.flagged {
             return Err(Error::ProxyContractCompromised);
         }
-
-        let r = env.try_invoke_contract::<Val, InvokeError>(&entry.contract, &contract_fn, args);
-
-        match r {
-            Ok(res @ Ok(ok_result)) => res,
-            Err(_) => Err(Error::ProxyInvocationFailed),
+        if let Ok(Ok(ok_result)) =
+            env.try_invoke_contract::<Val, InvokeError>(&entry.contract, &contract_fn, args)
+        {
+            Ok(ok_result)
+        } else {
+            Err(Error::ProxyInvocationFailed)
         }
     }
 }
