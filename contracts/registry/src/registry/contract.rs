@@ -190,7 +190,6 @@ impl Contract {
                     &name::registry(env),
                     &env.current_contract_address(),
                     admin,
-                    false,
                 )?;
             }
             Ok(())
