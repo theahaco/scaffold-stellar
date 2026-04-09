@@ -478,10 +478,7 @@ pub trait Manageable {
         let contract_name: NormalizedName = contract_name.try_into()?;
 
         let mut storage = Storage::new(env);
-        let entry = storage
-            .contract
-            .get(&contract_name)
-            .ok_or(Error::NoSuchContractDeployed)?;
+        let entry = Contract::get_contract_entry(&contract_name)?;
 
         Contract::require_owner_or_manager(env, &entry.owner);
 
@@ -539,10 +536,7 @@ pub trait Proxyable {
         let contract_name: NormalizedName = contract_name.try_into()?;
 
         let storage = Storage::new(env);
-        let entry = storage
-            .contract
-            .get(&contract_name)
-            .ok_or(Error::NoSuchContractDeployed)?;
+        let entry = Contract::get_contract_entry(&contract_name)?;
 
         if entry.flagged {
             return Err(Error::ProxyContractCompromised);
