@@ -1,10 +1,9 @@
-use assert_cmd::cargo::cargo_bin;
 use stellar_scaffold_test::{TestEnv, rpc_url};
 
 /// Returns a PATH string with the reporter binary's directory prepended so
 /// `which stellar-scaffold-reporter` finds it during extension discovery.
 fn reporter_path() -> String {
-    let reporter_bin = cargo_bin("stellar-scaffold-reporter");
+    let reporter_bin = assert_cmd::cargo::cargo_bin!("stellar-scaffold-reporter");
     format!(
         "{}:{}",
         reporter_bin.parent().unwrap().display(),
