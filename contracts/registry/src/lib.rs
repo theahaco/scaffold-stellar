@@ -1,6 +1,8 @@
 #![no_std]
 
 use admin_sep::{Administratable, Upgradable};
+use soroban_sdk::Val;
+use soroban_sdk::Vec;
 use soroban_sdk::{assert_with_error, contract, contractimpl, Address, Env};
 
 pub mod error;
@@ -10,6 +12,7 @@ pub mod registry;
 pub(crate) mod storage;
 pub mod version;
 
+use crate::registry::contract::Proxyable;
 pub use error::Error;
 use registry::{
     contract::{Batchable, Deployable, Manageable, Redeployable},
@@ -40,6 +43,9 @@ impl Manageable for Contract {}
 
 #[contractimpl(contracttrait)]
 impl Publishable for Contract {}
+
+#[contractimpl(contracttrait)]
+impl Proxyable for Contract {}
 
 #[contractimpl]
 impl Contract {
