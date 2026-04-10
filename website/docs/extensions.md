@@ -87,7 +87,7 @@ At each hook invocation, Scaffold writes a flat JSON object to the extension's s
 ### Field reference
 
 | Field | pre/post-compile | pre/post-deploy | pre/post-codegen | pre/post-dev |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `config` | ✓ | ✓ | ✓ | ✓ |
 | `project_root` | ✓ | ✓ | ✓ | ✓ |
 | `env` | ✓ | ✓ | ✓ | ✓ |
@@ -107,7 +107,7 @@ At each hook invocation, Scaffold writes a flat JSON object to the extension's s
 ### Field descriptions
 
 | Field | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `config` | object \| null | Your extension's config table from `environments.toml`, or `null` |
 | `project_root` | string (path) | Absolute path to the Cargo workspace root |
 | `env` | string | Active environment: `"development"`, `"testing"`, `"staging"`, or `"production"` |
@@ -278,7 +278,7 @@ if (args[0] === "manifest") {
       name: "my-extension",
       version: "1.0.0",
       hooks: ["post-compile"],
-    })
+    }),
   );
 } else if (args[0] === "post-compile") {
   let input = "";
