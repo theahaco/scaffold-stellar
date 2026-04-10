@@ -74,6 +74,7 @@ fs_extra = "1.3"
 webbrowser = "1.0.6"
 
 [dev-dependencies]
+stellar-scaffold-reporter = { path = "../stellar-scaffold-reporter" }
 assert_cmd = "2.1.1"
 assert_fs = "1.1.3"
 predicates = "3.1.3"
