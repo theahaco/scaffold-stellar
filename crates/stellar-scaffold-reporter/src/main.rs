@@ -11,18 +11,18 @@
 //!
 //! ```toml
 //! [development.ext.reporter]
-//! verbosity = "standard"   # "minimal" | "standard" (default)
+//! mode = "standard"        # "standard" (default) | "minimal"
 //! warn_size_kb = 128       # warn if any WASM exceeds this size in KB
 //! log_file = "target/scaffold-reporter/build.log"  # optional log file
 //! ```
 //!
-//! ## Verbosity levels
+//! ## Modes
 //!
 //! - `standard` (default): compile timing + WASM sizes, deploy details,
 //!   codegen duration, and a post-dev build summary.
 //! - `minimal`: post-dev build summary only, plus any WASM size warnings.
 //!
-//! WASM size warnings (`warn_size_kb`) are emitted regardless of verbosity.
+//! WASM size warnings (`warn_size_kb`) are emitted regardless of mode.
 
 use crate::report::Reporter;
 use clap::{Parser, Subcommand};
@@ -40,14 +40,14 @@ pub mod state;
 #[derive(Debug, Default, serde::Deserialize)]
 struct Config {
     #[serde(default)]
-    verbosity: Verbosity,
+    mode: Mode,
     warn_size_kb: Option<f64>,
     log_file: Option<String>,
 }
 
 #[derive(Debug, Default, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-enum Verbosity {
+enum Mode {
     /// Only emit the post-dev build summary and WASM size warnings.
     Minimal,
     /// Emit per-contract metrics: compile timing + WASM sizes, deploy details,
@@ -150,7 +150,7 @@ fn cmd_post_compile() {
     let mut state = state::load(&ctx.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.project_root, &config).as_deref());
 
-    if config.verbosity == Verbosity::Standard {
+    if config.mode == Mode::Standard {
         // Compile duration
         if let Some(start) = state.compile_start {
             let elapsed = state::elapsed_since(start);
@@ -232,7 +232,7 @@ fn cmd_post_deploy() {
     let mut state = state::load(&ctx.compile.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.compile.project_root, &config).as_deref());
 
-    if config.verbosity == Verbosity::Standard {
+    if config.mode == Mode::Standard {
         let elapsed = state.deploy_start.remove(&ctx.contract_name).map_or_else(
             || "?".to_string(),
             |start| format!("{:.2}s", state::elapsed_since(start)),
@@ -272,7 +272,7 @@ fn cmd_post_codegen() {
     let mut reporter =
         Reporter::new(log_path(&ctx.deploy.compile.project_root, &config).as_deref());
 
-    if config.verbosity == Verbosity::Standard {
+    if config.mode == Mode::Standard {
         let elapsed = state
             .codegen_start
             .remove(&ctx.deploy.contract_name)
