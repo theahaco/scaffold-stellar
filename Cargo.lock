@@ -4402,7 +4402,6 @@ dependencies = [
  "stellar-build",
  "stellar-rpc-client",
  "stellar-scaffold-ext-types",
- "stellar-scaffold-reporter",
  "stellar-scaffold-test",
  "stellar-strkey 0.0.15",
  "stellar-xdr 25.0.0",
@@ -4444,10 +4443,12 @@ dependencies = [
 name = "stellar-scaffold-reporter"
 version = "0.1.0"
 dependencies = [
+ "assert_cmd",
  "clap",
  "serde",
  "serde_json",
  "stellar-scaffold-ext-types",
+ "stellar-scaffold-test",
  "thiserror 2.0.17",
 ]
 

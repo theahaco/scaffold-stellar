@@ -1,3 +1,5 @@
+#![cfg(feature = "integration-tests")]
+
 use stellar_scaffold_test::{TestEnv, rpc_url};
 
 /// Returns a PATH string with the reporter binary's directory prepended so

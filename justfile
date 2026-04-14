@@ -85,6 +85,10 @@ test-integration-scaffold-examples-2 ci="false":
 test-integration-registry ci="false":
     just _test-integration stellar-registry-cli 'test(/./)' {{ ci }}
 
+# Run reporter integration tests
+test-integration-reporter ci="false":
+    just _test-integration stellar-scaffold-reporter 'test(/./)' {{ ci }}
+
 create: build
     rm -rf .soroban
     -stellar keys generate default --fund
