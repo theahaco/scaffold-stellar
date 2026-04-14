@@ -197,6 +197,11 @@ impl Contract {
                     contract_id: contract_address.clone(),
                 }
                 .publish(env);
+                events::SubRegistry {
+                    name: registry(env).to_string(),
+                    contract_id: env.current_contract_address(),
+                }
+                .publish(env);
             }
             Ok(())
         }
