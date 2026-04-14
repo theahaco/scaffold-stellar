@@ -1,7 +1,9 @@
 #![allow(non_upper_case_globals)]
+use crate::events;
 use crate::name;
+use crate::name::registry;
+use crate::name::unverifed;
 use crate::name::NormalizedName;
-use crate::name::UNVERIFIED;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
 
@@ -169,8 +171,7 @@ impl Contract {
                 .executable()
                 .unwrap_unchecked()
             {
-                let contract_name =
-                    NormalizedName::new_unchecked(String::from_str(env, UNVERIFIED));
+                let contract_name = unverifed(env);
                 let args = vec![
                     env,
                     *admin.as_val(),
@@ -191,6 +192,10 @@ impl Contract {
                     &env.current_contract_address(),
                     admin,
                 )?;
+                events::SubRegistry {
+                    name: contract_name.to_string(),
+                }
+                .publish(env);
             }
             Ok(())
         }
@@ -230,13 +235,20 @@ pub trait Deployable {
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: Option<soroban_sdk::Address>,
     ) -> Result<soroban_sdk::Address, Error> {
-        let contract_name = contract_name.try_into()?;
+        let contract_name: NormalizedName = contract_name.try_into()?;
+        let wasm_name: NormalizedName = wasm_name.try_into()?;
+        if wasm_name == registry(env) {
+            events::SubRegistry {
+                name: contract_name.to_string(),
+            }
+            .publish(env);
+        }
         Contract::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
         let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
         let salt = contract_name.hash();
         let contract_id = Contract::fetch_hash_and_deploy(
             env,
-            &wasm_name.try_into()?,
+            &wasm_name,
             version.clone(),
             salt,
             init,

@@ -53,3 +53,9 @@ pub struct Rename {
 pub struct SecurityFlagContract {
     pub flagged: bool,
 }
+
+#[contractevent(topics = ["sub_reg"])]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SubRegistry {
+    pub name: String,
+}
