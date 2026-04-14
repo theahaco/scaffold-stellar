@@ -1,5 +1,9 @@
 use admin_sep::AdministratableExtension;
-use soroban_sdk::{symbol_short, Address, BytesN, Env, IntoVal, TryFromVal, Val};
+use soroban_sdk::{
+    symbol_short,
+    xdr::{ScErrorCode, ScErrorType},
+    Address, BytesN, Env, IntoVal, TryFromVal, Val,
+};
 
 use crate::{
     name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey, Contract,
@@ -79,11 +83,20 @@ impl ToStorageKey<BytesN<32>> for HashKey {
 pub struct ContractEntry {
     pub owner: Address,
     pub contract: Address,
+    pub flagged: bool,
 }
 
+// `ContractEntry` is stored as either a 2-tuple (unflagged) or a 3-tuple with
+// a `Void` sentinel (flagged). The *length* of the stored vec carries the
+// flag, so unflagged entries — the common case on the hot proxy path — pay
+// zero bytes of overhead for it.
 impl IntoVal<Env, Val> for ContractEntry {
     fn into_val(&self, env: &Env) -> Val {
-        (self.owner.to_val(), self.contract.to_val()).into_val(env)
+        if self.flagged {
+            (self.owner.to_val(), self.contract.to_val(), ()).into_val(env)
+        } else {
+            (self.owner.to_val(), self.contract.to_val()).into_val(env)
+        }
     }
 }
 
@@ -91,14 +104,29 @@ impl TryFromVal<Env, Val> for ContractEntry {
     type Error = soroban_sdk::Error;
 
     fn try_from_val(env: &Env, v: &Val) -> Result<Self, soroban_sdk::Error> {
-        let entry: (Address, Address) = TryFromVal::try_from_val(env, v)?;
-        Ok(entry.into())
-    }
-}
-
-impl From<(Address, Address)> for ContractEntry {
-    fn from((owner, contract): (Address, Address)) -> Self {
-        ContractEntry { owner, contract }
+        // Decode to a `Vec<Val>` handle first and branch on length. A direct
+        // tuple `TryFromVal` would go through `vec_unpack_to_linear_memory`,
+        // which *traps* the VM on a length mismatch — so we couldn't recover
+        // from a wrong guess. `vec_len` / `vec_get` return errors normally.
+        let vec: soroban_sdk::Vec<Val> = TryFromVal::try_from_val(env, v)?;
+        let flagged = match vec.len() {
+            2 => false,
+            3 => true,
+            _ => {
+                return Err(soroban_sdk::Error::from_type_and_code(
+                    ScErrorType::Object,
+                    ScErrorCode::UnexpectedSize,
+                ))
+            }
+        };
+        // Bounds already checked above, so these `get`s can be unchecked.
+        let owner = TryFromVal::try_from_val(env, &vec.get_unchecked(0))?;
+        let contract = TryFromVal::try_from_val(env, &vec.get_unchecked(1))?;
+        Ok(ContractEntry {
+            owner,
+            contract,
+            flagged,
+        })
     }
 }
 
@@ -151,9 +179,15 @@ impl Storage {
     }
 }
 
-impl From<ContractEntry> for (Address, Address) {
-    fn from(ContractEntry { owner, contract }: ContractEntry) -> Self {
-        (owner, contract)
+impl From<ContractEntry> for (Address, Address, bool) {
+    fn from(
+        ContractEntry {
+            owner,
+            contract,
+            flagged,
+        }: ContractEntry,
+    ) -> Self {
+        (owner, contract, flagged)
     }
 }
 

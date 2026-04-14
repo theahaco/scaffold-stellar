@@ -41,4 +41,8 @@ pub enum Error {
     AccountAddressNotValid = 16,
     /// Given contract ID does not exist on this network
     ContractIdAddressDoesNotExist = 17,
+    /// Invoking contract's function has failed
+    ProxyInvocationFailed = 18,
+    /// Contract to be invoked is compromised
+    ProxyContractCompromised = 19,
 }
