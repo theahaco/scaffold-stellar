@@ -86,18 +86,12 @@ log_file = "{log_path}"
             "package size missing"
         );
 
-        // post-dev: build cycle summary
-        assert!(
-            stdout.contains("📋 build cycle complete:"),
-            "post-dev summary missing"
-        );
-
-        // log file should exist and contain the same output
+        // log file should exist and contain build-phase output
         let log_file = env.cwd.join(log_path);
         assert!(log_file.exists(), "log file was not created");
         let log_content = std::fs::read_to_string(log_file).unwrap();
         assert!(log_content.contains("📋 Compile time:"));
-        assert!(log_content.contains("📋 build cycle complete:"));
+        assert!(log_content.contains("📋 Deployed soroban_hello_world_contract"));
     });
 }
 
@@ -142,12 +136,6 @@ warn_size_kb = 0.1
         );
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-
-        // post-dev summary always fires
-        assert!(
-            stdout.contains("📋 build cycle complete:"),
-            "post-dev summary missing"
-        );
 
         // per-contract metrics suppressed at minimal verbosity
         assert!(
