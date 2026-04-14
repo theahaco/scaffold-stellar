@@ -194,6 +194,7 @@ impl Contract {
                 )?;
                 events::SubRegistry {
                     name: contract_name.to_string(),
+                    contract_id: contract_address.clone(),
                 }
                 .publish(env);
             }
@@ -237,12 +238,6 @@ pub trait Deployable {
     ) -> Result<soroban_sdk::Address, Error> {
         let contract_name: NormalizedName = contract_name.try_into()?;
         let wasm_name: NormalizedName = wasm_name.try_into()?;
-        if wasm_name == registry(env) {
-            events::SubRegistry {
-                name: contract_name.to_string(),
-            }
-            .publish(env);
-        }
         Contract::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
         let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
         let salt = contract_name.hash();
@@ -255,6 +250,13 @@ pub trait Deployable {
             deployer.clone(),
         )?;
         Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
+        if wasm_name == registry(env) {
+            events::SubRegistry {
+                name: contract_name.to_string(),
+                contract_id: contract_id.clone(),
+            }
+            .publish(env);
+        }
         Ok(contract_id)
     }
 

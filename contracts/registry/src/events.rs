@@ -58,4 +58,5 @@ pub struct SecurityFlagContract {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubRegistry {
     pub name: String,
+    pub contract_id: Address,
 }
