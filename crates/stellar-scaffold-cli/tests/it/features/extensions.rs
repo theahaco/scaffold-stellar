@@ -67,16 +67,24 @@ soroban_token_contract.client = false
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
-        // Every registered hook should have fired.
+        // pre-dev / post-dev are watch-only hooks and must NOT fire during build.
+        assert!(
+            !stdout.contains("test-ext:pre-dev"),
+            "pre-dev must not fire during build"
+        );
+        assert!(
+            !stdout.contains("test-ext:post-dev"),
+            "post-dev must not fire during build"
+        );
+
+        // Every build-phase hook should have fired.
         for hook in &[
-            "test-ext:pre-dev",
             "test-ext:pre-compile",
             "test-ext:post-compile",
             "test-ext:pre-deploy",
             "test-ext:post-deploy",
             "test-ext:pre-codegen",
             "test-ext:post-codegen",
-            "test-ext:post-dev",
         ] {
             assert!(
                 stdout.contains(hook),
@@ -91,10 +99,6 @@ soroban_token_contract.client = false
                 .unwrap_or_else(|| panic!("{marker} not found"))
         };
 
-        assert!(
-            pos("test-ext:pre-dev") < pos("test-ext:pre-compile"),
-            "pre-dev must precede pre-compile"
-        );
         assert!(
             pos("test-ext:pre-compile") < pos("test-ext:post-compile"),
             "pre-compile must precede post-compile"
@@ -114,10 +118,6 @@ soroban_token_contract.client = false
         assert!(
             pos("test-ext:pre-codegen") < pos("test-ext:post-codegen"),
             "pre-codegen must precede post-codegen"
-        );
-        assert!(
-            pos("test-ext:post-codegen") < pos("test-ext:post-dev"),
-            "post-codegen must precede post-dev"
         );
     });
 }
