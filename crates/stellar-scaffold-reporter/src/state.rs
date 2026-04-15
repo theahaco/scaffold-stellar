@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::io;
 use std::path::{Path, PathBuf};
 
 /// All mutable state the reporter perists between hook invocations.
@@ -34,13 +35,13 @@ pub fn load(project_root: &Path) -> State {
         .unwrap_or_default() // fall back to State::default() = all None/empty
 }
 
-pub fn save(project_root: &Path, state: &State) {
+pub fn save(project_root: &Path, state: &State) -> io::Result<()> {
     let path = state_path(project_root);
     if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent); // ignore error, save will fail anyway
+        std::fs::create_dir_all(parent)?;
     }
     let json = serde_json::to_string_pretty(state).expect("state serialization failed");
-    let _ = std::fs::write(&path, json);
+    std::fs::write(&path, json)
 }
 
 pub fn now() -> f64 {
