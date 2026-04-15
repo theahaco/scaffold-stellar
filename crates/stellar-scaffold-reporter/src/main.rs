@@ -241,6 +241,7 @@ fn cmd_post_deploy() {
         let contract_id = ctx.contract_id.as_deref().unwrap_or("(unknown)");
         let kind = match ctx.deploy_kind {
             Some(DeployKind::Upgraded) => "upgraded in-place",
+            Some(DeployKind::Unchanged) => "unchanged",
             Some(DeployKind::Fresh) | None => "deployed fresh",
         };
 

@@ -31,6 +31,17 @@ use stellar_strkey::{self, Contract};
 use stellar_xdr::curr::ScSpecEntry::FunctionV0;
 use stellar_xdr::curr::{Error as xdrError, ScSpecEntry, ScSpecTypeBytesN, ScSpecTypeDef};
 
+/// Internal decision about what deploy action to take for a contract.
+/// Resolved before `pre-deploy` fires so the hook always has a clean execution context.
+enum DeployDecision {
+    /// No existing alias, or existing contract is not upgradeable — create a new instance.
+    Fresh,
+    /// Existing contract upgraded in-place; the returned ID is unchanged.
+    Upgraded(Contract),
+    /// Existing contract already has the target WASM hash — no on-chain action needed.
+    Unchanged(Contract),
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, clap::ValueEnum)]
 pub enum ScaffoldEnv {
     Development,
@@ -356,16 +367,13 @@ export default new Client.Client({{
         name: &str,
         contract_id: &str,
         wasm_hash: Option<&str>,
+        rebuild: bool,
     ) -> Result<(), Error> {
         let network = &self.network;
         let printer = self.printer();
         let workspace_root = &self.workspace_root;
         let final_output_dir = workspace_root.join(format!("packages/{name}"));
         let src_template_path = workspace_root.join(format!("src/contracts/{name}.ts"));
-
-        // Create a temporary directory for building the new client
-        let temp_dir = workspace_root.join(format!("target/packages/{name}"));
-        let config_dir = self.get_config_dir()?;
 
         extension::run_hook(
             &self.extensions,
@@ -381,98 +389,97 @@ export default new Client.Client({{
         )
         .await;
 
-        let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
-            "--contract-id",
-            contract_id,
-            "--output-dir",
-            temp_dir.to_str().expect("we do not support non-utf8 paths"),
-            "--config-dir",
-            config_dir
-                .to_str()
-                .expect("we do not support non-utf8 paths"),
-            "--overwrite",
-            "--rpc-url",
-            &network.rpc_url,
-            "--network-passphrase",
-            &network.network_passphrase,
-        ])?;
-        bindings_cmd.execute(self.global_args.quiet).await?;
+        if rebuild {
+            let temp_dir = workspace_root.join(format!("target/packages/{name}"));
+            let config_dir = self.get_config_dir()?;
 
-        // Run `npm i` in the temp directory
-        let output = std::process::Command::new(npm_cmd())
-            .current_dir(&temp_dir)
-            .arg("install")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
-            .output()?;
+            let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
+                "--contract-id",
+                contract_id,
+                "--output-dir",
+                temp_dir.to_str().expect("we do not support non-utf8 paths"),
+                "--config-dir",
+                config_dir
+                    .to_str()
+                    .expect("we do not support non-utf8 paths"),
+                "--overwrite",
+                "--rpc-url",
+                &network.rpc_url,
+                "--network-passphrase",
+                &network.network_passphrase,
+            ])?;
+            bindings_cmd.execute(self.global_args.quiet).await?;
 
-        if !output.status.success() {
-            // Clean up temp directory on failure
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
-                temp_dir.clone(),
-                format!(
-                    "npm install failed with status: {:?}\nError: {}",
-                    output.status.code(),
-                    String::from_utf8_lossy(&output.stderr)
-                ),
-            ));
-        }
-
-        let output = std::process::Command::new(npm_cmd())
-            .current_dir(&temp_dir)
-            .arg("run")
-            .arg("build")
-            .arg("--loglevel=error") // Reduce noise from warnings
-            .output()?;
-
-        if !output.status.success() {
-            // Clean up temp directory on failure
-            let _ = std::fs::remove_dir_all(&temp_dir);
-            return Err(Error::NpmCommandFailure(
-                temp_dir.clone(),
-                format!(
-                    "npm run build failed with status: {:?}\nError: {}",
-                    output.status.code(),
-                    String::from_utf8_lossy(&output.stderr)
-                ),
-            ));
-        }
-
-        // Now atomically replace the old directory with the new one
-        if final_output_dir.exists() {
-            for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
-                .iter()
-                .map(Path::new)
-            {
-                std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
-            }
-            printer.checkln(format!("Client {name:?} updated successfully"));
-        } else {
-            std::fs::create_dir_all(&final_output_dir)?;
-            // No existing directory, just move temp to final location
-            std::fs::rename(&temp_dir, &final_output_dir)?;
-            printer.checkln(format!("Client {name:?} created successfully"));
-            // Run npm install in the final output directory to ensure proper linking
             let output = std::process::Command::new(npm_cmd())
-                .current_dir(&final_output_dir)
+                .current_dir(&temp_dir)
                 .arg("install")
-                .arg("--loglevel=error")
+                .arg("--loglevel=error") // Reduce noise from warnings
+                .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
                 .output()?;
 
             if !output.status.success() {
+                let _ = std::fs::remove_dir_all(&temp_dir);
                 return Err(Error::NpmCommandFailure(
-                    final_output_dir.clone(),
+                    temp_dir.clone(),
                     format!(
-                        "npm install in final directory failed with status: {:?}\nError: {}",
+                        "npm install failed with status: {:?}\nError: {}",
                         output.status.code(),
                         String::from_utf8_lossy(&output.stderr)
                     ),
                 ));
             }
-        }
 
-        self.create_contract_template(name, contract_id, network)?;
+            let output = std::process::Command::new(npm_cmd())
+                .current_dir(&temp_dir)
+                .arg("run")
+                .arg("build")
+                .arg("--loglevel=error") // Reduce noise from warnings
+                .output()?;
+
+            if !output.status.success() {
+                let _ = std::fs::remove_dir_all(&temp_dir);
+                return Err(Error::NpmCommandFailure(
+                    temp_dir.clone(),
+                    format!(
+                        "npm run build failed with status: {:?}\nError: {}",
+                        output.status.code(),
+                        String::from_utf8_lossy(&output.stderr)
+                    ),
+                ));
+            }
+
+            if final_output_dir.exists() {
+                for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
+                    .iter()
+                    .map(Path::new)
+                {
+                    std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
+                }
+                printer.checkln(format!("Client {name:?} updated successfully"));
+            } else {
+                std::fs::create_dir_all(&final_output_dir)?;
+                std::fs::rename(&temp_dir, &final_output_dir)?;
+                printer.checkln(format!("Client {name:?} created successfully"));
+                let output = std::process::Command::new(npm_cmd())
+                    .current_dir(&final_output_dir)
+                    .arg("install")
+                    .arg("--loglevel=error")
+                    .output()?;
+
+                if !output.status.success() {
+                    return Err(Error::NpmCommandFailure(
+                        final_output_dir.clone(),
+                        format!(
+                            "npm install in final directory failed with status: {:?}\nError: {}",
+                            output.status.code(),
+                            String::from_utf8_lossy(&output.stderr)
+                        ),
+                    ));
+                }
+            }
+
+            self.create_contract_template(name, contract_id, network)?;
+        }
 
         extension::run_hook(
             &self.extensions,
@@ -583,7 +590,8 @@ export default new Client.Client({{
                 if stellar_strkey::Contract::from_string(id).is_err() {
                     return Err(Error::InvalidContractID(id.to_string()));
                 }
-                self.generate_contract_bindings(name, id, None).await?;
+                self.generate_contract_bindings(name, id, None, true)
+                    .await?;
             } else {
                 return Err(Error::MissingContractID(name.to_string()));
             }
@@ -664,14 +672,6 @@ export default new Client.Client({{
         Ok(())
     }
 
-    fn get_package_dir(&self, name: &str) -> Result<std::path::PathBuf, Error> {
-        let package_dir = self.workspace_root.join(format!("packages/{name}"));
-        if !package_dir.exists() {
-            return Err(Error::BadContractName(name.to_string()));
-        }
-        Ok(package_dir)
-    }
-
     async fn process_single_contract(
         &self,
         name: &str,
@@ -680,52 +680,48 @@ export default new Client.Client({{
         env: ScaffoldEnv,
     ) -> Result<(), Error> {
         let printer = self.printer();
-        // First check if we have an ID in settings.
-        // Returns (contract_id, wasm_hash) — wasm_hash is None for pinned-ID contracts.
-        let (contract_id, wasm_hash) = if let Some(id) = &settings.id {
+        // Returns (contract_id, wasm_hash, needs_rebuild).
+        // wasm_hash is None for pinned-ID contracts; needs_rebuild is always true for them.
+        let (contract_id, wasm_hash, needs_rebuild) = if let Some(id) = &settings.id {
             let contract_id =
                 Contract::from_string(id).map_err(|_| Error::InvalidContractID(id.clone()))?;
-            (contract_id, None::<String>)
+            (contract_id, None::<String>, true)
         } else {
             let wasm_path = self.get_wasm_path(name);
             if !wasm_path.exists() {
                 return Err(Error::BadContractName(name.to_string()));
             }
             let new_hash = self.upload_contract_wasm(name, &wasm_path).await?;
-            let mut upgraded_contract = None;
 
-            // Check existing alias - if it exists and matches hash, we can return early
-            if let Some(existing_contract_id) = self.get_contract_alias(name, network)? {
-                let hash = self
-                    .get_contract_hash(&existing_contract_id, network)
-                    .await?;
+            // Determine what deploy action is needed before firing any hooks.
+            let decision = if let Some(existing_id) = self.get_contract_alias(name, network)? {
+                let hash = self.get_contract_hash(&existing_id, network).await?;
                 if let Some(current_hash) = hash {
                     if current_hash == new_hash {
                         printer.checkln(format!("Contract {name:?} is up to date"));
-                        // If there is not a package at packages/<name>, generate bindings
-                        if self.get_package_dir(name).is_err() {
-                            self.generate_contract_bindings(
+                        DeployDecision::Unchanged(existing_id)
+                    } else {
+                        match self
+                            .try_upgrade_contract(
                                 name,
-                                &existing_contract_id.to_string(),
-                                Some(&new_hash),
+                                existing_id,
+                                &current_hash,
+                                &new_hash,
+                                network,
                             )
-                            .await?;
+                            .await?
+                        {
+                            Some(upgraded_id) => DeployDecision::Upgraded(upgraded_id),
+                            None => DeployDecision::Fresh,
                         }
-                        return Ok(());
                     }
-                    upgraded_contract = self
-                        .try_upgrade_contract(
-                            name,
-                            existing_contract_id,
-                            &current_hash,
-                            &new_hash,
-                            network,
-                        )
-                        .await?;
+                } else {
+                    DeployDecision::Fresh
                 }
-            }
+            } else {
+                DeployDecision::Fresh
+            };
 
-            // Fire pre-deploy hook before the actual deploy
             extension::run_hook(
                 &self.extensions,
                 HookName::PreDeploy,
@@ -734,24 +730,27 @@ export default new Client.Client({{
             )
             .await;
 
-            // Deploy new contract if we got here (don't deploy if we already run an upgrade)
-            let (contract_id, deploy_kind) = if let Some(upgraded) = upgraded_contract {
-                (upgraded, DeployKind::Upgraded)
-            } else {
-                let id = self.deploy_contract(name, &new_hash, &settings).await?;
-                (id, DeployKind::Fresh)
+            let (contract_id, deploy_kind) = match decision {
+                DeployDecision::Unchanged(id) => (id, DeployKind::Unchanged),
+                DeployDecision::Upgraded(id) => (id, DeployKind::Upgraded),
+                DeployDecision::Fresh => {
+                    let id = self.deploy_contract(name, &new_hash, &settings).await?;
+                    (id, DeployKind::Fresh)
+                }
             };
-            // Run after_deploy script if in development or test environment
-            if let Some(after_deploy) = settings.after_deploy.as_deref()
-                && (env == ScaffoldEnv::Development || env == ScaffoldEnv::Testing)
-            {
-                printer.infoln(format!("Running after_deploy script for {name:?}"));
-                self.run_after_deploy_script(name, &contract_id, after_deploy)
-                    .await?;
-            }
-            self.save_contract_alias(name, &contract_id, network)?;
 
-            // Fire post-deploy hook after the contract ID is confirmed.
+            // Run after_deploy script and save alias only when something changed on-chain.
+            if deploy_kind != DeployKind::Unchanged {
+                if let Some(after_deploy) = settings.after_deploy.as_deref()
+                    && (env == ScaffoldEnv::Development || env == ScaffoldEnv::Testing)
+                {
+                    printer.infoln(format!("Running after_deploy script for {name:?}"));
+                    self.run_after_deploy_script(name, &contract_id, after_deploy)
+                        .await?;
+                }
+                self.save_contract_alias(name, &contract_id, network)?;
+            }
+
             extension::run_hook(
                 &self.extensions,
                 HookName::PostDeploy,
@@ -760,17 +759,27 @@ export default new Client.Client({{
                     wasm_path,
                     &new_hash,
                     Some(contract_id.to_string()),
-                    Some(deploy_kind),
+                    Some(deploy_kind.clone()),
                 ),
                 printer,
             )
             .await;
 
-            (contract_id, Some(new_hash))
+            let needs_rebuild = deploy_kind != DeployKind::Unchanged
+                || !self
+                    .workspace_root
+                    .join(format!("packages/{name}"))
+                    .exists();
+            (contract_id, Some(new_hash), needs_rebuild)
         };
 
-        self.generate_contract_bindings(name, &contract_id.to_string(), wasm_hash.as_deref())
-            .await?;
+        self.generate_contract_bindings(
+            name,
+            &contract_id.to_string(),
+            wasm_hash.as_deref(),
+            needs_rebuild,
+        )
+        .await?;
 
         Ok(())
     }

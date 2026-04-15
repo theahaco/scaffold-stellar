@@ -199,17 +199,20 @@ pub struct CompileContext {
 // DeployContext  (pre-deploy / post-deploy)
 // ---------------------------------------------------------------------------
 
-/// Whether a contract was freshly instantiated or upgraded in-place.
+/// Whether a contract was freshly instantiated, upgraded in-place, or already current.
 ///
 /// Available at `post-deploy` via [`DeployContext::deploy_kind`].
 /// Always `None` at `pre-deploy` (the action has not yet occurred).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeployKind {
-    /// The contract was instantiated for the first time.
+    /// The contract was instantiated for the first time (new contract ID).
     Fresh,
     /// The contract already existed; its WASM was upgraded via the `upgrade` function.
+    /// The contract ID is unchanged.
     Upgraded,
+    /// The contract already existed with the same WASM hash; no on-chain action was taken.
+    Unchanged,
 }
 
 /// Context passed to `pre-deploy` and `post-deploy` hooks.
