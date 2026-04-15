@@ -22,7 +22,6 @@ impl Reporter {
     }
 
     pub fn log(&mut self, line: &str) {
-        // TODO: write to stdout or file depending on config
         println!("{line}");
         if let Some(f) = &mut self.log_file {
             let _ = writeln!(f, "{line}");

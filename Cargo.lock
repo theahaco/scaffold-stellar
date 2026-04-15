@@ -4449,7 +4449,6 @@ dependencies = [
  "serde_json",
  "stellar-scaffold-ext-types",
  "stellar-scaffold-test",
- "thiserror 2.0.17",
 ]
 
 [[package]]

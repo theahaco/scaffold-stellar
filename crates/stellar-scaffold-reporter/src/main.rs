@@ -124,13 +124,36 @@ fn cmd_manifest() {
     println!("{}", serde_json::json!(manifest));
 }
 
-fn read_stdin<T: serde::de::DeserializeOwned>() -> T {
+/// Reads a context JSON from stdin and deserializes it.
+///
+/// Returns `None` on I/O or parse failure after logging a diagnostic to
+/// stderr. The reporter is a child process of scaffold; panicking or
+/// returning a non-zero exit would surface in scaffold's output as an
+/// extension error, so we degrade gracefully instead.
+fn read_stdin<T: serde::de::DeserializeOwned>() -> Option<T> {
     use std::io::Read;
     let mut buf = String::new();
-    std::io::stdin()
-        .read_to_string(&mut buf)
-        .expect("failed to read stdin");
-    serde_json::from_str(&buf).expect("failed to parse context JSON from stdin")
+    if let Err(e) = std::io::stdin().read_to_string(&mut buf) {
+        eprintln!("stellar-scaffold-reporter: failed to read stdin: {e}");
+        return None;
+    }
+    match serde_json::from_str(&buf) {
+        Ok(ctx) => Some(ctx),
+        Err(e) => {
+            eprintln!("stellar-scaffold-reporter: failed to parse context JSON: {e}");
+            None
+        }
+    }
+}
+
+/// Persist reporter state to disk, logging (but not propagating) I/O errors.
+///
+/// State loss only corrupts future deltas and timings, so a diagnostic is
+/// preferable to failing the hook.
+fn save_state(project_root: &std::path::Path, state: &state::State) {
+    if let Err(e) = state::save(project_root, state) {
+        eprintln!("stellar-scaffold-reporter: failed to save state: {e}");
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -138,14 +161,18 @@ fn read_stdin<T: serde::de::DeserializeOwned>() -> T {
 // ---------------------------------------------------------------------------
 
 fn cmd_pre_compile() {
-    let ctx = read_stdin::<CompileContext>();
+    let Some(ctx) = read_stdin::<CompileContext>() else {
+        return;
+    };
     let mut state = state::load(&ctx.project_root);
     state.compile_start = Some(state::now());
-    state::save(&ctx.project_root, &state);
+    save_state(&ctx.project_root, &state);
 }
 
 fn cmd_post_compile() {
-    let ctx = read_stdin::<CompileContext>();
+    let Some(ctx) = read_stdin::<CompileContext>() else {
+        return;
+    };
     let config = parse_config(ctx.config.as_ref());
     let mut state = state::load(&ctx.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.project_root, &config).as_deref());
@@ -214,20 +241,24 @@ fn cmd_post_compile() {
         })
         .collect();
     state.compile_start = None;
-    state::save(&ctx.project_root, &state);
+    save_state(&ctx.project_root, &state);
 }
 
 fn cmd_pre_deploy() {
-    let ctx = read_stdin::<DeployContext>();
+    let Some(ctx) = read_stdin::<DeployContext>() else {
+        return;
+    };
     let mut state = state::load(&ctx.compile.project_root);
     state
         .deploy_start
         .insert(ctx.contract_name.clone(), state::now());
-    state::save(&ctx.compile.project_root, &state);
+    save_state(&ctx.compile.project_root, &state);
 }
 
 fn cmd_post_deploy() {
-    let ctx = read_stdin::<DeployContext>();
+    let Some(ctx) = read_stdin::<DeployContext>() else {
+        return;
+    };
     let config = parse_config(ctx.compile.config.as_ref());
     let mut state = state::load(&ctx.compile.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.compile.project_root, &config).as_deref());
@@ -243,6 +274,8 @@ fn cmd_post_deploy() {
             Some(DeployKind::Upgraded) => "upgraded in-place",
             Some(DeployKind::Unchanged) => "unchanged",
             Some(DeployKind::Fresh) | None => "deployed fresh",
+            // DeployKind is #[non_exhaustive]; future variants default to this.
+            Some(_) => "deployed",
         };
 
         reporter.log(&format!(
@@ -254,20 +287,24 @@ fn cmd_post_deploy() {
         state.deploy_start.remove(&ctx.contract_name);
     }
 
-    state::save(&ctx.compile.project_root, &state);
+    save_state(&ctx.compile.project_root, &state);
 }
 
 fn cmd_pre_codegen() {
-    let ctx = read_stdin::<CodegenContext>();
+    let Some(ctx) = read_stdin::<CodegenContext>() else {
+        return;
+    };
     let mut state = state::load(&ctx.deploy.compile.project_root);
     state
         .codegen_start
         .insert(ctx.deploy.contract_name, state::now());
-    state::save(&ctx.deploy.compile.project_root, &state);
+    save_state(&ctx.deploy.compile.project_root, &state);
 }
 
 fn cmd_post_codegen() {
-    let ctx = read_stdin::<CodegenContext>();
+    let Some(ctx) = read_stdin::<CodegenContext>() else {
+        return;
+    };
     let config = parse_config(ctx.deploy.compile.config.as_ref());
     let mut state = state::load(&ctx.deploy.compile.project_root);
     let mut reporter =
@@ -293,7 +330,7 @@ fn cmd_post_codegen() {
         state.codegen_start.remove(&ctx.deploy.contract_name);
     }
 
-    state::save(&ctx.deploy.compile.project_root, &state);
+    save_state(&ctx.deploy.compile.project_root, &state);
 }
 
 /// Returns total size of all files under `dir` recursively, in KB.
@@ -318,14 +355,18 @@ fn dir_size_kb(dir: &std::path::Path) -> f64 {
 }
 
 fn cmd_pre_dev() {
-    let ctx = read_stdin::<ProjectContext>();
+    let Some(ctx) = read_stdin::<ProjectContext>() else {
+        return;
+    };
     let mut state = state::load(&ctx.project_root);
     state.dev_start = Some(state::now());
-    state::save(&ctx.project_root, &state);
+    save_state(&ctx.project_root, &state);
 }
 
 fn cmd_post_dev() {
-    let ctx = read_stdin::<ProjectContext>();
+    let Some(ctx) = read_stdin::<ProjectContext>() else {
+        return;
+    };
     let config = parse_config(ctx.config.as_ref());
     let mut state = state::load(&ctx.project_root);
     let mut reporter = Reporter::new(log_path(&ctx.project_root, &config).as_deref());
@@ -354,5 +395,5 @@ fn cmd_post_dev() {
         reporter.log(&summary);
     }
 
-    state::save(&ctx.project_root, &state);
+    save_state(&ctx.project_root, &state);
 }

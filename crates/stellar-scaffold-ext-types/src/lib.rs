@@ -46,6 +46,7 @@ use serde::{Deserialize, Serialize};
 /// etc.). Use [`HookName::as_str`] to compare against manifest entries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum HookName {
     /// Fired once before `cargo build` runs for any contract.
     PreCompile,
@@ -205,6 +206,7 @@ pub struct CompileContext {
 /// Always `None` at `pre-deploy` (the action has not yet occurred).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum DeployKind {
     /// The contract was instantiated for the first time (new contract ID).
     Fresh,
