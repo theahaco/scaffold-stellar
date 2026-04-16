@@ -20,7 +20,7 @@ stellar-cli = { version = "25.1.0", package = "soroban-cli", default-features = 
 soroban-rpc = { package = "stellar-rpc-client", version = "25.0.0" }
 soroban-spec-tools = "25.1.0"
 
-soroban-sdk = "25.1.0"
+soroban-sdk = "25.3.1"
 admin-sep = { git = "https://github.com/theahaco/admin-sep", rev = "46ed159ff38ee81f4b61b5ddb8ca4b6bdf972028" }
 stellar-xdr = "25.0.0"
 stellar-strkey = "0.0.15"
