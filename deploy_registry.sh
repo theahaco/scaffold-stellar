@@ -4,14 +4,22 @@ set -e
 PATH=./target/bin:$PATH
 
 # sha256 -s verified
+#
 
-VERIFED=$(sha256 -s v0.4.1)
+registry_version() {
+     awk -F'"' '/^version[[:space:]]*=/ { print $2; exit }' \
+         "$(dirname "$0")/contracts/registry/Cargo.toml"
+}
+VERSION=v$(registry_version)
+curl -L https://github.com/theahaco/scaffold-stellar/releases/download/registry-$VERSION/registry_$VERSION.wasm > ./target/stellar/registry_$VERSION.wasm
+
+VERIFED=$(sha256 -s v0.5.0)
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 echo "$VERIFED"
 
 stellar contract deploy --alias registry \
-                        --wasm ./target/stellar/registry.wasm \
+                        --wasm ./target/stellar/registry_$VERSION.wasm \
                         --source "$ADMIN" \
                         --salt $VERIFED \
                         -- \
@@ -19,10 +27,8 @@ stellar contract deploy --alias registry \
                         --manager "\"$ADDRESS\""
 
 
-# registry="stellar contract invoke --id registry --"
 
-# $registry --help
 
-just registry publish  --wasm ./target/stellar/registry.wasm \
+just registry publish  --wasm ./target/stellar/registry_$VERSION.wasm \
                          --author "$ADMIN" \
                          --source "$ADMIN"

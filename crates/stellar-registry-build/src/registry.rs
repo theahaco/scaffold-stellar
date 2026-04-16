@@ -77,7 +77,7 @@ pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Cont
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(network_passphrase, "v0.4.1")
+    contract_id(network_passphrase, "v0.5.0")
 }
 
 #[cfg(test)]
