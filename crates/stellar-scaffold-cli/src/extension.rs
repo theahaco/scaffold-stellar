@@ -34,9 +34,10 @@ pub fn discover(entries: &[ExtensionEntry], printer: &Print) -> Vec<ResolvedExte
 /// Runs a single lifecycle hook across all registered extensions.
 ///
 /// For each extension whose manifest lists `hook`, spawns
-/// `stellar-scaffold-<name> <hook>` as a subprocess, serializes `context` as
-/// JSON to its stdin, waits for it to exit, then forwards its stdout to
-/// Scaffold's own stdout.
+/// `stellar-scaffold-<name> <hook>` as a subprocess, serializes `context`
+/// as JSON with `config` injected from the extension's entry in
+/// `environments.toml`, writes the result to stdin, waits for it to exit,
+/// then forwards its stdout to Scaffold's own stdout.
 ///
 /// Non-zero exits are logged as errors but do not abort the loop — all
 /// extensions are given a chance to run regardless of whether an earlier one
@@ -49,9 +50,10 @@ pub async fn run_hook<C: serde::Serialize>(
 ) {
     let hook_str = hook.as_str();
 
-    // Serialize once; every extension for this hook receives identical JSON.
-    let context_json = match serde_json::to_vec(context) {
-        Ok(json) => json,
+    // Serialize context to a Value once; per-extension config is injected
+    // into the object before writing to each extension's stdin.
+    let ctx_value = match serde_json::to_value(context) {
+        Ok(v) => v,
         Err(e) => {
             printer.errorln(format!(
                 "Extension hook {hook_str:?}: failed to serialize context: {e}"
@@ -64,6 +66,17 @@ pub async fn run_hook<C: serde::Serialize>(
         if !ext.manifest.hooks.iter().any(|h| h == hook_str) {
             continue;
         }
+
+        let input_json = match inject_config(&ctx_value, ext.config.as_ref()) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                printer.errorln(format!(
+                    "Extension {:?} hook {hook_str:?}: failed to serialize input: {e}",
+                    ext.name
+                ));
+                continue;
+            }
+        };
 
         let binary_name = binary_name(&ext.name);
 
@@ -85,11 +98,11 @@ pub async fn run_hook<C: serde::Serialize>(
             }
         };
 
-        // Write context JSON then shut down stdin so the child sees EOF.
+        // Write input JSON then shut down stdin so the child sees EOF.
         // Dropping without shutdown() could leave the pipe open on some
         // platforms, causing the child to block waiting for more input.
         if let Some(mut stdin) = child.stdin.take() {
-            if let Err(e) = stdin.write_all(&context_json).await {
+            if let Err(e) = stdin.write_all(&input_json).await {
                 printer.errorln(format!(
                     "Extension {:?} hook {hook_str:?}: failed to write context \
                      to stdin: {e}",
@@ -130,6 +143,27 @@ pub async fn run_hook<C: serde::Serialize>(
             // Continue — give remaining extensions a chance to run.
         }
     }
+}
+
+/// Injects `config` into a serialized context value and returns the combined
+/// JSON bytes written to an extension's stdin.
+///
+/// `ctx` must be a JSON object (the output of serializing any context type).
+/// The `config` key is set to the extension's config value, or `null` if the
+/// extension has no config entry in `environments.toml`.
+fn inject_config(
+    ctx: &serde_json::Value,
+    config: Option<&serde_json::Value>,
+) -> Result<Vec<u8>, serde_json::Error> {
+    let mut map = match ctx {
+        serde_json::Value::Object(m) => m.clone(),
+        _ => serde_json::Map::new(),
+    };
+    map.insert(
+        "config".to_string(),
+        config.cloned().unwrap_or(serde_json::Value::Null),
+    );
+    serde_json::to_vec(&serde_json::Value::Object(map))
 }
 
 /// The resolved status of a single extension entry, used by `ext ls`.
@@ -456,14 +490,13 @@ mod tests {
         struct Ctx {
             env: String,
         }
-        let ext = make_resolved(
+        let exts = vec![make_resolved(
             "reporter",
             dir.path().join(binary_name("reporter")),
             &["post-compile"],
-        );
-
+        )];
         run_hook(
-            &[ext],
+            &exts,
             HookName::PostCompile,
             &Ctx {
                 env: "development".to_owned(),
@@ -483,14 +516,13 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         // Script creates a sentinel file when invoked.
         make_script(&dir, "reporter", r#"touch "$(dirname "$0")/was_invoked""#);
-        let ext = make_resolved(
+        let exts = vec![make_resolved(
             "reporter",
             dir.path().join(binary_name("reporter")),
             &["post-compile"], // registered for post-compile, not post-deploy
-        );
-
+        )];
         run_hook(
-            &[ext],
+            &exts,
             HookName::PostDeploy,
             &serde_json::json!({}),
             &printer(),

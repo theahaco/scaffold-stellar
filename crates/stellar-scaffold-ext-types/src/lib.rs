@@ -46,6 +46,7 @@ use serde::{Deserialize, Serialize};
 /// etc.). Use [`HookName::as_str`] to compare against manifest entries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum HookName {
     /// Fired once before `cargo build` runs for any contract.
     PreCompile,
@@ -120,18 +121,6 @@ pub struct ExtensionManifest {
 }
 
 // ---------------------------------------------------------------------------
-// ExtensionConfig
-// ---------------------------------------------------------------------------
-
-/// Arbitrary per-extension configuration, sourced from `environments.toml`.
-///
-/// The scaffold tool passes this opaque value to extensions alongside the hook
-/// context. Extensions are responsible for deserializing it into their own
-/// config struct.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtensionConfig(pub serde_json::Value);
-
-// ---------------------------------------------------------------------------
 // NetworkConfig
 // ---------------------------------------------------------------------------
 
@@ -172,6 +161,11 @@ pub struct NetworkConfig {
 /// | `wasm_paths` | empty | populated |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompileContext {
+    /// Per-extension config from `[env.ext.<name>]` in `environments.toml`.
+    /// `None` when no config was provided for this extension.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<serde_json::Value>,
+
     /// Absolute path to the Cargo workspace root (where `Cargo.toml` and
     /// `environments.toml` live).
     pub project_root: PathBuf,
@@ -206,6 +200,23 @@ pub struct CompileContext {
 // DeployContext  (pre-deploy / post-deploy)
 // ---------------------------------------------------------------------------
 
+/// Whether a contract was freshly instantiated, upgraded in-place, or already current.
+///
+/// Available at `post-deploy` via [`DeployContext::deploy_kind`].
+/// Always `None` at `pre-deploy` (the action has not yet occurred).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum DeployKind {
+    /// The contract was instantiated for the first time (new contract ID).
+    Fresh,
+    /// The contract already existed; its WASM was upgraded via the `upgrade` function.
+    /// The contract ID is unchanged.
+    Upgraded,
+    /// The contract already existed with the same WASM hash; no on-chain action was taken.
+    Unchanged,
+}
+
 /// Context passed to `pre-deploy` and `post-deploy` hooks.
 ///
 /// Fired once per contract. Includes all fields from [`CompileContext`] (via
@@ -221,6 +232,7 @@ pub struct CompileContext {
 /// | `wasm_path` | ✓ | ✓ |
 /// | `wasm_hash` | ✓ | ✓ |
 /// | `contract_id` | `None` | `Some(…)` |
+/// | `deploy_kind` | `None` | `Some(…)` |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeployContext {
     /// All compile-stage fields (project root, env, wasm paths, etc.).
@@ -249,6 +261,12 @@ pub struct DeployContext {
     /// confirmed to exist at this hash). `Some` at `post-deploy`, regardless
     /// of whether the contract was freshly deployed or upgraded in-place.
     pub contract_id: Option<String>,
+
+    /// Whether the contract was freshly instantiated or upgraded in-place.
+    ///
+    /// `None` at `pre-deploy` (the action has not yet occurred).
+    /// `Some` at `post-deploy`.
+    pub deploy_kind: Option<DeployKind>,
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +363,11 @@ pub struct ProjectContractInfo {
 /// | `contracts[*].wasm_path` etc. | `None` | populated |
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectContext {
+    /// Per-extension config from `[env.ext.<name>]` in `environments.toml`.
+    /// `None` when no config was provided for this extension.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config: Option<serde_json::Value>,
+
     /// Absolute path to the Cargo workspace root.
     pub project_root: PathBuf,
 

@@ -1,6 +1,6 @@
 set dotenv-load := true
 
-export PATH := './target/bin:' + env_var('PATH')
+export PATH := './target/debug:./target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
 export CI_BUILD := env_var_or_default('CI_BUILD', '')
 
@@ -13,6 +13,9 @@ scaffold +args:
 
 registry +args:
     @cargo run --bin stellar-registry --quiet -- {{ args }}
+
+reporter +args:
+    @cargo run --bin stellar-scaffold-reporter --quiet -- {{ args }}
 
 stellar-scaffold +args:
     @cargo run $CI_BUILD --bin stellar-scaffold -- {{ args }}
@@ -81,6 +84,10 @@ test-integration-scaffold-examples-2 ci="false":
 # Run registry-cli integration tests
 test-integration-registry ci="false":
     just _test-integration stellar-registry-cli 'test(/./)' {{ ci }}
+
+# Run reporter integration tests
+test-integration-reporter ci="false":
+    just _test-integration stellar-scaffold-reporter 'test(/./)' {{ ci }}
 
 create: build
     rm -rf .soroban

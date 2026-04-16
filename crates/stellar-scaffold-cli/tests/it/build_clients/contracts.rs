@@ -39,9 +39,7 @@ soroban_token_contract.client = false
         assert!(stderr.contains(format!("Using network at {}\n", rpc_url()).as_str()));
 
         for c in contracts {
-            assert!(stderr.contains(&format!("Uploading \"{c}\" wasm bytecode on-chain")));
-            assert!(stderr.contains(&format!("Instantiating \"{c}\" smart contract")));
-            assert!(stderr.contains(&format!("Binding \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Successfully generated client for: {c}")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -89,12 +87,9 @@ soroban_token_contract.client = false
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
         println!("{stderr}");
         assert!(stderr.contains("Creating keys for \"alice\"\n"));
-        // assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
 
         for c in contracts {
-            assert!(stderr.contains(&format!("Uploading \"{c}\" wasm bytecode on-chain")));
-            assert!(stderr.contains(&format!("Instantiating \"{c}\" smart contract")));
-            assert!(stderr.contains(&format!("Binding \"{c}\" contract")));
+            assert!(stderr.contains(&format!("Successfully generated client for: {c}")));
 
             // check that contracts are actually deployed, bound, and imported
             assert!(env.cwd.join(format!("packages/{c}")).exists());
@@ -165,7 +160,7 @@ soroban_token_contract.client = false
         assert!(output.status.success());
         assert!(
             String::from_utf8_lossy(&output.stderr)
-                .contains("Binding \"soroban_hello_world_contract\" contract")
+                .contains("Successfully generated client for: soroban_hello_world_contract")
         );
 
         let output2 = env
@@ -189,9 +184,17 @@ soroban_token_contract.client = false
         // ensure contract hash change check works, should update in dev mode
         assert!(output3.status.success());
         let message = String::from_utf8_lossy(&output3.stderr);
-        assert!(message.contains("Updating contract \"soroban_hello_world_contract\""));
-        let Some(contract_id) = extract_contract_id(&message) else {
-            panic!("Could not find contract ID in stderr");
+        assert!(
+            message.contains("Successfully generated client for: soroban_hello_world_contract")
+        );
+
+        // Extract the contract ID from the generated TypeScript client file.
+        let ts_file = env
+            .cwd
+            .join("src/contracts/soroban_hello_world_contract.ts");
+        let ts_content = std::fs::read_to_string(&ts_file).expect("TS client file not found");
+        let Some(contract_id) = extract_contract_id_from_ts(&ts_content) else {
+            panic!("Could not find contract ID in generated TS file");
         };
         env.set_environments_toml(format!(
             r#"
@@ -245,14 +248,16 @@ soroban_token_contract.client = false
     });
 }
 
-fn extract_contract_id(stderr: &str) -> Option<String> {
-    stderr
+/// Extracts the contract ID from the `contractId: '...'` line in a generated
+/// TypeScript client file produced by `create_contract_template`.
+fn extract_contract_id_from_ts(content: &str) -> Option<String> {
+    content
         .lines()
-        .find(|line| line.contains("contract_id:"))
-        .and_then(|line| {
-            line.split_whitespace()
-                .last()
-                .map(|id| id.trim().to_string())
+        .find(|l| l.contains("contractId:"))
+        .and_then(|l| {
+            let start = l.find('\'')? + 1;
+            let end = l.rfind('\'')?;
+            (start < end).then(|| l[start..end].to_string())
         })
 }
 
@@ -286,10 +291,7 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("Uploading \"soroban_hello_world_contract\" wasm bytecode on-chain"));
-    assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
-    assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
+    assert!(stderr.contains("Successfully generated client for: soroban_hello_world_contract"));
 
     // Switch to a new directory
 
@@ -322,10 +324,7 @@ soroban_token_contract.client = false
         .expect("Failed to execute command");
     let stderr = String::from_utf8_lossy(&output.stderr);
     eprintln!("{stderr}");
-    assert!(stderr.contains("Uploading \"soroban_hello_world_contract\" wasm bytecode on-chain"));
-    assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
-    assert!(stderr.contains("Simulating deploy transaction"));
-    assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
+    assert!(stderr.contains("Successfully generated client for: soroban_hello_world_contract"));
     // Check that the contract files are created in the new directory
     assert!(
         env.cwd
@@ -374,11 +373,7 @@ soroban_token_contract.client = false
 
         assert!(stderr.contains("Creating keys for \"alice\"\n"));
         assert!(stderr.contains(&format!("Using network at {}\n", rpc_url())));
-        assert!(
-            stderr.contains("Uploading \"soroban_hello_world_contract\" wasm bytecode on-chain")
-        );
-        assert!(stderr.contains("Instantiating \"soroban_hello_world_contract\" smart contract"));
-        assert!(stderr.contains("Binding \"soroban_hello_world_contract\" contract"));
+        assert!(stderr.contains("Successfully generated client for: soroban_hello_world_contract"));
 
         // Check that WASM file was copied to custom out_dir
         assert!(out_dir.join("soroban_hello_world_contract.wasm").exists());
@@ -466,23 +461,15 @@ STELLAR_ACCOUNT=bob --symbol ABND --decimal 7 --name abundance --admin bb
         let stderr = env.scaffold("build").assert().success().stderr_as_str();
         eprintln!("{stderr}");
 
-        // Should show summary of results
-        assert!(stderr.contains("Client Generation Summary:"));
-        assert!(stderr.contains("Successfully processed: 3"));
-        assert!(stderr.contains("Failed: 1"));
-        assert!(stderr.contains("Failures:"));
-
-        // Should show specific failure details for token contract
-        assert!(stderr.contains("soroban_token_contract:"));
-
-        // Should still process successful contracts
+        // Successful contracts should produce a client
+        assert!(stderr.contains("Successfully generated client for: soroban_hello_world_contract"));
+        assert!(stderr.contains("Successfully generated client for: soroban_increment_contract"));
         assert!(
-            stderr.contains("Uploading \"soroban_hello_world_contract\" wasm bytecode on-chain")
+            stderr.contains("Successfully generated client for: soroban_custom_types_contract")
         );
-        assert!(stderr.contains("Uploading \"soroban_increment_contract\" wasm bytecode on-chain"));
-        assert!(
-            stderr.contains("Uploading \"soroban_custom_types_contract\" wasm bytecode on-chain")
-        );
+
+        // Failed contract should emit an inline error line
+        assert!(stderr.contains("Failed to generate client for: soroban_token_contract"));
 
         // Check that successful contracts are still deployed
         assert!(

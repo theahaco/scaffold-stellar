@@ -5,7 +5,7 @@
 
 **Scaffold Stellar** is a developer toolkit for building decentralized applications (dApps) and smart contracts on the [**Stellar** blockchain](https://stellar.org).
 
-It helps you go from **idea** to **working full-stack dApp** faster — by providing CLI tools, reusable contract templates, a smart contract registry, and a modern frontend.
+It helps you go from **idea** to **working full-stack dApp** faster by providing CLI tools, reusable contract templates, a smart contract registry, and a modern frontend.
 
 ---
 
@@ -143,6 +143,28 @@ stellar registry install my-contract-instance                           # Instal
 > Use `--help` on any command for usage instructions.
 
 ---
+
+## Extensions
+
+Scaffold Stellar's build pipeline supports extensions by calling binaries on your PATH that tap into lifecycle hooks fired before and after each compile, deploy, codegen, and watch cycle.
+
+The built-in **[Scaffold Reporter](./crates/stellar-scaffold-reporter/)** extension is included in every new project. It logs compile times, WASM sizes, deploy durations, and total build cycle time directly to your console.
+
+Register extensions in `environments.toml`:
+
+```toml
+[development]
+extensions = ["reporter"]
+
+# Optional per-extension config:
+[development.ext.reporter]
+warn_size_kb = 128
+```
+
+See the [Extensions Guide](https://scaffoldstellar.com/docs/extensions) to learn how the hook system works and how to build your own extension.
+
+---
+
 ## Smart Contract Deployment
 
 ### 1. Publish Your Contract
@@ -248,7 +270,7 @@ Ask questions in the repo Discussions tab
 
 Search [DeepWiki](https://deepwiki.org/)
 
-Or just open an issue — we're happy to help!
+Or just open an issue. We're happy to help!
 
 Happy hacking!
 ---

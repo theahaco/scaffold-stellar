@@ -128,7 +128,6 @@ impl Command {
             }
             _ => vec![],
         };
-
         // Build pre-compile context (wasm_paths is empty before compilation).
         let wasm_out_dir =
             self.build.out_dir.clone().unwrap_or_else(|| {
@@ -140,6 +139,7 @@ impl Command {
             .map(|p| p.as_std_path().to_path_buf())
             .collect();
         let pre_compile_ctx = CompileContext {
+            config: None,
             project_root: workspace_root.to_path_buf(),
             env: scaffold_env.to_string(),
             wasm_out_dir: wasm_out_dir.clone(),
@@ -169,6 +169,7 @@ impl Command {
             })
             .collect();
         let post_compile_ctx = CompileContext {
+            config: None,
             project_root: workspace_root.to_path_buf(),
             env: scaffold_env.to_string(),
             wasm_out_dir,

@@ -4550,6 +4550,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar-scaffold-reporter"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "clap",
+ "serde",
+ "serde_json",
+ "stellar-scaffold-ext-types",
+ "stellar-scaffold-test",
+]
+
+[[package]]
 name = "stellar-scaffold-test"
 version = "0.1.0"
 dependencies = [
