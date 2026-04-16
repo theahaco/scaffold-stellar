@@ -138,6 +138,10 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
     NpmCommandFailure(std::path::PathBuf, String),
+    #[error("⛔ ️Codegen step for {0:?} failed: {1}")]
+    CodegenStepFailed(String, String),
+    #[error("⛔ ️Client generation failed for {0} contract(s) — see errors above")]
+    ContractClientFailures(usize),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
     #[error("Failed to get upgrade operator: {0:?}")]
@@ -389,98 +393,110 @@ export default new Client.Client({{
         )
         .await;
 
-        if rebuild {
-            let temp_dir = workspace_root.join(format!("target/packages/{name}"));
-            let config_dir = self.get_config_dir()?;
+        // Convert any inner error to a String *before* the PostCodegen await:
+        // `Error` is not `Send` (some upstream variants wrap non-Send types),
+        // and futures spawned via `tokio::spawn` (see commands/watch/mod.rs)
+        // require everything held across an await to be Send.
+        let codegen_failure: Option<String> = async {
+            if rebuild {
+                let temp_dir = workspace_root.join(format!("target/packages/{name}"));
+                let config_dir = self.get_config_dir()?;
 
-            let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
-                "--contract-id",
-                contract_id,
-                "--output-dir",
-                temp_dir.to_str().expect("we do not support non-utf8 paths"),
-                "--config-dir",
-                config_dir
-                    .to_str()
-                    .expect("we do not support non-utf8 paths"),
-                "--overwrite",
-                "--rpc-url",
-                &network.rpc_url,
-                "--network-passphrase",
-                &network.network_passphrase,
-            ])?;
-            bindings_cmd.execute(self.global_args.quiet).await?;
+                let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
+                    "--contract-id",
+                    contract_id,
+                    "--output-dir",
+                    temp_dir.to_str().expect("we do not support non-utf8 paths"),
+                    "--config-dir",
+                    config_dir
+                        .to_str()
+                        .expect("we do not support non-utf8 paths"),
+                    "--overwrite",
+                    "--rpc-url",
+                    &network.rpc_url,
+                    "--network-passphrase",
+                    &network.network_passphrase,
+                ])?;
+                bindings_cmd.execute(self.global_args.quiet).await?;
 
-            let output = std::process::Command::new(npm_cmd())
-                .current_dir(&temp_dir)
-                .arg("install")
-                .arg("--loglevel=error") // Reduce noise from warnings
-                .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
-                .output()?;
-
-            if !output.status.success() {
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                return Err(Error::NpmCommandFailure(
-                    temp_dir.clone(),
-                    format!(
-                        "npm install failed with status: {:?}\nError: {}",
-                        output.status.code(),
-                        String::from_utf8_lossy(&output.stderr)
-                    ),
-                ));
-            }
-
-            let output = std::process::Command::new(npm_cmd())
-                .current_dir(&temp_dir)
-                .arg("run")
-                .arg("build")
-                .arg("--loglevel=error") // Reduce noise from warnings
-                .output()?;
-
-            if !output.status.success() {
-                let _ = std::fs::remove_dir_all(&temp_dir);
-                return Err(Error::NpmCommandFailure(
-                    temp_dir.clone(),
-                    format!(
-                        "npm run build failed with status: {:?}\nError: {}",
-                        output.status.code(),
-                        String::from_utf8_lossy(&output.stderr)
-                    ),
-                ));
-            }
-
-            if final_output_dir.exists() {
-                for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
-                    .iter()
-                    .map(Path::new)
-                {
-                    std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
-                }
-                printer.checkln(format!("Client {name:?} updated successfully"));
-            } else {
-                std::fs::create_dir_all(&final_output_dir)?;
-                std::fs::rename(&temp_dir, &final_output_dir)?;
-                printer.checkln(format!("Client {name:?} created successfully"));
                 let output = std::process::Command::new(npm_cmd())
-                    .current_dir(&final_output_dir)
+                    .current_dir(&temp_dir)
                     .arg("install")
-                    .arg("--loglevel=error")
+                    .arg("--loglevel=error") // Reduce noise from warnings
+                    .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
                     .output()?;
 
                 if !output.status.success() {
+                    let _ = std::fs::remove_dir_all(&temp_dir);
                     return Err(Error::NpmCommandFailure(
-                        final_output_dir.clone(),
+                        temp_dir.clone(),
                         format!(
-                            "npm install in final directory failed with status: {:?}\nError: {}",
+                            "npm install failed with status: {:?}\nError: {}",
                             output.status.code(),
                             String::from_utf8_lossy(&output.stderr)
                         ),
                     ));
                 }
+
+                let output = std::process::Command::new(npm_cmd())
+                    .current_dir(&temp_dir)
+                    .arg("run")
+                    .arg("build")
+                    .arg("--loglevel=error") // Reduce noise from warnings
+                    .output()?;
+
+                if !output.status.success() {
+                    let _ = std::fs::remove_dir_all(&temp_dir);
+                    return Err(Error::NpmCommandFailure(
+                        temp_dir.clone(),
+                        format!(
+                            "npm run build failed with status: {:?}\nError: {}",
+                            output.status.code(),
+                            String::from_utf8_lossy(&output.stderr)
+                        ),
+                    ));
+                }
+
+                if final_output_dir.exists() {
+                    for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
+                        .iter()
+                        .map(Path::new)
+                    {
+                        std::fs::copy(temp_dir.join(p), final_output_dir.join(p))?;
+                    }
+                    printer.checkln(format!("Client {name:?} updated successfully"));
+                } else {
+                    std::fs::create_dir_all(&final_output_dir)?;
+                    std::fs::rename(&temp_dir, &final_output_dir)?;
+                    printer.checkln(format!("Client {name:?} created successfully"));
+                    let output = std::process::Command::new(npm_cmd())
+                        .current_dir(&final_output_dir)
+                        .arg("install")
+                        .arg("--loglevel=error")
+                        .output()?;
+
+                    if !output.status.success() {
+                        return Err(Error::NpmCommandFailure(
+                            final_output_dir.clone(),
+                            format!(
+                                "npm install in final directory failed with status: {:?}\nError: {}",
+                                output.status.code(),
+                                String::from_utf8_lossy(&output.stderr)
+                            ),
+                        ));
+                    }
+                }
+
+                self.create_contract_template(name, contract_id, network)?;
             }
-
-            self.create_contract_template(name, contract_id, network)?;
+            Ok::<(), Error>(())
         }
+        .await
+        .err()
+        .map(|e| e.to_string());
 
+        // Fire PostCodegen unconditionally so hook consumers see a consistent
+        // lifecycle even when an inner step errored.
         extension::run_hook(
             &self.extensions,
             HookName::PostCodegen,
@@ -495,6 +511,9 @@ export default new Client.Client({{
         )
         .await;
 
+        if let Some(msg) = codegen_failure {
+            return Err(Error::CodegenStepFailed(name.to_string(), msg));
+        }
         Ok(())
     }
 
@@ -618,6 +637,7 @@ export default new Client.Client({{
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
 
+        let mut failures = 0usize;
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -638,10 +658,14 @@ export default new Client.Client({{
                 }
                 Err(e) => {
                     printer.errorln(format!("Failed to generate client for: {name}: {e}"));
+                    failures += 1;
                 }
             }
         }
 
+        if failures > 0 {
+            return Err(Error::ContractClientFailures(failures));
+        }
         Ok(())
     }
 
