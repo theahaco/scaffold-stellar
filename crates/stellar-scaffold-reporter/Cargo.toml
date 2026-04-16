@@ -14,7 +14,7 @@ name = "stellar-scaffold-reporter"
 path = "src/main.rs"
 
 [dependencies]
-stellar-scaffold-ext-types = { path = "../stellar-scaffold-ext-types", version: "0.0.1" }
+stellar-scaffold-ext-types = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
