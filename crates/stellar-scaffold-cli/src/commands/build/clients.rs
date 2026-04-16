@@ -140,8 +140,6 @@ pub enum Error {
     NpmCommandFailure(std::path::PathBuf, String),
     #[error("⛔ ️Codegen step for {0:?} failed: {1}")]
     CodegenStepFailed(String, String),
-    #[error("⛔ ️Client generation failed for {0} contract(s) — see errors above")]
-    ContractClientFailures(usize),
     #[error(transparent)]
     AccountFund(#[from] cli::keys::fund::Error),
     #[error("Failed to get upgrade operator: {0:?}")]
@@ -637,7 +635,6 @@ export default new Client.Client({{
 
         let names = Self::maintain_user_ordering(&package_names, contracts);
 
-        let mut failures = 0usize;
         for name in names {
             let settings = contracts
                 .and_then(|contracts| contracts.get(name.as_str()))
@@ -658,14 +655,10 @@ export default new Client.Client({{
                 }
                 Err(e) => {
                     printer.errorln(format!("Failed to generate client for: {name}: {e}"));
-                    failures += 1;
                 }
             }
         }
 
-        if failures > 0 {
-            return Err(Error::ContractClientFailures(failures));
-        }
         Ok(())
     }
 
