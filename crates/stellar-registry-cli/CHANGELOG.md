@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.19...stellar-registry-cli-v0.0.20) - 2026-04-16
+
+### Other
+
+- update Cargo.lock dependencies
+
 ## [0.0.19](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.18...stellar-registry-cli-v0.0.19) - 2026-03-19
 
 ### Other
