@@ -97,3 +97,8 @@ impl TryFromVal<Env, Val> for NormalizedName {
 pub fn registry(env: &Env) -> NormalizedName {
     unsafe { NormalizedName::new_unchecked(String::from_str(env, REGISTRY)) }
 }
+
+#[must_use]
+pub fn unverifed(env: &Env) -> NormalizedName {
+    unsafe { NormalizedName::new_unchecked(String::from_str(env, UNVERIFIED)) }
+}
