@@ -100,3 +100,7 @@ clippy *args:
 
 clippy-test:
     just clippy --tests --all-features
+
+# tests which check the determinstic contract names need to be rebuild after changes
+update-registry-tests:
+    UPDATE_EXPECT=1 cargo test --package stellar-registry-build registry::generate_id

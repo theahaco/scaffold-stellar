@@ -13,7 +13,7 @@ registry_version() {
 VERSION=v$(registry_version)
 curl -L https://github.com/theahaco/scaffold-stellar/releases/download/registry-$VERSION/registry_$VERSION.wasm > ./target/stellar/registry_$VERSION.wasm
 
-VERIFED=$(sha256 -s v0.5.0)
+VERIFED=$(sha256 -s v0.5.1)
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 echo "$VERIFED"

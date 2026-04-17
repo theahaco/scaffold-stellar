@@ -77,7 +77,7 @@ pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Cont
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(network_passphrase, "v0.5.0")
+    contract_id(network_passphrase, "v0.5.1")
 }
 
 #[cfg(test)]
@@ -87,7 +87,7 @@ mod generate_id {
 
     /// Run with `UPDATE_EXPECT=1 cargo test` to regenerate the expected contract
     /// IDs in-place after bumping the registry version.
-    fn check(passphrase: &str, expected: Expect) {
+    fn check(passphrase: &str, expected: &Expect) {
         expected.assert_eq(&super::verified_contract_id(passphrase).to_string());
     }
 
@@ -95,7 +95,7 @@ mod generate_id {
     fn futurenet() {
         check(
             FUTURENET,
-            expect!["CDJPNKGMDE3SE67PIK62Y52OAL5MCGAX3RSGB6MDMIRBXWITJLF4S3QU"],
+            &expect!["CBPT3TME73LDTZRCRTN7W63ZYPAXEPYY43NR4FN6JMZHFNXQLJ2HJ3JO"],
         );
     }
 
@@ -103,7 +103,7 @@ mod generate_id {
     fn testnet() {
         check(
             TESTNET,
-            expect!["CC5IFZ4AFIOUG375ZG4CNKTJOVF32PJUPTJZ374NMWMSLKJZPVMZEJ45"],
+            &expect!["CBNBQND6EMYTTRTCUWUJ3VIKF7RUUISK5T4GAKTXRVIQRHGP4XQY4ID7"],
         );
     }
 
@@ -111,7 +111,7 @@ mod generate_id {
     fn mainnet() {
         check(
             MAINNET,
-            expect!["CB5SXR5Y6KB4WJGTRPHQRBE35WXNJEN6K7X2W7SFXCL5TJPTV5YG2M6U"],
+            &expect!["CBP2UAVPBB7TDTNQ445Z2FYKLTR3LPZLXC3I3NDYDKQBDTGLIABVMQ34"],
         );
     }
 
@@ -119,7 +119,7 @@ mod generate_id {
     fn local() {
         check(
             LOCAL,
-            expect!["CCOBPTXWDHLX3V7LFBSJEJXZGR6GXGXPFQFE67E3PQDSQ5AS5CZLZFF3"],
+            &expect!["CBF2POIPIHIDK4YRRFJF3AHEMTMATHIO6XB47X3MLNBTFTOAUUIPZESA"],
         );
     }
 }
