@@ -82,44 +82,44 @@ pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contrac
 
 #[cfg(test)]
 mod generate_id {
+    use expect_test::{Expect, expect};
     use stellar_cli::config::network::passphrase::*;
 
-    fn test_contract_id((passphrase, contract_id): (&str, &str)) {
-        assert_eq!(
-            &super::verified_contract_id(passphrase).to_string(),
-            contract_id,
-            "{passphrase}"
-        );
+    /// Run with `UPDATE_EXPECT=1 cargo test` to regenerate the expected contract
+    /// IDs in-place after bumping the registry version.
+    fn check(passphrase: &str, expected: Expect) {
+        expected.assert_eq(&super::verified_contract_id(passphrase).to_string());
     }
+
     #[test]
     fn futurenet() {
-        test_contract_id((
+        check(
             FUTURENET,
-            "CDMAKNALA4EKEA52CP645Y6H5NUM5AZPOPBM5RHOG2SRNHUOAPFHK6P4",
-        ));
+            expect!["CDJPNKGMDE3SE67PIK62Y52OAL5MCGAX3RSGB6MDMIRBXWITJLF4S3QU"],
+        );
     }
 
     #[test]
     fn testnet() {
-        test_contract_id((
+        check(
             TESTNET,
-            "CCA256DWBJJEEYXAWQHP5N4ZAJ2NW4P5T52LZCGC766Q5XHFVNQBMFZV",
-        ));
+            expect!["CC5IFZ4AFIOUG375ZG4CNKTJOVF32PJUPTJZ374NMWMSLKJZPVMZEJ45"],
+        );
     }
 
     #[test]
     fn mainnet() {
-        test_contract_id((
+        check(
             MAINNET,
-            "CAYVNQYGQ7IVZBBKMZ46UNRUQIFGBVHVZFCG47CYCMA2SAODDVDVCWMS",
-        ));
+            expect!["CB5SXR5Y6KB4WJGTRPHQRBE35WXNJEN6K7X2W7SFXCL5TJPTV5YG2M6U"],
+        );
     }
 
     #[test]
     fn local() {
-        test_contract_id((
+        check(
             LOCAL,
-            "CB7GPZFAAJQJYJD63P7HUAVABBSGLRWJB2C35RKR5TQ33AMRSS2XFL3C",
-        ));
+            expect!["CCOBPTXWDHLX3V7LFBSJEJXZGR6GXGXPFQFE67E3PQDSQ5AS5CZLZFF3"],
+        );
     }
 }
