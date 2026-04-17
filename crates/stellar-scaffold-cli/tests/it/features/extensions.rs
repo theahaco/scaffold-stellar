@@ -7,7 +7,13 @@ const TEST_EXT_SCRIPT: &str = r#"#!/bin/sh
 case "$1" in
   manifest)
     printf '{"name":"test-ext","version":"0.1.0","hooks":["pre-compile","post-compile","pre-deploy","post-deploy","pre-codegen","post-codegen","pre-dev","post-dev"]}'
+    exit 0
     ;;
+esac
+# Hook invocations receive a JSON context on stdin; consume it so the
+# parent's write_all completes without a broken-pipe error.
+cat > /dev/null
+case "$1" in
   pre-compile)  echo "test-ext:pre-compile"  ;;
   post-compile) echo "test-ext:post-compile" ;;
   pre-deploy)   echo "test-ext:pre-deploy"   ;;
