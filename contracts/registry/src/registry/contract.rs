@@ -198,7 +198,7 @@ impl Contract {
                 }
                 .publish(env);
                 events::SubRegistry {
-                    name: registry(env).to_string(),
+                    name: String::from_str(env, "root"),
                     contract_id: env.current_contract_address(),
                 }
                 .publish(env);
