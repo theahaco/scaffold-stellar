@@ -7,7 +7,13 @@ const TEST_EXT_SCRIPT: &str = r#"#!/bin/sh
 case "$1" in
   manifest)
     printf '{"name":"test-ext","version":"0.1.0","hooks":["pre-compile","post-compile","pre-deploy","post-deploy","pre-codegen","post-codegen","pre-dev","post-dev"]}'
+    exit 0
     ;;
+esac
+# Hook invocations receive a JSON context on stdin; consume it so the
+# parent's write_all completes without a broken-pipe error.
+cat > /dev/null
+case "$1" in
   pre-compile)  echo "test-ext:pre-compile"  ;;
   post-compile) echo "test-ext:post-compile" ;;
   pre-deploy)   echo "test-ext:pre-deploy"   ;;
@@ -56,25 +62,26 @@ soroban_token_contract.client = false
         let output = env
             .scaffold_build("development", false)
             .env("PATH", &custom_path)
+            .env("RUST_LOG", "warn")
             .output()
             .expect("Failed to run scaffold build");
 
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
         assert!(
             output.status.success(),
-            "Build failed:\n{}",
-            String::from_utf8_lossy(&output.stderr)
+            "Build failed.\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
         );
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
 
         // pre-dev / post-dev are watch-only hooks and must NOT fire during build.
         assert!(
             !stdout.contains("test-ext:pre-dev"),
-            "pre-dev must not fire during build"
+            "pre-dev must not fire during build.\nSTDOUT:\n{stdout}"
         );
         assert!(
             !stdout.contains("test-ext:post-dev"),
-            "post-dev must not fire during build"
+            "post-dev must not fire during build.\nSTDOUT:\n{stdout}"
         );
 
         // Every build-phase hook should have fired.
@@ -88,7 +95,7 @@ soroban_token_contract.client = false
         ] {
             assert!(
                 stdout.contains(hook),
-                "expected hook output not found: {hook}"
+                "expected hook output not found: {hook}\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
             );
         }
 
@@ -96,28 +103,28 @@ soroban_token_contract.client = false
         let pos = |marker: &str| {
             stdout
                 .find(marker)
-                .unwrap_or_else(|| panic!("{marker} not found"))
+                .unwrap_or_else(|| panic!("{marker} not found in stdout:\n{stdout}"))
         };
 
         assert!(
             pos("test-ext:pre-compile") < pos("test-ext:post-compile"),
-            "pre-compile must precede post-compile"
+            "pre-compile must precede post-compile.\nSTDOUT:\n{stdout}"
         );
         assert!(
             pos("test-ext:post-compile") < pos("test-ext:pre-deploy"),
-            "post-compile must precede pre-deploy"
+            "post-compile must precede pre-deploy.\nSTDOUT:\n{stdout}"
         );
         assert!(
             pos("test-ext:pre-deploy") < pos("test-ext:post-deploy"),
-            "pre-deploy must precede post-deploy"
+            "pre-deploy must precede post-deploy.\nSTDOUT:\n{stdout}"
         );
         assert!(
             pos("test-ext:post-deploy") < pos("test-ext:pre-codegen"),
-            "post-deploy must precede pre-codegen"
+            "post-deploy must precede pre-codegen.\nSTDOUT:\n{stdout}"
         );
         assert!(
             pos("test-ext:pre-codegen") < pos("test-ext:post-codegen"),
-            "pre-codegen must precede post-codegen"
+            "pre-codegen must precede post-codegen.\nSTDOUT:\n{stdout}"
         );
     });
 }
@@ -174,22 +181,22 @@ soroban_token_contract.client = false
         let output = env
             .scaffold_build("development", false)
             .env("PATH", &custom_path)
+            .env("RUST_LOG", "warn")
             .output()
             .expect("Failed to run scaffold build");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let combined = format!("{stdout}\n{stderr}");
 
         // pre-codegen must fire (it runs before the rebuild block) and
         // post-codegen must still fire even though the rebuild block errored.
         assert!(
-            combined.contains("test-ext:pre-codegen"),
-            "pre-codegen must fire before the rebuild block.\nSTDOUT:\n{stdout}\n---\nSTDERR:\n{stderr}"
+            stdout.contains("test-ext:pre-codegen"),
+            "pre-codegen must fire before the rebuild block.\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
         );
         assert!(
-            combined.contains("test-ext:post-codegen"),
-            "post-codegen must fire even when an inner codegen step errored — this is the lifecycle contract.\nSTDOUT:\n{stdout}\n---\nSTDERR:\n{stderr}"
+            stdout.contains("test-ext:post-codegen"),
+            "post-codegen must fire even when an inner codegen step errored — this is the lifecycle contract.\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
         );
     });
 }
