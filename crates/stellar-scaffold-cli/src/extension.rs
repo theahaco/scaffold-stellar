@@ -129,8 +129,12 @@ pub async fn run_hook<C: serde::Serialize>(
         // Forward the extension's stdout verbatim to Scaffold's stdout so
         // extensions can emit progress, JSON payloads, or human-readable
         // output without any added formatting.
+        //
+        // Flush immediately: the process may exit via std::process::exit()
+        // which skips Drop and leaves BufWriter contents unwritten.
         if !output.stdout.is_empty() {
             let _ = std::io::stdout().write_all(&output.stdout);
+            let _ = std::io::stdout().flush();
         }
 
         if !output.status.success() {
