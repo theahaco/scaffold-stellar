@@ -23,10 +23,7 @@ esac
 fn extension_hooks_fire_in_order() {
     // Single-contract fixture: compiles only hello_world, cutting build time
     // and removing the 4 other contracts that don't affect this test at all.
-    let env = TestEnv::new_with_contracts(
-        "soroban-init-boilerplate",
-        &["soroban_hello_world_contract"],
-    );
+    let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
 
     // Write the shell-script extension to a temp bin dir and make it executable.
     let bin_dir = env.temp_dir.path().join("ext-bin");
@@ -131,10 +128,7 @@ soroban_hello_world_contract.client = true
 /// whether the inner step succeeded.
 #[test]
 fn extension_post_codegen_fires_when_codegen_step_fails() {
-    let env = TestEnv::new_with_contracts(
-        "soroban-init-boilerplate",
-        &["soroban_hello_world_contract"],
-    );
+    let env = TestEnv::new_with_contracts("soroban-init-boilerplate", &["hello_world"]);
 
     let bin_dir = env.temp_dir.path().join("ext-bin");
     std::fs::create_dir_all(&bin_dir).unwrap();
