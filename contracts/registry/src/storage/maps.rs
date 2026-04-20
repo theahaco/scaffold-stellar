@@ -3,6 +3,8 @@ use core::marker::PhantomData;
 
 use soroban_sdk::{Env, IntoVal, TryFromVal, Val};
 
+pub const MAX_BUMP: u32 = 535_679;
+
 pub trait ToStorageKey<Key: IntoVal<Env, Val> + Clone> {
     fn to_key(env: &Env, k: &Key) -> Val;
 }
@@ -50,11 +52,20 @@ where
         self.env.storage().persistent().has(&k)
     }
 
+    pub fn remove(&mut self, key: &K) {
+        let k = W::to_key(&self.env, key);
+        self.env.storage().persistent().remove(&k);
+    }
+
     pub fn extend_ttl(&self, key: &K, threshold: u32, extend_to: u32) {
         let k = W::to_key(&self.env, key);
         self.env
             .storage()
             .persistent()
             .extend_ttl(&k, threshold, extend_to);
+    }
+
+    pub fn extend_ttl_max(&self, key: &K) {
+        self.extend_ttl(key, MAX_BUMP, MAX_BUMP);
     }
 }

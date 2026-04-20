@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.10](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.9...stellar-registry-v0.0.10) - 2026-04-03
+
+### Other
+
+- *(stellar-registry)* better description ([#457](https://github.com/theahaco/scaffold-stellar/pull/457))
+
+## [0.0.9](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.8...stellar-registry-v0.0.9) - 2026-04-02
+
+### Added
+
+- *(stellar-registry)* allow specifying version ([#444](https://github.com/theahaco/scaffold-stellar/pull/444))
+
+## [0.0.8](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.7...stellar-registry-v0.0.8) - 2026-03-31
+
+### Other
+
+- updated the following local packages: stellar-scaffold-macro
+
+## [0.0.7](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.6...stellar-registry-v0.0.7) - 2026-03-28
+
+### Added
+
+- *(macro)* add registry fallback for import_contract_client ([#406](https://github.com/theahaco/scaffold-stellar/pull/406))
+
+## [0.0.6](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.5...stellar-registry-v0.0.6) - 2026-02-16
+
+### Other
+
+- Update editions to 2024 across crates ([#292](https://github.com/theahaco/scaffold-stellar/pull/292))
+
 ## [0.0.5](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-v0.0.4...stellar-registry-v0.0.5) - 2025-11-10
 
 ### Other

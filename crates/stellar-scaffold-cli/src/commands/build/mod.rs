@@ -1,6 +1,7 @@
 #![allow(clippy::struct_excessive_bools)]
 use crate::commands::build::Error::EmptyPackageName;
 use crate::commands::version;
+use crate::extension;
 use cargo_metadata::camino::Utf8PathBuf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use clap::Parser;
@@ -11,6 +12,7 @@ use std::{fmt::Debug, io, path::Path, process::ExitStatus};
 use stellar_cli::commands::contract::build::Cmd;
 use stellar_cli::commands::{contract::build, global};
 use stellar_cli::print::Print;
+use stellar_scaffold_ext_types::{CompileContext, HookName};
 
 pub mod clients;
 pub mod docker;
@@ -115,9 +117,73 @@ impl Command {
 
         let target_dir = &metadata.target_directory;
 
+        // Discover extensions for the active environment
+        let scaffold_env = self
+            .build_clients_args
+            .env
+            .unwrap_or(ScaffoldEnv::Development);
+        let extensions = match env_toml::Environment::get(workspace_root, &scaffold_env)? {
+            Some(env_config) if !env_config.extensions.is_empty() => {
+                extension::discover(&env_config.extensions, &printer)
+            }
+            _ => vec![],
+        };
+        // Build pre-compile context (wasm_paths is empty before compilation).
+        let wasm_out_dir =
+            self.build.out_dir.clone().unwrap_or_else(|| {
+                stellar_build::deps::stellar_wasm_out_dir(target_dir.as_std_path())
+            });
+        let source_dirs: Vec<std::path::PathBuf> = packages
+            .iter()
+            .filter_map(|p| p.manifest_path.parent())
+            .map(|p| p.as_std_path().to_path_buf())
+            .collect();
+        let pre_compile_ctx = CompileContext {
+            config: None,
+            project_root: workspace_root.to_path_buf(),
+            env: scaffold_env.to_string(),
+            wasm_out_dir: wasm_out_dir.clone(),
+            source_dirs: source_dirs.clone(),
+            wasm_paths: BTreeMap::new(),
+        };
+
+        extension::run_hook(
+            &extensions,
+            HookName::PreCompile,
+            &pre_compile_ctx,
+            &printer,
+        )
+        .await;
+
         for p in &packages {
             self.create_cmd(p, target_dir)?.run(global_args)?;
         }
+
+        // Build post-compile context with populated wasm_paths.
+        let wasm_paths: BTreeMap<String, std::path::PathBuf> = packages
+            .iter()
+            .map(|p| {
+                let name = p.name.replace('-', "_");
+                let path = stellar_build::stellar_wasm_out_file(target_dir.as_std_path(), &name);
+                (name, path)
+            })
+            .collect();
+        let post_compile_ctx = CompileContext {
+            config: None,
+            project_root: workspace_root.to_path_buf(),
+            env: scaffold_env.to_string(),
+            wasm_out_dir,
+            source_dirs,
+            wasm_paths,
+        };
+
+        extension::run_hook(
+            &extensions,
+            HookName::PostCompile,
+            &post_compile_ctx,
+            &printer,
+        )
+        .await;
 
         if self.build_clients {
             let mut build_clients_args = self.build_clients_args.clone();
@@ -125,6 +191,8 @@ impl Command {
             build_clients_args.workspace_root = Some(metadata.workspace_root.into_std_path_buf());
             build_clients_args.out_dir.clone_from(&self.build.out_dir);
             build_clients_args.global_args = Some(global_args.clone());
+            build_clients_args.extensions = extensions;
+            build_clients_args.compile_ctx = Some(post_compile_ctx);
             build_clients_args
                 .run(packages.iter().map(|p| p.name.replace('-', "_")).collect())
                 .await?;

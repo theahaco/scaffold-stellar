@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.22...stellar-scaffold-cli-v0.0.23) - 2026-04-16
+
+### Other
+
+- Feat/reporter extension ([#463](https://github.com/theahaco/scaffold-stellar/pull/463))
+
+## [0.0.22](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.21...stellar-scaffold-cli-v0.0.22) - 2026-04-03
+
+### Fixed
+
+- use dest_path for workspace root lookup when updating OZ deps ([#451](https://github.com/theahaco/scaffold-stellar/pull/451))
+
+## [0.0.21](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.20...stellar-scaffold-cli-v0.0.21) - 2026-03-18
+
+### Added
+
+- extension system ([#414](https://github.com/theahaco/scaffold-stellar/pull/414))
+- update OZ release to v0.7.0-rc.1 ([#398](https://github.com/theahaco/scaffold-stellar/pull/398))
+
+## [0.0.20](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.19...stellar-scaffold-cli-v0.0.20) - 2026-03-02
+
+### Fixed
+
+- update docker container running alert ([#392](https://github.com/theahaco/scaffold-stellar/pull/392))
+
+### Other
+
+- *(deps)* bump toml_edit from 0.22.27 to 0.23.7 ([#311](https://github.com/theahaco/scaffold-stellar/pull/311))
+
+## [0.0.19](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.18...stellar-scaffold-cli-v0.0.19) - 2026-02-16
+
+### Added
+
+- add managed contracts and `stellar-registry-build` ([#322](https://github.com/theahaco/scaffold-stellar/pull/322))
+- update stellar-cli and fix breaking changes ([#324](https://github.com/theahaco/scaffold-stellar/pull/324))
+
+### Fixed
+
+- reorganize RPC tests to simplify filters and fix flaky example tests ([#386](https://github.com/theahaco/scaffold-stellar/pull/386))
+- update code for stellar-cli v25, soroban-sdk v25, and admin-sep API changes ([#383](https://github.com/theahaco/scaffold-stellar/pull/383))
+- use pedantic clippy and apply suggestions ([#379](https://github.com/theahaco/scaffold-stellar/pull/379))
+- use stellar-cli action instead of just setup ([#323](https://github.com/theahaco/scaffold-stellar/pull/323))
+- handle npm install errors ([#312](https://github.com/theahaco/scaffold-stellar/pull/312))
+
+### Other
+
+- Chore/accomodate oz v 0.6.0 ([#369](https://github.com/theahaco/scaffold-stellar/pull/369))
+- Enable to import contracts from soroban examples ([#327](https://github.com/theahaco/scaffold-stellar/pull/327))
+- fetch the most recent supported oz release ([#357](https://github.com/theahaco/scaffold-stellar/pull/357))
+- Feat/scaffold clean ([#352](https://github.com/theahaco/scaffold-stellar/pull/352))
+- *(deps)* bump cargo_toml from 0.20.5 to 0.22.3 ([#295](https://github.com/theahaco/scaffold-stellar/pull/295))
+- Update editions to 2024 across crates ([#292](https://github.com/theahaco/scaffold-stellar/pull/292))
+- *(deps)* bump itertools from 0.12.1 to 0.14.0 ([#296](https://github.com/theahaco/scaffold-stellar/pull/296))
+
 ## [0.0.18](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.17...stellar-scaffold-cli-v0.0.18) - 2025-11-11
 
 ### Fixed

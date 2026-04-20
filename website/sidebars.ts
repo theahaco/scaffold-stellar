@@ -32,6 +32,7 @@ const sidebars: SidebarsConfig = {
     },
     "cli",
     "environments",
+    "extensions",
     "registry",
     "deploy",
   ],

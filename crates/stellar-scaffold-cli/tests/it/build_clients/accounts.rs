@@ -23,7 +23,7 @@ soroban_token_contract.client = false
             rpc_url(),
         ));
         for dir in fs::read_dir(&env.cwd).unwrap() {
-            println!("Found directory: {:?}", dir);
+            println!("Found directory: {dir:?}");
         }
 
         let stderr = env
@@ -43,8 +43,8 @@ soroban_token_contract.client = false
             .stderr_as_str();
         assert!(stderr.contains("identity with the name \'alice\' already exists"));
         assert!(stderr.contains("identity with the name \'bob\' already exists"));
-        for dir in fs::read_dir(&env.cwd.join(".config/stellar")).unwrap() {
-            println!("Found directory: {:?}", dir);
+        for dir in fs::read_dir(env.cwd.join(".config/stellar")).unwrap() {
+            println!("Found directory: {dir:?}");
         }
 
         // check that they're actually funded

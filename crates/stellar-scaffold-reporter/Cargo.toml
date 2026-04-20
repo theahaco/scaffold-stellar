@@ -1,0 +1,30 @@
+[package]
+name = "stellar-scaffold-reporter"
+description = "Scaffold Stellar plugin for logging development metrics"
+homepage = "https://github.com/theahaco/scaffold-stellar"
+authors = ["Aha Labs <hello@theaha.co>"]
+license = "Apache-2.0"
+readme = "README.md"
+version = "0.1.0"
+edition = "2024"
+repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-scaffold-reporter"
+
+[[bin]]
+name = "stellar-scaffold-reporter"
+path = "src/main.rs"
+
+[dependencies]
+stellar-scaffold-ext-types = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+assert_cmd = "2.1.1"
+stellar-scaffold-test = { path = "../stellar-scaffold-test" }
+
+[features]
+integration-tests = []
+
+[lints]
+workspace = true

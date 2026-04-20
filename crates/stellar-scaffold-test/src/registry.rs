@@ -6,7 +6,7 @@ use std::{
 };
 use stellar_cli::{
     CommandParser,
-    commands::{self as cli, NetworkRunnable, contract::upload, global, keys, network},
+    commands::{self as cli, contract::upload, global, keys, network},
 };
 
 use crate::common::{TestEnv, find_stellar_wasm_dir};
@@ -15,6 +15,7 @@ use crate::common::{TestEnv, find_stellar_wasm_dir};
 pub struct RegistryTest {
     pub env: TestEnv,
     pub registry_address: String,
+    pub alice_address: stellar_strkey::ed25519::PublicKey,
 }
 
 impl RegistryTest {
@@ -24,7 +25,7 @@ impl RegistryTest {
         Self::parse_cmd_internal::<network::add::Cmd>(
             &env,
             &[
-                "localhost",
+                "local",
                 "--rpc-url",
                 rpc_url,
                 "--network-passphrase",
@@ -34,7 +35,7 @@ impl RegistryTest {
         .unwrap()
         .run()
         .unwrap();
-        Self::parse_cmd_internal::<network::default::Cmd>(&env, &["localhost"])
+        Self::parse_cmd_internal::<network::default::Cmd>(&env, &["local"])
             .unwrap()
             .run(&global::Args::default())
             .unwrap();
@@ -54,10 +55,15 @@ impl RegistryTest {
         unsafe {
             env::set_var("STELLAR_REGISTRY_CONTRACT_ID", &registry_address);
         }
-
+        let alice_address = Self::parse_cmd_internal::<keys::public_key::Cmd>(&env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap();
         Self {
             env,
             registry_address,
+            alice_address,
         }
     }
 
@@ -75,7 +81,7 @@ impl RegistryTest {
         let wasm_path = RandomizedWasm::new("registry.wasm").randomize(&env.cwd);
         println!("Wasm path: {:?}", wasm_path.display());
         // Upload wasm using the Stellar CLI library directly with alice account
-        let hash = Self::parse_cmd_internal::<upload::Cmd>(
+        let upload_cmd = Self::parse_cmd_internal::<upload::Cmd>(
             env,
             &[
                 "--wasm",
@@ -88,17 +94,26 @@ impl RegistryTest {
                 rpc_url,
                 "--network-passphrase",
                 "Standalone Network ; February 2017",
+                "--fee=4000000000",
             ],
         )
-        .expect("Failed to parse arguments for upload")
-        .run_against_rpc_server(None, None)
-        .await
-        .expect("Failed to upload contract")
-        .into_result()
-        .expect("no hash returned by 'contract upload'")
-        .to_string();
+        .expect("Failed to parse arguments for upload");
+        let hash = upload_cmd
+            .execute(&upload_cmd.config, false, false)
+            .await
+            .expect("Failed to upload contract")
+            .into_result()
+            .expect("no hash returned by 'contract upload'")
+            .to_string();
 
         eprintln!("🪞 Deploying registry contract...");
+
+        let alice_key = Self::parse_cmd_internal::<keys::public_key::Cmd>(env, &["alice"])
+            .unwrap()
+            .public_key()
+            .await
+            .unwrap()
+            .to_string();
 
         // Deploy contract using the Stellar CLI library directly with alice account
         let deploy_args = [
@@ -113,18 +128,22 @@ impl RegistryTest {
             "--",
             "--admin",
             "alice",
+            "--manager",
+            &format!("\"{alice_key}\""),
+            "--is-root",
         ];
-        let contract_id =
+        let deploy_cmd =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
-                .expect("Failed to parse arguments for deploy")
-                .run_against_rpc_server(None, None)
-                .await
-                .expect("Failed to deploy contract")
-                .into_result()
-                .expect("no contract id returned by 'contract deploy'")
-                .to_string()
-                .trim()
-                .to_string();
+                .expect("Failed to parse arguments for deploy");
+        let contract_id = deploy_cmd
+            .execute(&deploy_cmd.config, false, false)
+            .await
+            .expect("Failed to deploy contract")
+            .into_result()
+            .expect("no contract id returned by 'contract deploy'")
+            .to_string()
+            .trim()
+            .to_string();
 
         eprintln!("✅ Registry deployed at: {contract_id}");
 
@@ -181,7 +200,7 @@ impl RandomizedWasm {
         wasm_gen::write_custom_section(
             &mut wasm_bytes,
             "test_section",
-            uuid::Uuid::new_v4().as_bytes(),
+            format!("{}{}", uuid::Uuid::new_v4(), temp_dir.display()).as_bytes(),
         );
         let out_file = temp_dir.join(&self.0);
         fs::write(&out_file, wasm_bytes).expect("Failed to write wasm file with custom section");

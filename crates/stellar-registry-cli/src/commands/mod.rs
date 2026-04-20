@@ -3,9 +3,19 @@ use std::str::FromStr;
 use clap::{CommandFactory, FromArgMatches, Parser, command};
 
 pub mod create_alias;
+pub mod current_version;
 pub mod deploy;
+pub mod deploy_unnamed;
 pub mod download;
+pub mod fetch_contract_id;
+pub mod fetch_hash;
+pub mod global;
 pub mod publish;
+pub mod publish_hash;
+pub mod register_contract;
+pub mod rename_contract;
+pub mod update_contract_address;
+pub mod update_contract_owner;
 pub mod upgrade;
 pub mod version;
 
@@ -39,10 +49,19 @@ impl Root {
     }
     pub async fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
+            Cmd::CurrentVersion(cmd) => cmd.run().await?,
             Cmd::Deploy(deploy) => deploy.run().await?,
+            Cmd::DeployUnnamed(cmd) => cmd.run().await?,
             Cmd::Download(cmd) => cmd.run().await?,
+            Cmd::FetchContractId(cmd) => cmd.run().await?,
+            Cmd::FetchHash(cmd) => cmd.run().await?,
             Cmd::Publish(p) => p.run().await?,
+            Cmd::PublishHash(cmd) => cmd.run().await?,
             Cmd::CreateAlias(i) => i.run().await?,
+            Cmd::RegisterContract(cmd) => cmd.run().await?,
+            Cmd::RenameContract(cmd) => cmd.run().await?,
+            Cmd::UpdateContractAddress(cmd) => cmd.run().await?,
+            Cmd::UpdateContractOwner(cmd) => cmd.run().await?,
             Cmd::Version(p) => p.run(),
             Cmd::Upgrade(u) => u.run().await?,
         }
@@ -60,30 +79,66 @@ impl FromStr for Root {
 
 #[derive(Parser, Debug)]
 pub enum Cmd {
-    /// Deploy a named contract from a published Wasm
-    Deploy(Box<deploy::Cmd>),
-    /// Download a Wasm binary, optionally creating a local file
-    Download(Box<download::Cmd>),
     /// Create a local `stellar contract alias` from a named registry contract
     CreateAlias(Box<create_alias::Cmd>),
+    /// Get the current (latest) version of a published Wasm
+    CurrentVersion(Box<current_version::Cmd>),
+    /// Deploy a named contract from a published Wasm
+    Deploy(Box<deploy::Cmd>),
+    /// Deploy a contract from a published Wasm without registering a name
+    DeployUnnamed(Box<deploy_unnamed::Cmd>),
+    /// Download a Wasm binary, optionally creating a local file
+    Download(Box<download::Cmd>),
+    /// Look up the contract ID of a deployed contract by name
+    FetchContractId(Box<fetch_contract_id::Cmd>),
+    /// Fetch the hash of a published Wasm binary
+    FetchHash(Box<fetch_hash::Cmd>),
     /// Publish Wasm to registry with package name and semantic version
     Publish(Box<publish::Cmd>),
-    /// Version of the scaffold-registry-cli
-    Version(version::Cmd),
+    /// Publish a Wasm hash (already uploaded) to registry
+    PublishHash(Box<publish_hash::Cmd>),
+    /// Register an existing contract with a name in the registry
+    RegisterContract(Box<register_contract::Cmd>),
+    /// Rename a registered contract
+    RenameContract(Box<rename_contract::Cmd>),
+    /// Update the contract address of a registered contract
+    UpdateContractAddress(Box<update_contract_address::Cmd>),
+    /// Update the owner of a registered contract
+    UpdateContractOwner(Box<update_contract_owner::Cmd>),
     /// Upgrade a contract using a published Wasm
     Upgrade(Box<upgrade::Cmd>),
+    /// Version of the scaffold-registry-cli
+    Version(version::Cmd),
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
+    CreateAlias(#[from] create_alias::Error),
+    #[error(transparent)]
+    CurrentVersion(#[from] current_version::Error),
+    #[error(transparent)]
     Deploy(#[from] deploy::Error),
     #[error(transparent)]
-    Fetch(#[from] download::Error),
+    DeployUnnamed(#[from] deploy_unnamed::Error),
     #[error(transparent)]
-    Install(#[from] create_alias::Error),
+    Download(#[from] download::Error),
+    #[error(transparent)]
+    FetchContractId(#[from] fetch_contract_id::Error),
+    #[error(transparent)]
+    FetchHash(#[from] fetch_hash::Error),
     #[error(transparent)]
     Publish(#[from] publish::Error),
+    #[error(transparent)]
+    PublishHash(#[from] publish_hash::Error),
+    #[error(transparent)]
+    RegisterContract(#[from] register_contract::Error),
+    #[error(transparent)]
+    RenameContract(#[from] rename_contract::Error),
+    #[error(transparent)]
+    UpdateContractAddress(#[from] update_contract_address::Error),
+    #[error(transparent)]
+    UpdateContractOwner(#[from] update_contract_owner::Error),
     #[error(transparent)]
     Upgrade(#[from] upgrade::Error),
 }

@@ -6,7 +6,7 @@ pub async fn start_local_stellar() -> Result<(), Box<dyn Error>> {
         .run(&stellar_cli::commands::global::Args::default())
         .await;
     if let Err(e) = result {
-        if e.to_string().contains("already in use")
+        if e.to_string().contains("already running")
             || e.to_string().contains("port is already allocated")
         {
             eprintln!("Container is already running, proceeding to health check...");

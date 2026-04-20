@@ -1,32 +1,44 @@
-use soroban_sdk::{self, contracterror};
-
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
+#[soroban_sdk_tools::scerr]
 pub enum Error {
-    NoSuchWasmPublished = 1,
+    NoSuchWasmPublished,
     /// No such version of the contact has been published
-    NoSuchVersion = 2,
+    NoSuchVersion,
     /// Wasm name already claimed
-    WasmNameAlreadyTaken = 3,
+    WasmNameAlreadyTaken,
     /// No such contract deployed
-    NoSuchContractDeployed = 4,
+    NoSuchContractDeployed,
     /// Contract already deployed
-    AlreadyDeployed = 5,
-    /// Failed to redeploy a deployed contract with no coreriff macro
-    UpgradeInvokeFailed = 6,
+    AlreadyDeployed,
+    /// Failed to upgrade a contract
+    UpgradeInvokeFailed,
     /// Only Admin is allowed
-    AdminOnly = 7,
+    AdminOnly,
     /// New version must be greater than the most recent version
-    VersionMustBeGreaterThanCurrent = 8,
+    VersionMustBeGreaterThanCurrent,
     /// Invalid name.
     /// Must be at most 64 characters and non-empty;
     /// ascii alphanumeric, '-', or '_';
     /// start with a ascii alphabetic character;
     /// and not be a Rust keyword
-    InvalidName = 9,
+    InvalidName,
     /// Must be valid cargo version
-    InvalidVersion = 10,
+    InvalidVersion,
     /// Hash has aleady been published
-    HashAlreadyPublished = 11,
+    HashAlreadyPublished,
+    /// Root registry requires manager when deploying
+    ManagerRequired,
+    /// No pending batch entries to process
+    NoPendingBatch,
+    /// Caller is not the contract owner
+    NotContractOwner,
+    /// Batch entry missing from temporary storage (likely expired)
+    BatchEntryExpired,
+    /// Given "contract ID" appears to be a G-address, not a contract ID
+    AccountAddressNotValid,
+    /// Given contract ID does not exist on this network
+    ContractIdAddressDoesNotExist,
+    /// Invoking contract's function has failed
+    ProxyInvocationFailed,
+    /// Contract to be invoked is compromised
+    ProxyContractCompromised,
 }
