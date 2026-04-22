@@ -9,6 +9,7 @@ use normalized::Normalized;
 
 pub(crate) const REGISTRY: &str = "registry";
 pub(crate) const UNVERIFIED: &str = "unverified";
+pub(crate) const ROOT: &str = "root";
 
 /// Checks that the name is a valid crate name.
 /// 1. The name must be non-empty.
