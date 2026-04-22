@@ -16,6 +16,7 @@ pub struct Deploy {
     pub version: String,
     pub deployer: Address,
     pub contract_id: Address,
+    pub registry: Address,
 }
 
 #[contractevent(topics = ["publish"])]
