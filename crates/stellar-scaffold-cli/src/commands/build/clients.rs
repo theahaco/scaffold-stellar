@@ -4,7 +4,7 @@ use crate::arg_parsing;
 use crate::arg_parsing::ArgParser;
 use crate::commands::build::clients::Error::UpgradeArgsError;
 use crate::commands::build::env_toml::{self, Environment};
-use crate::commands::npm_cmd;
+use crate::commands::{PackageManager, PackageManagerSpec};
 use crate::extension::{self, ResolvedExtension};
 use indexmap::IndexMap;
 use regex::Regex;
@@ -136,8 +136,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("⛔ ️Failed to run npm command in {0:?}: {1:?}")]
-    NpmCommandFailure(std::path::PathBuf, String),
+    #[error("⛔ ️Failed to run package manager command in {0:?}: {1}")]
+    PackageManagerCommandFailure(std::path::PathBuf, String),
     #[error("⛔ ️Codegen step for {0:?} failed: {1}")]
     CodegenStepFailed(String, String),
     #[error(transparent)]
@@ -163,6 +163,7 @@ pub struct Builder {
     printer: Print,
     pub(crate) out_dir: Option<PathBuf>,
     env: Environment,
+    pkg_manager: PackageManager,
     extensions: Vec<ResolvedExtension>,
     compile_ctx: Option<CompileContext>,
 }
@@ -177,6 +178,7 @@ impl Builder {
         scaffold_env: ScaffoldEnv,
         out_dir: Option<PathBuf>,
         env: Environment,
+        pkg_manager: PackageManager,
         extensions: Vec<ResolvedExtension>,
         compile_ctx: Option<CompileContext>,
     ) -> Self {
@@ -189,6 +191,7 @@ impl Builder {
             workspace_root,
             out_dir,
             env,
+            pkg_manager,
             extensions,
             compile_ctx,
         }
@@ -391,6 +394,8 @@ export default new Client.Client({{
         )
         .await;
 
+        let pm_label = self.pkg_manager.as_str();
+
         // Convert any inner error to a String *before* the PostCodegen await:
         // `Error` is not `Send` (some upstream variants wrap non-Send types),
         // and futures spawned via `tokio::spawn` (see commands/watch/mod.rs)
@@ -398,6 +403,7 @@ export default new Client.Client({{
         let codegen_failure: Option<String> = async {
             if rebuild {
                 let temp_dir = workspace_root.join(format!("target/packages/{name}"));
+                let temp_dir_display = temp_dir.display();
                 let config_dir = self.get_config_dir()?;
 
                 let bindings_cmd = cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
@@ -417,43 +423,45 @@ export default new Client.Client({{
                 ])?;
                 bindings_cmd.execute(self.global_args.quiet).await?;
 
-                let output = std::process::Command::new(npm_cmd())
-                    .current_dir(&temp_dir)
-                    .arg("install")
-                    .arg("--loglevel=error") // Reduce noise from warnings
-                    .arg("--no-workspaces") // fix issue where stellar sometimes isnt installed locally causing tsc to fail
-                    .output()?;
+                printer.infoln(format!(
+                    "Running '{pm_label} install' in {temp_dir_display:?}"
+                ));
+                let output = self.pkg_manager.install_no_workspace(&temp_dir)?;
 
                 if !output.status.success() {
                     let _ = std::fs::remove_dir_all(&temp_dir);
-                    return Err(Error::NpmCommandFailure(
+                    return Err(Error::PackageManagerCommandFailure(
                         temp_dir.clone(),
                         format!(
-                            "npm install failed with status: {:?}\nError: {}",
+                            "{pm_label} install failed with status: {:?}\nError: {}",
                             output.status.code(),
                             String::from_utf8_lossy(&output.stderr)
                         ),
                     ));
                 }
+                printer.checkln(format!(
+                    "'{pm_label} install' succeeded in {temp_dir_display}"
+                ));
 
-                let output = std::process::Command::new(npm_cmd())
-                    .current_dir(&temp_dir)
-                    .arg("run")
-                    .arg("build")
-                    .arg("--loglevel=error") // Reduce noise from warnings
-                    .output()?;
+                printer.infoln(format!(
+                    "Running '{pm_label} run build' in {temp_dir_display}"
+                ));
+                let output = self.pkg_manager.build(&temp_dir)?;
 
                 if !output.status.success() {
                     let _ = std::fs::remove_dir_all(&temp_dir);
-                    return Err(Error::NpmCommandFailure(
+                    return Err(Error::PackageManagerCommandFailure(
                         temp_dir.clone(),
                         format!(
-                            "npm run build failed with status: {:?}\nError: {}",
+                            "{pm_label} run build failed with status: {:?}\nError: {}",
                             output.status.code(),
                             String::from_utf8_lossy(&output.stderr)
                         ),
                     ));
                 }
+                printer.checkln(format!(
+                    "'{pm_label} run build' succeeded in {temp_dir_display}"
+                ));
 
                 if final_output_dir.exists() {
                     for p in ["dist/index.d.ts", "dist/index.js", "src/index.ts"]
@@ -467,17 +475,13 @@ export default new Client.Client({{
                     std::fs::create_dir_all(&final_output_dir)?;
                     std::fs::rename(&temp_dir, &final_output_dir)?;
                     printer.checkln(format!("Client {name:?} created successfully"));
-                    let output = std::process::Command::new(npm_cmd())
-                        .current_dir(&final_output_dir)
-                        .arg("install")
-                        .arg("--loglevel=error")
-                        .output()?;
+                    let output = self.pkg_manager.install_silent(&final_output_dir)?;
 
                     if !output.status.success() {
-                        return Err(Error::NpmCommandFailure(
+                        return Err(Error::PackageManagerCommandFailure(
                             final_output_dir.clone(),
                             format!(
-                                "npm install in final directory failed with status: {:?}\nError: {}",
+                                "{pm_label} install in final directory failed with status: {:?}\nError: {}",
                                 output.status.code(),
                                 String::from_utf8_lossy(&output.stderr)
                             ),
@@ -1084,6 +1088,13 @@ impl Args {
             ([candidate], _) => candidate.clone(),
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
+
+        let pkg_manager_spec =
+            PackageManagerSpec::from_package_json(workspace_root).unwrap_or(PackageManagerSpec {
+                kind: PackageManager::Npm,
+                version: None,
+            });
+
         let builder = Builder::new(
             global_args,
             network,
@@ -1092,6 +1103,7 @@ impl Args {
             env,
             self.out_dir.clone(),
             current_env,
+            pkg_manager_spec.kind,
             self.extensions.clone(),
             self.compile_ctx.clone(),
         );

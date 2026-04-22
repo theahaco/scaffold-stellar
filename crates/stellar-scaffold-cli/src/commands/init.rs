@@ -1,15 +1,21 @@
 use clap::{Args, Parser};
 use degit::degit;
-use std::fs::{copy, metadata, read_dir, remove_dir_all};
-use std::path::PathBuf;
+use dialoguer::Select;
+use dialoguer::theme::ColorfulTheme;
+use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file, write};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, io};
 
 use super::{build, generate};
+use crate::commands::{PackageManager, PackageManagerSpec};
 use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
 const TUTORIAL_BRANCH: &str = "tutorial";
+const PNPM_WORKSPACE: &str = r#"packages:
+  - "packages/*"
+"#;
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -55,6 +61,7 @@ impl Cmd {
     /// /// From the command line
     /// stellar scaffold init /path/to/project
     /// ```
+    #[allow(clippy::too_many_lines)]
     pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         let printer: Print = Print::new(global_args.quiet);
 
@@ -116,8 +123,34 @@ impl Cmd {
             }
         }
 
-        // Install npm dependencies
-        let npm_status = npm_install(&absolute_project_path, &printer);
+        let Some(pkg_manager) = select_pkg_manager(&printer) else {
+            printer.warnln("Package manager selection cancelled. Run the command again to retry.");
+            return Ok(());
+        };
+
+        if pkg_manager.kind == PackageManager::Pnpm {
+            if let Err(e) = write(
+                absolute_project_path.join("pnpm-workspace.yaml"),
+                PNPM_WORKSPACE,
+            ) {
+                printer.warnln(format!("Failed to create pnpm-workspace.yaml: {e}"));
+            }
+        } else if pkg_manager.kind != PackageManager::Npm
+            && let Err(e) = remove_file(absolute_project_path.join("package-lock.json"))
+        {
+            printer.warnln(format!("Failed to remove package-lock.json: {e}"));
+        }
+
+        if pkg_manager
+            .write_to_package_json(&absolute_project_path)
+            .is_err()
+        {
+            printer.warnln("Failed to write the selected package manager to package.json");
+        }
+
+        // Install dependencies
+        let pm_command = pkg_manager.kind.command();
+        let install_succeeded = run_install(pm_command, &absolute_project_path, &printer);
 
         // Build contracts and create contract clients
         printer.infoln("Building contracts and generating client code...");
@@ -149,10 +182,10 @@ impl Cmd {
         ));
         printer.blankln(" You can now run the application with:\n");
         printer.blankln(format!("\tcd {}", self.project_path.display()));
-        if !npm_status {
-            printer.blankln("\tnpm install");
+        if !install_succeeded {
+            printer.blankln(format!("\t{pm_command} install"));
         }
-        printer.blankln("\tnpm start\n");
+        printer.blankln(format!("\t{pm_command} start"));
         printer.blankln(" Happy hacking! 🚀");
         Ok(())
     }
@@ -163,7 +196,7 @@ impl Cmd {
     /// and prints a warning if it can't be found or generated.
     async fn update_oz_example(
         &self,
-        absolute_project_path: &PathBuf,
+        absolute_project_path: &Path,
         example_name: &str,
         global_args: &global::Args,
     ) -> Result<(), Error> {
@@ -221,29 +254,95 @@ impl Cmd {
     }
 }
 
-// Check if npm is installed and exists in PATH
-fn npm_exists() -> bool {
-    Command::new("npm").arg("--version").output().is_ok()
+/// Probe all known package managers and return specs for those that are installed.
+fn detect_pkg_managers() -> Vec<PackageManagerSpec> {
+    PackageManager::LIST
+        .iter()
+        .filter_map(|kind| {
+            let version = pkg_manager_version(kind.command())?;
+            Some(PackageManagerSpec {
+                kind: kind.clone(),
+                version: Some(version),
+            })
+        })
+        .collect()
 }
 
-// Install npm dependencies
-fn npm_install(path: &PathBuf, printer: &Print) -> bool {
-    if !npm_exists() {
-        printer.warnln("Failed to install dependencies, npm is not installed");
+/// Interactively pick a package manager. Shows only installed managers with their
+/// detected versions. Defaults to npm if available, otherwise the first detected.
+/// Returns `None` if the user cancels (Ctrl+C) or no managers are found.
+fn select_pkg_manager(printer: &Print) -> Option<PackageManagerSpec> {
+    let detected = detect_pkg_managers();
+
+    if detected.is_empty() {
+        printer.warnln("No supported package manager detected (npm, pnpm, yarn, bun, deno).");
+        printer.warnln("Defaulting to npm — install it from https://nodejs.org");
+        return Some(PackageManagerSpec {
+            kind: PackageManager::Npm,
+            version: None,
+        });
+    }
+
+    if detected.len() == 1 {
+        let spec = detected.into_iter().next().unwrap();
+        let label = format_pm_label(&spec);
+        printer.infoln(format!("Using {label} (only package manager detected)"));
+        return Some(spec);
+    }
+
+    // Default selection: prefer npm, otherwise use the first detected manager
+    let default_index = detected
+        .iter()
+        .position(|s| s.kind == PackageManager::Npm)
+        .unwrap_or(0);
+
+    let labels: Vec<String> = detected.iter().map(format_pm_label).collect();
+
+    let index = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Pick a package manager")
+        .items(&labels)
+        .default(default_index)
+        .interact()
+        .ok()?;
+
+    detected.into_iter().nth(index)
+}
+
+fn format_pm_label(spec: &PackageManagerSpec) -> String {
+    match &spec.version {
+        Some(v) => format!("{} ({})", spec.kind.as_str(), v),
+        None => spec.kind.as_str().to_string(),
+    }
+}
+
+fn pkg_manager_version(command: &str) -> Option<String> {
+    let output = Command::new(command).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    extract_version(&stdout)
+}
+
+fn run_install(pm_command: &str, path: &Path, printer: &Print) -> bool {
+    if pkg_manager_version(pm_command).is_none() {
+        printer.warnln(format!(
+            "Failed to install dependencies, {pm_command} is not installed"
+        ));
         return false;
     }
 
-    printer.infoln("Installing npm dependencies...");
-    match Command::new("npm")
+    printer.infoln("Installing dependencies...");
+    match Command::new(pm_command)
         .arg("install")
         .current_dir(path)
         .output()
     {
         Ok(output) if output.status.success() => true,
         Ok(output) => {
-            // Command ran without panic, but failed for some other reason
-            // like network issue or missing dependency, etc.
-            printer.warnln("Failed to install dependencies: Please run 'npm install' manually");
+            printer.warnln(format!(
+                "Failed to install dependencies: Please run '{pm_command} install' manually"
+            ));
             if !output.stderr.is_empty()
                 && let Ok(stderr) = String::from_utf8(output.stderr)
             {
@@ -252,7 +351,7 @@ fn npm_install(path: &PathBuf, printer: &Print) -> bool {
             false
         }
         Err(e) => {
-            printer.warnln(format!("Failed to run npm install: {e}"));
+            printer.warnln(format!("Failed to run {pm_command} install: {e}"));
             false
         }
     }
@@ -263,22 +362,104 @@ fn git_exists() -> bool {
     Command::new("git").arg("--version").output().is_ok()
 }
 
-// Initialize a new git repository
-fn git_init(path: &PathBuf) {
+fn git_init(path: &Path) {
     let _ = Command::new("git").arg("init").current_dir(path).output();
 }
 
-// Stage files for commit
-fn git_add(path: &PathBuf, rest: &[&str]) {
+fn git_add(path: &Path, rest: &[&str]) {
     let mut args = vec!["add"];
     args.extend_from_slice(rest);
     let _ = Command::new("git").args(args).current_dir(path).output();
 }
 
-// Commit with message
-fn git_commit(path: &PathBuf, message: &str) {
+fn git_commit(path: &Path, message: &str) {
     let _ = Command::new("git")
         .args(["commit", "-m", message])
         .current_dir(path)
         .output();
+}
+
+fn extract_version(text: &str) -> Option<String> {
+    for token in text.split_whitespace() {
+        if is_semver_like(token) {
+            return Some(
+                token
+                    .trim_matches(|c: char| !c.is_ascii_digit() && c != '.')
+                    .to_string(),
+            );
+        }
+    }
+    None
+}
+
+fn is_semver_like(s: &str) -> bool {
+    let s = s.trim_matches(|c: char| !c.is_ascii_digit() && c != '.');
+    let mut parts = s.split('.');
+
+    let major = parts.next().and_then(|p| p.parse::<u64>().ok());
+    let minor = parts.next().and_then(|p| p.parse::<u64>().ok());
+
+    // patch is optional (yarn classic sometimes omits weirdly)
+    let patch = parts.next().map_or(Some(0), |p| p.parse::<u64>().ok());
+
+    major.is_some() && minor.is_some() && patch.is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_version_from_npm_output() {
+        assert_eq!(extract_version("10.2.3"), Some("10.2.3".to_string()));
+    }
+
+    #[test]
+    fn extract_version_from_pnpm_output() {
+        // pnpm --version outputs just the version number
+        assert_eq!(extract_version("9.6.0"), Some("9.6.0".to_string()));
+    }
+
+    #[test]
+    fn extract_version_from_yarn_output() {
+        // yarn --version outputs just the version
+        assert_eq!(extract_version("1.22.19"), Some("1.22.19".to_string()));
+    }
+
+    #[test]
+    fn extract_version_from_prefixed_string() {
+        // some tools prefix with 'v'
+        assert_eq!(extract_version("v1.2.3"), Some("1.2.3".to_string()));
+    }
+
+    #[test]
+    fn extract_version_ignores_non_version_tokens() {
+        assert_eq!(extract_version("npm 10.2.3"), Some("10.2.3".to_string()));
+    }
+
+    #[test]
+    fn extract_version_returns_none_for_garbage() {
+        assert_eq!(extract_version("not-a-version"), None);
+    }
+
+    #[test]
+    fn is_semver_like_two_part_accepted() {
+        // yarn classic sometimes shows only major.minor
+        assert!(is_semver_like("1.22"));
+    }
+
+    #[test]
+    fn is_semver_like_three_part() {
+        assert!(is_semver_like("10.2.3"));
+    }
+
+    #[test]
+    fn is_semver_like_rejects_word() {
+        assert!(!is_semver_like("npm"));
+    }
+
+    #[test]
+    fn is_semver_like_rejects_single_number() {
+        assert!(!is_semver_like("10"));
+    }
 }
