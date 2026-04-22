@@ -6,7 +6,7 @@ use crate::{
     test::registry::{default_version, to_string, Registry},
     ContractArgs, ContractClient,
 };
-use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
+use soroban_sdk::testutils::{MockAuth, MockAuthInvoke, Register};
 use soroban_sdk::TryIntoVal;
 use soroban_sdk::{
     self,
@@ -961,5 +961,129 @@ fn deploy_with_subregistry_non_registry_target_errors() {
             &not_a_registry,
         ),
         Err(Ok(Error::SubRegistryCrossContractCallFailed))
+    );
+}
+
+#[test]
+fn deploy_with_subregistry_from_two_subregistries() {
+    // The same root can source wasms from two independent subregistries in a
+    // single env and register both deployed contracts side-by-side.
+    use crate::test::registry::registry as registry_wasm;
+
+    let registry = &Registry::new();
+    let env = registry.env();
+    let root_client = registry.client();
+
+    // sub1: the auto-created `unverified` subregistry (non-root, no manager)
+    let sub1_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let sub1_client = ContractClient::new(env, &sub1_addr);
+
+    // sub2: a second non-root, unmanaged registry deployed into the same env
+    let sub2_admin = &Address::generate(env);
+    let sub2_addr = registry_wasm::WASM.register(
+        env,
+        None,
+        ContractArgs::__constructor(sub2_admin, &None, &false),
+    );
+    let sub2_client = ContractClient::new(env, &sub2_addr);
+
+    let wasm_name_a = &to_string(env, "hello_a");
+    let wasm_name_b = &to_string(env, "hello_b");
+    let version = &registry.default_version();
+
+    env.mock_all_auths();
+    sub1_client.publish(wasm_name_a, registry.admin(), &hw_bytes(env), version);
+    sub2_client.publish(wasm_name_b, sub2_admin, &hw_bytes(env), version);
+    env.set_auths(&[]);
+
+    let admin = registry.admin();
+    let contract_a = &to_string(env, "contract_a");
+    let contract_b = &to_string(env, "contract_b");
+    let args = contracts::hello_world::Args::__constructor(admin);
+    let init = Some(args.try_into_val(env).unwrap());
+
+    registry.mock_auths_for(
+        &[admin],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name_a, &None, contract_a, admin, &init, &None, &sub1_addr,
+        ),
+    );
+    let id_a = root_client.deploy_with_subregistry(
+        wasm_name_a, &None, contract_a, admin, &init, &None, &sub1_addr,
+    );
+
+    registry.mock_auths_for(
+        &[admin],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name_b, &None, contract_b, admin, &init, &None, &sub2_addr,
+        ),
+    );
+    let id_b = root_client.deploy_with_subregistry(
+        wasm_name_b, &None, contract_b, admin, &init, &None, &sub2_addr,
+    );
+
+    assert_ne!(id_a, id_b);
+    assert_eq!(root_client.fetch_contract_id(contract_a), id_a);
+    assert_eq!(root_client.fetch_contract_id(contract_b), id_b);
+
+    let hw_a = contracts::hw_client(env, &id_a);
+    assert_eq!(
+        to_string(env, "from_a"),
+        hw_a.hello(&to_string(env, "from_a"))
+    );
+    let hw_b = contracts::hw_client(env, &id_b);
+    assert_eq!(
+        to_string(env, "from_b"),
+        hw_b.hello(&to_string(env, "from_b"))
+    );
+}
+
+#[test]
+fn deploy_with_subregistry_missing_version_surfaces_error() {
+    // Requesting a version that isn't published on the subregistry surfaces
+    // `NoSuchVersion` back through the xcc, confirming non-missing-wasm
+    // errors propagate too.
+    let registry = &Registry::new();
+    let env = registry.env();
+    let root_client = registry.client();
+    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let unverified_client = ContractClient::new(env, &unverified_addr);
+
+    let wasm_name = &to_string(env, "hello");
+    let author = registry.admin();
+
+    env.mock_all_auths();
+    unverified_client.publish(wasm_name, author, &hw_bytes(env), &registry.default_version());
+    env.set_auths(&[]);
+
+    let missing = Some(to_string(env, "99.0.0"));
+    let contract_name = &to_string(env, "bob_contract");
+
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name,
+            &missing,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &unverified_addr,
+        ),
+    );
+    assert_eq!(
+        root_client.try_deploy_with_subregistry(
+            wasm_name,
+            &missing,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &unverified_addr,
+        ),
+        Err(Ok(Error::NoSuchVersion))
     );
 }
