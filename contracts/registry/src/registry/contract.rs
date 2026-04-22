@@ -195,7 +195,7 @@ impl Contract {
                     env,
                     *admin.as_val(),
                     Val::from_void().into(),
-                    false.into_val(env),
+                    root_contract_id.clone().into_val(env),
                 ];
                 let contract_address = deploy_and_init(
                     env,
@@ -295,8 +295,12 @@ pub trait Deployable {
         admin: soroban_sdk::Address,
         init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
         deployer: Option<soroban_sdk::Address>,
-        subregistry: soroban_sdk::Address,
+        subregistry: soroban_sdk::String,
     ) -> Result<soroban_sdk::Address, Error> {
+        // Resolve the subregistry's contract id via the trusted root — the
+        // root was pinned at construction, so callers can't pass a forged
+        // address masquerading as a known subregistry.
+        let subregistry = Storage::resolve_subregistry(env, &subregistry)?;
         if subregistry == env.current_contract_address() {
             return Err(Error::SubRegistryIsSelf);
         }

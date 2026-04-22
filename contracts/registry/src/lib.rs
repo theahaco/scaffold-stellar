@@ -51,19 +51,21 @@ impl Proxyable for Contract {}
 impl Contract {
     /// - `admin`: account which will: upgrade this Registry itself; add, set, or remove `manager`
     /// - `manager`: optional. If set, makes this a *managed* registry, meaning `publish`, `register_contract`, & `deploy` must be approved by the manager before caller's account is considered trusted for that contract/wasm name.
-    /// - `is_root`: if true, this registry is the root registry, meaning it has no namespace. Other Registry contracts, like the `unverified` one, are themselves registered in the root Registry. If `is_root` is true, this constructor will also auto-deploy the `unverified` Registry.
+    /// - `root`: if None, this registry is the root registry — it has no namespace, other registries (like the `unverified` one) are registered in it, and the constructor auto-deploys the `unverified` registry. If Some, this is a subregistry that defers to the given root for resolving sibling subregistry names during cross-registry deploys.
     #[allow(clippy::needless_pass_by_value)]
     pub fn __constructor(
         env: &Env,
         admin: &Address,
         manager: Option<Address>,
-        is_root: bool,
+        root: Option<Address>,
     ) -> Result<(), Error> {
         Self::set_admin(env, admin);
         if let Some(manager) = &manager {
             Storage::set_manager_no_auth(env, manager);
         }
-        if is_root {
+        if let Some(root_address) = &root {
+            Storage::new(env).root_registry.set(root_address)
+        } else {
             assert_with_error!(env, manager.is_some(), Error::ManagerRequired);
             Self::deploy_unverified_and_claim_registry(env, admin)?;
         }

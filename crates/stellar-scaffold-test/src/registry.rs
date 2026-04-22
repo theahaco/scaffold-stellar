@@ -115,7 +115,9 @@ impl RegistryTest {
             .unwrap()
             .to_string();
 
-        // Deploy contract using the Stellar CLI library directly with alice account
+        // Deploy contract using the Stellar CLI library directly with alice account.
+        // Omitting `--root` means this is the root registry (the constructor
+        // only auto-deploys the unverified sub when `root` is None).
         let deploy_args = [
             "--wasm-hash",
             &hash,
@@ -130,7 +132,6 @@ impl RegistryTest {
             "alice",
             "--manager",
             &format!("\"{alice_key}\""),
-            "--is-root",
         ];
         let deploy_cmd =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
@@ -214,6 +215,9 @@ impl RegistryTest {
             .expect("no hash returned by 'contract upload'")
             .to_string();
 
+        // Subregistry: pin the root so `deploy_with_subregistry` on this
+        // contract resolves sibling subregistries through the trusted root.
+        let root_arg = format!("\"{}\"", self.registry_address);
         let deploy_cmd = Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(
             &self.env,
             &[
@@ -228,8 +232,8 @@ impl RegistryTest {
                 "--",
                 "--admin",
                 "alice",
-                "--is-root",
-                "false",
+                "--root",
+                &root_arg,
             ],
         )
         .expect("Failed to parse subregistry deploy");

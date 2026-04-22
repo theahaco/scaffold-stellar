@@ -153,13 +153,11 @@ pub trait Publishable {
         wasm_name: soroban_sdk::String,
         version: Option<soroban_sdk::String>,
     ) -> Result<(soroban_sdk::String, soroban_sdk::BytesN<32>), Error> {
-        let version = version.map_or_else(
-            || Contract::most_recent_version(env, &wasm_name.clone().try_into()?),
-            Ok,
-        )?;
+        let wasm_name: NormalizedName = wasm_name.try_into()?;
+        let version = Contract::get_version(env, &wasm_name, version)?;
         Ok((
             version.clone(),
-            Contract::get_hash_and_bump(env, &wasm_name.try_into()?, Some(version))?,
+            Contract::get_hash_and_bump(env, &wasm_name, Some(version))?,
         ))
     }
 

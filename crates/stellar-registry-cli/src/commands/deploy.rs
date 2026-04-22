@@ -162,7 +162,18 @@ impl Cmd {
             }),
         ];
         let function_name = if cross_registry {
-            call_args.push(ScVal::Address(wasm_registry.as_contract().sc_address()));
+            // The contract resolves the subregistry's address itself, through
+            // the trusted root pinned at construction, so we pass the name
+            // rather than an address. Root has no prefix — its own name in
+            // root storage is "registry".
+            let subregistry_name = self
+                .wasm_name
+                .channel
+                .clone()
+                .unwrap_or_else(|| "registry".to_string());
+            call_args.push(ScVal::String(ScString(
+                subregistry_name.try_into().unwrap(),
+            )));
             "deploy_with_subregistry"
         } else {
             "deploy"

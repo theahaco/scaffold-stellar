@@ -822,7 +822,8 @@ fn deploy_with_subregistry_uses_subregistry_wasm() {
 
     // The root registry auto-creates an `unverified` subregistry. Use it as
     // the source of the wasm rather than publishing on the root.
-    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let unverified_name = to_string(env, "unverified");
+    let unverified_addr = root_client.fetch_contract_id(&unverified_name);
     let unverified_client = ContractClient::new(env, &unverified_addr);
 
     let wasm_name = &to_string(env, "hello");
@@ -854,7 +855,7 @@ fn deploy_with_subregistry_uses_subregistry_wasm() {
             author,
             &init,
             &None,
-            &unverified_addr,
+            &unverified_name,
         ),
     );
     let contract_id = root_client.deploy_with_subregistry(
@@ -864,7 +865,7 @@ fn deploy_with_subregistry_uses_subregistry_wasm() {
         author,
         &init,
         &None,
-        &unverified_addr,
+        &unverified_name,
     );
 
     // Name is registered on the root, not on the subregistry.
@@ -882,7 +883,7 @@ fn deploy_with_subregistry_missing_wasm_surfaces_error() {
     let registry = &Registry::new();
     let env = registry.env();
     let root_client = registry.client();
-    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let unverified_name = to_string(env, "unverified");
 
     let wasm_name = &to_string(env, "nonexistent");
     let contract_name = &to_string(env, "bob_contract");
@@ -898,7 +899,7 @@ fn deploy_with_subregistry_missing_wasm_surfaces_error() {
             author,
             &None,
             &None,
-            &unverified_addr,
+            &unverified_name,
         ),
     );
     // The subregistry's `xcc_hash_and_version` returns `NoSuchWasmPublished`;
@@ -911,7 +912,7 @@ fn deploy_with_subregistry_missing_wasm_surfaces_error() {
             author,
             &None,
             &None,
-            &unverified_addr,
+            &unverified_name,
         ),
         Err(Ok(Error::NoSuchWasmPublished))
     );
@@ -919,8 +920,8 @@ fn deploy_with_subregistry_missing_wasm_surfaces_error() {
 
 #[test]
 fn deploy_with_subregistry_non_registry_target_errors() {
-    // If the subregistry address points at a contract that doesn't implement
-    // the registry interface, the cross-contract call fails and collapses into
+    // If the name resolves via root to a contract that doesn't implement the
+    // registry interface, the cross-contract call fails and collapses into
     // SubRegistryCrossContractCallFailed.
     let registry = &Registry::new();
     let env = registry.env();
@@ -932,6 +933,11 @@ fn deploy_with_subregistry_non_registry_target_errors() {
         .deployer()
         .with_address(author.clone(), hw_hash(env))
         .deploy_v2(hw_hash(env), (author.clone(),));
+
+    // Register the non-registry contract under a name on root so the lookup
+    // succeeds but the subsequent xcc to `xcc_hash_and_version` blows up.
+    let bogus_name = to_string(env, "bogus_sub");
+    root_client.register_contract(&bogus_name, &not_a_registry, author);
     env.set_auths(&[]);
 
     let wasm_name = &to_string(env, "hello");
@@ -947,7 +953,7 @@ fn deploy_with_subregistry_non_registry_target_errors() {
             author,
             &None,
             &None,
-            &not_a_registry,
+            &bogus_name,
         ),
     );
     assert_eq!(
@@ -958,7 +964,7 @@ fn deploy_with_subregistry_non_registry_target_errors() {
             author,
             &None,
             &None,
-            &not_a_registry,
+            &bogus_name,
         ),
         Err(Ok(Error::SubRegistryCrossContractCallFailed))
     );
@@ -975,17 +981,24 @@ fn deploy_with_subregistry_from_two_subregistries() {
     let root_client = registry.client();
 
     // sub1: the auto-created `unverified` subregistry (non-root, no manager)
-    let sub1_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let sub1_name = to_string(env, "unverified");
+    let sub1_addr = root_client.fetch_contract_id(&sub1_name);
     let sub1_client = ContractClient::new(env, &sub1_addr);
 
-    // sub2: a second non-root, unmanaged registry deployed into the same env
+    // sub2: a second non-root, unmanaged registry deployed into the same env,
+    // pinned to the same root, and registered under `sub2` so root can
+    // resolve it by name.
     let sub2_admin = &Address::generate(env);
     let sub2_addr = registry_wasm::WASM.register(
         env,
         None,
-        ContractArgs::__constructor(sub2_admin, &None, &false),
+        ContractArgs::__constructor(sub2_admin, &None, &Some(root_client.address.clone())),
     );
     let sub2_client = ContractClient::new(env, &sub2_addr);
+    let sub2_name = to_string(env, "sub2");
+    env.mock_all_auths();
+    root_client.register_contract(&sub2_name, &sub2_addr, sub2_admin);
+    env.set_auths(&[]);
 
     let wasm_name_a = &to_string(env, "hello_a");
     let wasm_name_b = &to_string(env, "hello_b");
@@ -1012,7 +1025,7 @@ fn deploy_with_subregistry_from_two_subregistries() {
             admin,
             &init,
             &None,
-            &sub1_addr,
+            &sub1_name,
         ),
     );
     let id_a = root_client.deploy_with_subregistry(
@@ -1022,7 +1035,7 @@ fn deploy_with_subregistry_from_two_subregistries() {
         admin,
         &init,
         &None,
-        &sub1_addr,
+        &sub1_name,
     );
 
     registry.mock_auths_for(
@@ -1035,7 +1048,7 @@ fn deploy_with_subregistry_from_two_subregistries() {
             admin,
             &init,
             &None,
-            &sub2_addr,
+            &sub2_name,
         ),
     );
     let id_b = root_client.deploy_with_subregistry(
@@ -1045,7 +1058,7 @@ fn deploy_with_subregistry_from_two_subregistries() {
         admin,
         &init,
         &None,
-        &sub2_addr,
+        &sub2_name,
     );
 
     assert_ne!(id_a, id_b);
@@ -1072,7 +1085,8 @@ fn deploy_with_subregistry_missing_version_surfaces_error() {
     let registry = &Registry::new();
     let env = registry.env();
     let root_client = registry.client();
-    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let unverified_name = to_string(env, "unverified");
+    let unverified_addr = root_client.fetch_contract_id(&unverified_name);
     let unverified_client = ContractClient::new(env, &unverified_addr);
 
     let wasm_name = &to_string(env, "hello");
@@ -1100,7 +1114,7 @@ fn deploy_with_subregistry_missing_version_surfaces_error() {
             author,
             &None,
             &None,
-            &unverified_addr,
+            &unverified_name,
         ),
     );
     assert_eq!(
@@ -1111,7 +1125,7 @@ fn deploy_with_subregistry_missing_version_surfaces_error() {
             author,
             &None,
             &None,
-            &unverified_addr,
+            &unverified_name,
         ),
         Err(Ok(Error::NoSuchVersion))
     );
