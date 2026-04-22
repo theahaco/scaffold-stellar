@@ -146,7 +146,7 @@ pub trait Publishable {
         Contract::get_hash(env, &wasm_name.try_into()?, version)
     }
 
-    /// Fetch the hash of a Wasm binary from the registry and bump TTL
+    /// Fetch the hash and version of a Wasm binary from the registry and bump TTL
     /// This is used for cross contract calls (xcc)
     fn xcc_hash_and_version(
         env: &Env,
