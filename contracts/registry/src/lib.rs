@@ -64,7 +64,7 @@ impl Contract {
             Storage::set_manager_no_auth(env, manager);
         }
         if let Some(root_address) = &root {
-            Storage::new(env).root_registry.set(root_address)
+            Storage::new(env).root_registry.set(root_address);
         } else {
             assert_with_error!(env, manager.is_some(), Error::ManagerRequired);
             Self::deploy_unverified_and_claim_registry(env, admin)?;
