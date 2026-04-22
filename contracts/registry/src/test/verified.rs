@@ -4,7 +4,7 @@ use crate::test::contracts::{
 use crate::{
     error::Error,
     test::registry::{default_version, to_string, Registry},
-    ContractArgs,
+    ContractArgs, ContractClient,
 };
 use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
 use soroban_sdk::TryIntoVal;
@@ -812,4 +812,154 @@ fn hello_world_proxy_call() {
     }]);
 
     let _ = client.proxy_invoke_contract(name, &symbol_short!("hello"), &hello_args);
+}
+
+#[test]
+fn deploy_with_subregistry_uses_subregistry_wasm() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let root_client = registry.client();
+
+    // The root registry auto-creates an `unverified` subregistry. Use it as
+    // the source of the wasm rather than publishing on the root.
+    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+    let unverified_client = ContractClient::new(env, &unverified_addr);
+
+    let wasm_name = &to_string(env, "hello");
+    let contract_name = &to_string(env, "alice_contract");
+    let version = &registry.default_version();
+    let author = registry.admin();
+
+    // Unverified subregistry has no manager — only author auth is needed to publish.
+    env.mock_all_auths();
+    unverified_client.publish(wasm_name, author, &hw_bytes(env), version);
+    env.set_auths(&[]);
+    assert_eq!(unverified_client.fetch_hash(wasm_name, &None), hw_hash(env));
+
+    // Sanity check: wasm is not on the root registry.
+    assert_eq!(
+        root_client.try_fetch_hash(wasm_name, &None),
+        Err(Ok(Error::NoSuchWasmPublished))
+    );
+
+    let args = contracts::hello_world::Args::__constructor(author);
+    let init = Some(args.try_into_val(env).unwrap());
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name,
+            &None,
+            contract_name,
+            author,
+            &init,
+            &None,
+            &unverified_addr,
+        ),
+    );
+    let contract_id = root_client.deploy_with_subregistry(
+        wasm_name,
+        &None,
+        contract_name,
+        author,
+        &init,
+        &None,
+        &unverified_addr,
+    );
+
+    // Name is registered on the root, not on the subregistry.
+    assert_eq!(root_client.fetch_contract_id(contract_name), contract_id);
+
+    let hw_client = contracts::hw_client(env, &contract_id);
+    assert_eq!(
+        to_string(env, "registry"),
+        hw_client.hello(&to_string(env, "registry"))
+    );
+}
+
+#[test]
+fn deploy_with_subregistry_missing_wasm_surfaces_error() {
+    let registry = &Registry::new();
+    let env = registry.env();
+    let root_client = registry.client();
+    let unverified_addr = root_client.fetch_contract_id(&to_string(env, "unverified"));
+
+    let wasm_name = &to_string(env, "nonexistent");
+    let contract_name = &to_string(env, "bob_contract");
+    let author = &Address::generate(env);
+
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name,
+            &None,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &unverified_addr,
+        ),
+    );
+    // The subregistry's `xcc_hash_and_version` returns `NoSuchWasmPublished`;
+    // `deploy_with_subregistry` propagates that error unchanged.
+    assert_eq!(
+        root_client.try_deploy_with_subregistry(
+            wasm_name,
+            &None,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &unverified_addr,
+        ),
+        Err(Ok(Error::NoSuchWasmPublished))
+    );
+}
+
+#[test]
+fn deploy_with_subregistry_non_registry_target_errors() {
+    // If the subregistry address points at a contract that doesn't implement
+    // the registry interface, the cross-contract call fails and collapses into
+    // SubRegistryCrossContractCallFailed.
+    let registry = &Registry::new();
+    let env = registry.env();
+    let root_client = registry.client();
+    let author = registry.admin();
+
+    env.mock_all_auths();
+    let not_a_registry = env
+        .deployer()
+        .with_address(author.clone(), hw_hash(env))
+        .deploy_v2(hw_hash(env), (author.clone(),));
+    env.set_auths(&[]);
+
+    let wasm_name = &to_string(env, "hello");
+    let contract_name = &to_string(env, "bob_contract");
+
+    registry.mock_auths_for(
+        &[author, registry.admin()],
+        "deploy_with_subregistry",
+        ContractArgs::deploy_with_subregistry(
+            wasm_name,
+            &None,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &not_a_registry,
+        ),
+    );
+    assert_eq!(
+        root_client.try_deploy_with_subregistry(
+            wasm_name,
+            &None,
+            contract_name,
+            author,
+            &None,
+            &None,
+            &not_a_registry,
+        ),
+        Err(Ok(Error::SubRegistryCrossContractCallFailed))
+    );
 }
