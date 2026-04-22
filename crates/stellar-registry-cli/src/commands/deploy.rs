@@ -200,3 +200,112 @@ impl Cmd {
         }
     }
 }
+
+#[cfg(feature = "integration-tests")]
+#[cfg(test)]
+mod tests {
+    use stellar_scaffold_test::RegistryTest;
+
+    fn publish(registry: &RegistryTest, wasm_name: &str, version: &str) {
+        let wasm_path = registry.hello_wasm_v1();
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg(version)
+            .arg("--wasm-name")
+            .arg(wasm_name)
+            .assert()
+            .success();
+    }
+
+    // --wasm-name points to the unverified subregistry while --contract-name
+    // has no prefix (root). The CLI should route to `deploy_with_subregistry`
+    // on root, passing the unverified registry's address as the extra arg.
+    #[tokio::test]
+    async fn deploys_wasm_from_a_different_registry() {
+        let registry = RegistryTest::new().await;
+
+        publish(&registry, "unverified/hello_xreg", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("unverified/hello_xreg")
+            .arg("--contract-name")
+            .arg("hello_xreg_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Reverse direction: wasm lives in root, contract registers under
+    // unverified. `deploy_with_subregistry` is invoked on unverified, with
+    // root as the subregistry address the XCC reaches back into.
+    #[tokio::test]
+    async fn deploys_from_root_into_a_subregistry() {
+        let registry = RegistryTest::new().await;
+
+        publish(&registry, "hello_reverse", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("hello_reverse")
+            .arg("--contract-name")
+            .arg("unverified/hello_reverse_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Neither side of the deploy is the root: wasm published to an `oz`
+    // subregistry, contract registered under `unverified`. Exercises the
+    // cross-registry path where both registries are subregistries of root.
+    #[tokio::test]
+    async fn deploys_across_two_subregistries() {
+        let registry = RegistryTest::new().await;
+        registry.deploy_named_subregistry("oz").await;
+
+        publish(&registry, "oz/hello_two_subs", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("oz/hello_two_subs")
+            .arg("--contract-name")
+            .arg("unverified/hello_two_subs_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Nothing has been published under this wasm name, so the wasm lookup
+    // on the subregistry must fail. Deploy should exit with a non-zero
+    // status and a message on stderr rather than silently succeed.
+    #[tokio::test]
+    async fn fails_when_wasm_does_not_exist_in_subregistry() {
+        let registry = RegistryTest::new().await;
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("unverified/never_published")
+            .arg("--contract-name")
+            .arg("should_not_exist")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .failure();
+    }
+}
