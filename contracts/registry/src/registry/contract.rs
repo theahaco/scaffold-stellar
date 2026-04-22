@@ -1,4 +1,4 @@
-#![allow(non_upper_case_globals)]
+#![allow(non_upper_case_globals, clippy::too_many_arguments)]
 use crate::events;
 use crate::name;
 use crate::name::unverifed;
@@ -140,11 +140,12 @@ impl Contract {
     ) -> Result<Address, Error> {
         let hash = Self::get_hash_and_bump(env, wasm_name, version.clone())?;
         let version = Self::get_version(env, wasm_name, version)?;
-        Self::deploy_with_hash_and_version(
+        Ok(Self::deploy_with_hash_and_version(
             env, wasm_name, version, salt, init, deployer, hash, None,
-        )
+        ))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn deploy_with_hash_and_version(
         env: &Env,
         wasm_name: &NormalizedName,
@@ -154,7 +155,7 @@ impl Contract {
         deployer: Address,
         hash: BytesN<32>,
         registry: Option<Address>,
-    ) -> Result<Address, Error> {
+    ) -> Address {
         let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         crate::events::Deploy {
             wasm_name: wasm_name.to_string(),
@@ -164,7 +165,7 @@ impl Contract {
             registry: registry.unwrap_or_else(|| env.current_contract_address()),
         }
         .publish(env);
-        Ok(contract_id)
+        contract_id
     }
 
     /// This method is used in the constructor when the contract is a root registry.
@@ -311,7 +312,7 @@ pub trait Deployable {
             deployer.clone(),
             hash,
             Some(subregistry.address),
-        )?;
+        );
         Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
         Ok(contract_id)
     }

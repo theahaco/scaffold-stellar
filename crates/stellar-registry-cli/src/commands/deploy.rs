@@ -126,8 +126,7 @@ impl Cmd {
     async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
         let target_registry = self.contract_name.registry(&self.config).await?;
         let wasm_registry = self.wasm_name.registry(&self.config).await?;
-        let cross_registry =
-            target_registry.as_contract().id() != wasm_registry.as_contract().id();
+        let cross_registry = target_registry.as_contract().id() != wasm_registry.as_contract().id();
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;

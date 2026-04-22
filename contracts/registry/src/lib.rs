@@ -1,5 +1,5 @@
 #![no_std]
-
+#![allow(clippy::too_many_arguments)]
 use admin_sep::{Administratable, Upgradable};
 use soroban_sdk::Val;
 use soroban_sdk::Vec;

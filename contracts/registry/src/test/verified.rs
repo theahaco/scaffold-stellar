@@ -1006,22 +1006,46 @@ fn deploy_with_subregistry_from_two_subregistries() {
         &[admin],
         "deploy_with_subregistry",
         ContractArgs::deploy_with_subregistry(
-            wasm_name_a, &None, contract_a, admin, &init, &None, &sub1_addr,
+            wasm_name_a,
+            &None,
+            contract_a,
+            admin,
+            &init,
+            &None,
+            &sub1_addr,
         ),
     );
     let id_a = root_client.deploy_with_subregistry(
-        wasm_name_a, &None, contract_a, admin, &init, &None, &sub1_addr,
+        wasm_name_a,
+        &None,
+        contract_a,
+        admin,
+        &init,
+        &None,
+        &sub1_addr,
     );
 
     registry.mock_auths_for(
         &[admin],
         "deploy_with_subregistry",
         ContractArgs::deploy_with_subregistry(
-            wasm_name_b, &None, contract_b, admin, &init, &None, &sub2_addr,
+            wasm_name_b,
+            &None,
+            contract_b,
+            admin,
+            &init,
+            &None,
+            &sub2_addr,
         ),
     );
     let id_b = root_client.deploy_with_subregistry(
-        wasm_name_b, &None, contract_b, admin, &init, &None, &sub2_addr,
+        wasm_name_b,
+        &None,
+        contract_b,
+        admin,
+        &init,
+        &None,
+        &sub2_addr,
     );
 
     assert_ne!(id_a, id_b);
@@ -1055,7 +1079,12 @@ fn deploy_with_subregistry_missing_version_surfaces_error() {
     let author = registry.admin();
 
     env.mock_all_auths();
-    unverified_client.publish(wasm_name, author, &hw_bytes(env), &registry.default_version());
+    unverified_client.publish(
+        wasm_name,
+        author,
+        &hw_bytes(env),
+        &registry.default_version(),
+    );
     env.set_auths(&[]);
 
     let missing = Some(to_string(env, "99.0.0"));
