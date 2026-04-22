@@ -1,13 +1,13 @@
 use std::{
     fs::read_to_string,
     io,
-    path::{Path, PathBuf},
+    path::Path,
     process::{Command, Output},
     str::FromStr,
 };
 
 use clap::{CommandFactory, FromArgMatches, Parser, command};
-use serde_json::Value;
+use regex::Regex;
 use stellar_cli;
 
 pub mod build;
@@ -140,27 +140,18 @@ pub struct PackageManagerSpec {
 }
 
 impl PackageManagerSpec {
-    pub fn command(&self) -> &'static str {
-        self.kind.command()
-    }
-
     pub fn write_to_package_json(&self, workspace_root: &Path) -> io::Result<()> {
         let pkg_path = workspace_root.join("package.json");
         let contents =
             read_to_string(&pkg_path).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-        let mut value: Value = serde_json::from_str(&contents)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-
-        let pacman_value = match &self.version {
+        let pm_field_value = match &self.version {
             Some(version) => format!("{}@{}", self.kind.as_str(), version),
             None => self.kind.as_str().to_string(),
         };
 
-        value["packageManager"] = Value::String(pacman_value);
-
-        let updated = serde_json::to_string_pretty(&value)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let updated = set_package_manager_field(&contents, &pm_field_value)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "malformed package.json"))?;
 
         std::fs::write(&pkg_path, updated)?;
         Ok(())
@@ -176,7 +167,7 @@ impl PackageManagerSpec {
         Some(PackageManagerSpec::parse_package_manager_field(&raw))
     }
 
-    // "pnpm@9.6.0" → ("pnpm", "9.6.0")
+    // "pnpm@9.6.0" → PackageManagerSpec { kind: Pnpm, version: Some("9.6.0") }
     fn parse_package_manager_field(value: &str) -> Self {
         let mut parts = value.split('@');
         let name = parts.next().unwrap_or(value);
@@ -194,7 +185,29 @@ impl PackageManagerSpec {
     }
 }
 
-#[derive(Debug, Clone)]
+/// Replace or insert the `packageManager` field in a package.json string,
+/// preserving the original formatting of the rest of the file.
+fn set_package_manager_field(json: &str, value: &str) -> Option<String> {
+    let re = Regex::new(r#""packageManager"\s*:\s*"[^"]*""#).ok()?;
+    let replacement = format!(r#""packageManager": "{value}""#);
+
+    if re.is_match(json) {
+        Some(re.replace(json, replacement.as_str()).into_owned())
+    } else {
+        // Field absent — insert before the final closing brace
+        let insert_pos = json.rfind('}')?;
+        let before = &json[..insert_pos];
+        let after = &json[insert_pos..];
+        let comma = if before.trim_end().ends_with(',') {
+            ""
+        } else {
+            ","
+        };
+        Some(format!("{before}{comma}\n  {replacement}\n{after}"))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum PackageManager {
     Npm,
     Pnpm,
@@ -239,37 +252,104 @@ impl PackageManager {
         }
     }
 
-    fn install_silent(&self, dir: &PathBuf) -> io::Result<Output> {
+    pub(crate) fn install_silent(&self, dir: &Path) -> io::Result<Output> {
         let mut cmd = Command::new(self.command());
         cmd.current_dir(dir);
-
         match self {
             Self::Npm => cmd.args(["install", "--loglevel=error"]),
-            Self::Pnpm | Self::Yarn => cmd.args(["install", "--silent"]),
+            Self::Pnpm => cmd.args(["install", "--reporter=silent"]),
+            Self::Yarn => cmd.args(["install", "--silent"]),
             _ => cmd.args(["install"]),
         };
-
         cmd.output()
     }
 
-    fn install_no_workspace(&self, dir: &PathBuf) -> io::Result<Output> {
+    pub(crate) fn install_no_workspace(&self, dir: &Path) -> io::Result<Output> {
         let mut cmd = Command::new(self.command());
         cmd.current_dir(dir);
-
         match self {
             Self::Npm => cmd.args(["install", "--no-workspaces", "--loglevel=error"]),
-            Self::Pnpm | Self::Yarn => cmd.args(["install", "--silent"]),
+            // pnpm: --ignore-workspace prevents picking up workspace config from parent dirs
+            Self::Pnpm => cmd.args(["install", "--ignore-workspace", "--reporter=silent"]),
+            // yarn classic: --ignore-workspace-root-check skips workspace root enforcement
+            Self::Yarn => cmd.args(["install", "--ignore-workspace-root-check", "--silent"]),
             _ => cmd.args(["install"]),
         };
-
         cmd.output()
     }
 
-    fn build(&self, dir: &PathBuf) -> io::Result<Output> {
-        Command::new(self.command())
-            .current_dir(dir)
-            .arg("run")
-            .arg("build")
-            .output()
+    pub(crate) fn build(&self, dir: &Path) -> io::Result<Output> {
+        let mut cmd = Command::new(self.command());
+        cmd.current_dir(dir).args(["run", "build"]);
+        match self {
+            Self::Npm => cmd.arg("--loglevel=error"),
+            Self::Pnpm => cmd.arg("--reporter=silent"),
+            _ => &mut cmd,
+        };
+        cmd.output()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_npm_with_version() {
+        let spec = PackageManagerSpec::parse_package_manager_field("npm@11.0.0");
+        assert!(matches!(spec.kind, PackageManager::Npm));
+        assert_eq!(spec.version, Some("11.0.0".to_string()));
+    }
+
+    #[test]
+    fn parse_pnpm_with_version() {
+        let spec = PackageManagerSpec::parse_package_manager_field("pnpm@9.6.0");
+        assert!(matches!(spec.kind, PackageManager::Pnpm));
+        assert_eq!(spec.version, Some("9.6.0".to_string()));
+    }
+
+    #[test]
+    fn parse_yarn_no_version() {
+        let spec = PackageManagerSpec::parse_package_manager_field("yarn");
+        assert!(matches!(spec.kind, PackageManager::Yarn));
+        assert_eq!(spec.version, None);
+    }
+
+    #[test]
+    fn parse_bun() {
+        let spec = PackageManagerSpec::parse_package_manager_field("bun@1.1.0");
+        assert!(matches!(spec.kind, PackageManager::Bun));
+        assert_eq!(spec.version, Some("1.1.0".to_string()));
+    }
+
+    #[test]
+    fn parse_unknown_defaults_to_npm() {
+        let spec = PackageManagerSpec::parse_package_manager_field("cargo@1.0.0");
+        assert!(matches!(spec.kind, PackageManager::Npm));
+    }
+
+    #[test]
+    fn set_package_manager_field_replaces_existing() {
+        let json = r#"{"name": "foo", "packageManager": "npm@10.0.0", "version": "1.0.0"}"#;
+        let result = set_package_manager_field(json, "pnpm@9.6.0").unwrap();
+        assert!(result.contains(r#""packageManager": "pnpm@9.6.0""#));
+        assert!(result.contains(r#""name": "foo""#));
+        assert!(result.contains(r#""version": "1.0.0""#));
+    }
+
+    #[test]
+    fn set_package_manager_field_inserts_when_absent() {
+        let json = "{\n  \"name\": \"foo\"\n}";
+        let result = set_package_manager_field(json, "npm@11.0.0").unwrap();
+        assert!(result.contains(r#""packageManager": "npm@11.0.0""#));
+        assert!(result.contains(r#""name": "foo""#));
+    }
+
+    #[test]
+    fn set_package_manager_field_preserves_surrounding_content() {
+        let json = r#"{"scripts": {"start": "vite"}, "packageManager": "npm@10.0.0"}"#;
+        let result = set_package_manager_field(json, "bun@1.0.0").unwrap();
+        assert!(result.contains(r#""scripts""#));
+        assert!(result.contains(r#""packageManager": "bun@1.0.0""#));
     }
 }

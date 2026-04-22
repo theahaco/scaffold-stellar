@@ -136,8 +136,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("⛔ ️Failed to run package manager command in {0:?}: {1:?}")]
-    PacmanCommandFailure(std::path::PathBuf, String),
+    #[error("⛔ ️Failed to run package manager command in {0:?}: {1}")]
+    PackageManagerCommandFailure(std::path::PathBuf, String),
     #[error("⛔ ️Codegen step for {0:?} failed: {1}")]
     CodegenStepFailed(String, String),
     #[error(transparent)]
@@ -163,7 +163,7 @@ pub struct Builder {
     printer: Print,
     pub(crate) out_dir: Option<PathBuf>,
     env: Environment,
-    pacman: PackageManager,
+    pkg_manager: PackageManager,
     extensions: Vec<ResolvedExtension>,
     compile_ctx: Option<CompileContext>,
 }
@@ -178,7 +178,7 @@ impl Builder {
         scaffold_env: ScaffoldEnv,
         out_dir: Option<PathBuf>,
         env: Environment,
-        pacman: PackageManager,
+        pkg_manager: PackageManager,
         extensions: Vec<ResolvedExtension>,
         compile_ctx: Option<CompileContext>,
     ) -> Self {
@@ -191,7 +191,7 @@ impl Builder {
             workspace_root,
             out_dir,
             env,
-            pacman,
+            pkg_manager,
             extensions,
             compile_ctx,
         }
@@ -394,7 +394,7 @@ export default new Client.Client({{
         )
         .await;
 
-        let pacman_label = self.pacman.as_str();
+        let pm_label = self.pkg_manager.as_str();
 
         // Convert any inner error to a String *before* the PostCodegen await:
         // `Error` is not `Send` (some upstream variants wrap non-Send types),
@@ -424,43 +424,43 @@ export default new Client.Client({{
                 bindings_cmd.execute(self.global_args.quiet).await?;
 
                 printer.infoln(format!(
-                    "Running '{pacman_label} install' in {temp_dir_display:?}"
+                    "Running '{pm_label} install' in {temp_dir_display:?}"
                 ));
-                let output = self.pacman.install_no_workspace(&temp_dir)?;
+                let output = self.pkg_manager.install_no_workspace(&temp_dir)?;
 
                 if !output.status.success() {
                     let _ = std::fs::remove_dir_all(&temp_dir);
-                    return Err(Error::PacmanCommandFailure(
+                    return Err(Error::PackageManagerCommandFailure(
                         temp_dir.clone(),
                         format!(
-                            "{pacman_label} install failed with status: {:?}\nError: {}",
+                            "{pm_label} install failed with status: {:?}\nError: {}",
                             output.status.code(),
                             String::from_utf8_lossy(&output.stderr)
                         ),
                     ));
                 }
                 printer.checkln(format!(
-                    "'{pacman_label} install' succeeded in {temp_dir_display}"
+                    "'{pm_label} install' succeeded in {temp_dir_display}"
                 ));
 
                 printer.infoln(format!(
-                    "Running '{pacman_label} run build' in {temp_dir_display}"
+                    "Running '{pm_label} run build' in {temp_dir_display}"
                 ));
-                let output = self.pacman.build(&temp_dir)?;
+                let output = self.pkg_manager.build(&temp_dir)?;
 
                 if !output.status.success() {
                     let _ = std::fs::remove_dir_all(&temp_dir);
-                    return Err(Error::PacmanCommandFailure(
+                    return Err(Error::PackageManagerCommandFailure(
                         temp_dir.clone(),
                         format!(
-                            "{pacman_label} run build failed with status: {:?}\nError: {}",
+                            "{pm_label} run build failed with status: {:?}\nError: {}",
                             output.status.code(),
                             String::from_utf8_lossy(&output.stderr)
                         ),
                     ));
                 }
                 printer.checkln(format!(
-                    "'{pacman_label} run build' succeeded in {temp_dir_display}"
+                    "'{pm_label} run build' succeeded in {temp_dir_display}"
                 ));
 
                 if final_output_dir.exists() {
@@ -475,13 +475,13 @@ export default new Client.Client({{
                     std::fs::create_dir_all(&final_output_dir)?;
                     std::fs::rename(&temp_dir, &final_output_dir)?;
                     printer.checkln(format!("Client {name:?} created successfully"));
-                    let output = self.pacman.install_silent(&final_output_dir)?;
+                    let output = self.pkg_manager.install_silent(&final_output_dir)?;
 
                     if !output.status.success() {
-                        return Err(Error::PacmanCommandFailure(
+                        return Err(Error::PackageManagerCommandFailure(
                             final_output_dir.clone(),
                             format!(
-                                "{pacman_label} install in final directory failed with status: {:?}\nError: {}",
+                                "{pm_label} install in final directory failed with status: {:?}\nError: {}",
                                 output.status.code(),
                                 String::from_utf8_lossy(&output.stderr)
                             ),
@@ -1089,8 +1089,11 @@ impl Args {
             _ => return Err(Error::OnlyOneDefaultAccount(default_account_candidates)),
         };
 
-        let pacman = PackageManagerSpec::from_package_json(workspace_root)
-            .expect("Must be declared in the init phase");
+        let pkg_manager_spec =
+            PackageManagerSpec::from_package_json(workspace_root).unwrap_or(PackageManagerSpec {
+                kind: PackageManager::Npm,
+                version: None,
+            });
 
         let builder = Builder::new(
             global_args,
@@ -1100,7 +1103,7 @@ impl Args {
             env,
             self.out_dir.clone(),
             current_env,
-            pacman.kind,
+            pkg_manager_spec.kind,
             self.extensions.clone(),
             self.compile_ctx.clone(),
         );
