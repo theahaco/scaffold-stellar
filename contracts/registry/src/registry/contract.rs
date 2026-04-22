@@ -269,6 +269,13 @@ pub trait Deployable {
             deployer.clone(),
         )?;
         Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
+        if wasm_name == name::registry(env) {
+            events::SubRegistry {
+                name: contract_name.to_string(),
+                contract_id: contract_id.clone(),
+            }
+            .publish(env);
+        }
         Ok(contract_id)
     }
 
@@ -290,6 +297,9 @@ pub trait Deployable {
         deployer: Option<soroban_sdk::Address>,
         subregistry: soroban_sdk::Address,
     ) -> Result<soroban_sdk::Address, Error> {
+        if subregistry == env.current_contract_address() {
+            return Err(Error::SubRegistryIsSelf);
+        }
         let contract_name: NormalizedName = contract_name.try_into()?;
         let wasm_name: NormalizedName = wasm_name.try_into()?;
         Contract::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
@@ -298,6 +308,8 @@ pub trait Deployable {
             match subregistry.try_xcc_hash_and_version(&wasm_name.to_string(), &version) {
                 Ok(Ok(x)) => x,
                 Err(Ok(e)) => return Err(e),
+                // Invoke aborts (target isn't a registry, panic) and return-value
+                // conversion failures all collapse to a single opaque error.
                 _ => return Err(Error::SubRegistryCrossContractCallFailed),
             };
 
@@ -306,10 +318,10 @@ pub trait Deployable {
         let contract_id = Contract::deploy_with_hash_and_version(
             env,
             &wasm_name,
-            version.clone(),
+            version,
             salt,
             init,
-            deployer.clone(),
+            deployer,
             hash,
             Some(subregistry.address),
         );
