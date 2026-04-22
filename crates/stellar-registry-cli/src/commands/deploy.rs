@@ -124,14 +124,17 @@ impl Cmd {
     }
 
     async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
-        let registry = self.contract_name.registry(&self.config).await?;
+        let target_registry = self.contract_name.registry(&self.config).await?;
+        let wasm_registry = self.wasm_name.registry(&self.config).await?;
+        let cross_registry =
+            target_registry.as_contract().id() != wasm_registry.as_contract().id();
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
-        let contract_address = registry.as_contract().sc_address();
-        let contract_id = &registry.as_contract().id();
-        let spec_entries = self.spec_entries(&registry).await?;
+        let contract_address = target_registry.as_contract().sc_address();
+        let contract_id = &target_registry.as_contract().id();
+        let spec_entries = self.spec_entries(&wasm_registry).await?;
         let (args, signers) =
             util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
         let deployer = if let Some(deployer) = &self.deployer {
@@ -143,27 +146,32 @@ impl Cmd {
         } else {
             None
         };
+        let mut call_args: Vec<ScVal> = vec![
+            ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
+            self.version.clone().map_or(ScVal::Void, |s| {
+                ScVal::String(ScString(s.try_into().unwrap()))
+            }),
+            ScVal::String(ScString(
+                self.contract_name.name.clone().try_into().unwrap(),
+            )),
+            ScVal::Address(xdr::ScAddress::Account(AccountId(
+                xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
+            ))),
+            args,
+            deployer.map_or(ScVal::Void, |muxed_account| {
+                ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
+            }),
+        ];
+        let function_name = if cross_registry {
+            call_args.push(ScVal::Address(wasm_registry.as_contract().sc_address()));
+            "deploy_with_subregistry"
+        } else {
+            "deploy"
+        };
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
-            function_name: "deploy".try_into().unwrap(),
-            args: [
-                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
-                self.version.clone().map_or(ScVal::Void, |s| {
-                    ScVal::String(ScString(s.try_into().unwrap()))
-                }),
-                ScVal::String(ScString(
-                    self.contract_name.name.clone().try_into().unwrap(),
-                )),
-                ScVal::Address(xdr::ScAddress::Account(AccountId(
-                    xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
-                ))),
-                args,
-                deployer.map_or(ScVal::Void, |muxed_account| {
-                    ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
-                }),
-            ]
-            .try_into()
-            .unwrap(),
+            function_name: function_name.try_into().unwrap(),
+            args: call_args.try_into().unwrap(),
         };
 
         // Get the account sequence number
