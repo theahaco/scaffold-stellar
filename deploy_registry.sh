@@ -16,13 +16,12 @@ stellar contract deploy --alias registry \
                         --salt $VERIFED \
                         -- \
                         --admin "$ADMIN" \
-                        --manager "\"$ADDRESS\"" \
-                        --is-root true
+                        --manager "\"$ADDRESS\""
 
 
-registry="stellar contract invoke --id registry --"
+# registry="stellar contract invoke --id registry --"
 
-$registry --help
+# $registry --help
 
 just registry publish  --wasm ./target/stellar/registry.wasm \
                          --author "$ADMIN" \

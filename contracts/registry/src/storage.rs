@@ -4,9 +4,13 @@ use soroban_sdk::{
     xdr::{ScErrorCode, ScErrorType},
     Address, BytesN, Env, IntoVal, TryFromVal, Val,
 };
+use soroban_sdk_tools::InstanceItem;
 
 use crate::{
-    name::NormalizedName, registry::wasm::PublishedWasm, storage::maps::ToStorageKey, Contract,
+    name::NormalizedName,
+    registry::{contract::DeployableClient, wasm::PublishedWasm},
+    storage::maps::{ToStorageKey, MAX_BUMP},
+    Contract, Error,
 };
 
 mod maps;
@@ -15,6 +19,7 @@ pub struct Storage {
     pub wasm: maps::PersistentMap<NormalizedName, PublishedWasm, WasmKey>,
     pub contract: maps::PersistentMap<NormalizedName, ContractEntry, ContractKey>,
     pub hash: maps::PersistentMap<BytesN<32>, (), HashKey>,
+    pub root_registry: InstanceItem<Address>,
 }
 
 impl Storage {
@@ -23,6 +28,7 @@ impl Storage {
             wasm: maps::PersistentMap::new(env),
             contract: maps::PersistentMap::new(env),
             hash: maps::PersistentMap::new(env),
+            root_registry: InstanceItem::new_raw(env, symbol_short!("ROOT_REG").to_val()),
         }
     }
 }
@@ -52,6 +58,32 @@ impl Storage {
     pub fn remove_manager(env: &Env) {
         Contract::require_admin(env);
         env.storage().instance().remove(&Manager::to_key(env, &()));
+    }
+
+    /// Resolves a subregistry name to its contract address via the trusted
+    /// root. Subregistries pin the root's address at construction, so callers
+    /// can't smuggle a forged address through `deploy_with_subregistry`. On
+    /// the root itself we look up in local storage (Soroban disallows a
+    /// contract calling itself, so xcc-to-self isn't an option).
+    pub fn resolve_subregistry(
+        env: &Env,
+        subregistry: &soroban_sdk::String,
+    ) -> Result<Address, Error> {
+        let root = Storage::new(env).root_registry;
+        if let Some(root_id) = root.get() {
+            root.extend_ttl(MAX_BUMP, MAX_BUMP);
+            let client = DeployableClient::new(env, &root_id);
+            match client.try_fetch_contract_id(subregistry) {
+                Ok(Ok(addr)) => Ok(addr),
+                Err(Ok(e)) => Err(e),
+                // Invoke aborts (root isn't a registry, panic) and
+                // return-value conversion failures collapse to a single
+                // opaque error.
+                _ => Err(Error::SubRegistryCrossContractCallFailed),
+            }
+        } else {
+            Contract::get_contract_id(env, &subregistry.try_into()?)
+        }
     }
 }
 

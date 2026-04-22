@@ -54,10 +54,11 @@ impl<'a> Registry<'a> {
         let hash = env.deployer().upload_contract_wasm(registry::WASM);
         let admin = Address::generate(&env);
         let manager = Address::generate(&env);
+        let root = Address::generate(&env);
         let contract_id = registry::WASM.register(
             &env,
             None,
-            ContractArgs::__constructor(&admin, &Some(manager), &false),
+            ContractArgs::__constructor(&admin, &Some(manager), &Some(root)),
         );
         let client = SorobanContractClient::new(&env, &contract_id);
         Registry {
@@ -76,10 +77,11 @@ impl<'a> Registry<'a> {
         let bytes = Bytes::from_slice(&env, registry::WASM);
         let hash = env.deployer().upload_contract_wasm(registry::WASM);
         let admin = Address::generate(&env);
+        let root = Address::generate(&env);
         let contract_id = registry::WASM.register(
             &env,
             None,
-            ContractArgs::__constructor(&admin, &None, &false),
+            ContractArgs::__constructor(&admin, &None, &Some(root)),
         );
         let client = SorobanContractClient::new(&env, &contract_id);
         Registry {
@@ -96,7 +98,7 @@ impl<'a> Registry<'a> {
         let contract_id = registry::WASM.register(
             env,
             None,
-            ContractArgs::__constructor(&admin, &Some(admin.clone()), &true),
+            ContractArgs::__constructor(&admin, &Some(admin.clone()), &None),
         );
         let client = SorobanContractClient::new(env, &contract_id);
         Registry {

@@ -1,9 +1,10 @@
-#![allow(non_upper_case_globals)]
+#![allow(non_upper_case_globals, clippy::too_many_arguments)]
 use crate::events;
 use crate::name;
-use crate::name::registry;
 use crate::name::unverifed;
 use crate::name::NormalizedName;
+use crate::name::ROOT;
+use crate::registry::wasm::PublishableClient;
 use crate::storage::ContractEntry;
 use crate::storage::Storage;
 
@@ -138,16 +139,33 @@ impl Contract {
         deployer: Address,
     ) -> Result<Address, Error> {
         let hash = Self::get_hash_and_bump(env, wasm_name, version.clone())?;
-        let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         let version = Self::get_version(env, wasm_name, version)?;
+        Ok(Self::deploy_with_hash_and_version(
+            env, wasm_name, version, salt, init, deployer, hash, None,
+        ))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn deploy_with_hash_and_version(
+        env: &Env,
+        wasm_name: &NormalizedName,
+        version: String,
+        salt: impl IntoVal<Env, BytesN<32>>,
+        init: Option<Vec<Val>>,
+        deployer: Address,
+        hash: BytesN<32>,
+        registry: Option<Address>,
+    ) -> Address {
+        let contract_id = deploy_and_init(env, salt, hash, init, deployer.clone());
         crate::events::Deploy {
             wasm_name: wasm_name.to_string(),
             version,
             deployer,
             contract_id: contract_id.clone(),
+            registry: registry.unwrap_or_else(|| env.current_contract_address()),
         }
         .publish(env);
-        Ok(contract_id)
+        contract_id
     }
 
     /// This method is used in the constructor when the contract is a root registry.
@@ -172,34 +190,30 @@ impl Contract {
                 .unwrap_unchecked()
             {
                 let contract_name = unverifed(env);
+                let root_contract_id = env.current_contract_address();
                 let args = vec![
                     env,
                     *admin.as_val(),
                     Val::from_void().into(),
-                    false.into_val(env),
+                    root_contract_id.clone().into_val(env),
                 ];
                 let contract_address = deploy_and_init(
                     env,
                     contract_name.hash(),
                     wasm_hash,
                     Some(args),
-                    env.current_contract_address(),
+                    root_contract_id.clone(),
                 );
                 Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
-                Self::register_contract_name(
-                    env,
-                    &name::registry(env),
-                    &env.current_contract_address(),
-                    admin,
-                )?;
+                Self::register_contract_name(env, &name::registry(env), &root_contract_id, admin)?;
                 events::SubRegistry {
                     name: contract_name.to_string(),
                     contract_id: contract_address.clone(),
                 }
                 .publish(env);
                 events::SubRegistry {
-                    name: String::from_str(env, "root"),
-                    contract_id: env.current_contract_address(),
+                    name: String::from_str(env, ROOT),
+                    contract_id: root_contract_id,
                 }
                 .publish(env);
             }
@@ -249,19 +263,73 @@ pub trait Deployable {
         let contract_id = Contract::fetch_hash_and_deploy(
             env,
             &wasm_name,
-            version.clone(),
+            version,
             salt,
             init,
             deployer.clone(),
         )?;
         Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
-        if wasm_name == registry(env) {
+        if wasm_name == name::registry(env) {
             events::SubRegistry {
                 name: contract_name.to_string(),
                 contract_id: contract_id.clone(),
             }
             .publish(env);
         }
+        Ok(contract_id)
+    }
+
+    /// Deploys a new published contract returning the deployed contract's id
+    /// and register the contract name.
+    /// The subregistry passed is where the `wasm_name` is located.
+    /// If no salt provided it will use the current sequence number.
+    /// If no deployer is provided it uses the contract as the deployer
+    /// Note: `deployer` is an advanced feature.
+    /// If you need to resolve contract IDs deterministically without RPC calls,
+    /// you can set a known Deployer account, which will be used as the `--salt`.
+    fn deploy_with_subregistry(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+        contract_name: soroban_sdk::String,
+        admin: soroban_sdk::Address,
+        init: Option<soroban_sdk::Vec<soroban_sdk::Val>>,
+        deployer: Option<soroban_sdk::Address>,
+        subregistry: soroban_sdk::String,
+    ) -> Result<soroban_sdk::Address, Error> {
+        // Resolve the subregistry's contract id via the trusted root — the
+        // root was pinned at construction, so callers can't pass a forged
+        // address masquerading as a known subregistry.
+        let subregistry = Storage::resolve_subregistry(env, &subregistry)?;
+        if subregistry == env.current_contract_address() {
+            return Err(Error::SubRegistryIsSelf);
+        }
+        let contract_name: NormalizedName = contract_name.try_into()?;
+        let wasm_name: NormalizedName = wasm_name.try_into()?;
+        Contract::assert_no_contract_entry_and_authorize(env, &admin, &contract_name)?;
+        let subregistry = PublishableClient::new(env, &subregistry);
+        let (version, hash) =
+            match subregistry.try_xcc_hash_and_version(&wasm_name.to_string(), &version) {
+                Ok(Ok(x)) => x,
+                Err(Ok(e)) => return Err(e),
+                // Invoke aborts (target isn't a registry, panic) and return-value
+                // conversion failures all collapse to a single opaque error.
+                _ => return Err(Error::SubRegistryCrossContractCallFailed),
+            };
+
+        let deployer = deployer.unwrap_or_else(|| env.current_contract_address());
+        let salt = contract_name.hash();
+        let contract_id = Contract::deploy_with_hash_and_version(
+            env,
+            &wasm_name,
+            version,
+            salt,
+            init,
+            deployer,
+            hash,
+            Some(subregistry.address),
+        );
+        Contract::register_contract_name(env, &contract_name, &contract_id, &admin)?;
         Ok(contract_id)
     }
 

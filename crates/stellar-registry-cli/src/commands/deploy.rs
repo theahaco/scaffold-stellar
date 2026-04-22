@@ -124,14 +124,16 @@ impl Cmd {
     }
 
     async fn invoke(&self) -> Result<stellar_strkey::Contract, Error> {
-        let registry = self.contract_name.registry(&self.config).await?;
+        let target_registry = self.contract_name.registry(&self.config).await?;
+        let wasm_registry = self.wasm_name.registry(&self.config).await?;
+        let cross_registry = target_registry.as_contract().id() != wasm_registry.as_contract().id();
         let client = self.config.rpc_client()?;
         let key = self.config.key_pair()?;
         let config = &self.config;
 
-        let contract_address = registry.as_contract().sc_address();
-        let contract_id = &registry.as_contract().id();
-        let spec_entries = self.spec_entries(&registry).await?;
+        let contract_address = target_registry.as_contract().sc_address();
+        let contract_id = &target_registry.as_contract().id();
+        let spec_entries = self.spec_entries(&wasm_registry).await?;
         let (args, signers) =
             util::find_args_and_signers(contract_id, self.slop.clone(), &spec_entries).await?;
         let deployer = if let Some(deployer) = &self.deployer {
@@ -143,27 +145,43 @@ impl Cmd {
         } else {
             None
         };
+        let mut call_args: Vec<ScVal> = vec![
+            ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
+            self.version.clone().map_or(ScVal::Void, |s| {
+                ScVal::String(ScString(s.try_into().unwrap()))
+            }),
+            ScVal::String(ScString(
+                self.contract_name.name.clone().try_into().unwrap(),
+            )),
+            ScVal::Address(xdr::ScAddress::Account(AccountId(
+                xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
+            ))),
+            args,
+            deployer.map_or(ScVal::Void, |muxed_account| {
+                ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
+            }),
+        ];
+        let function_name = if cross_registry {
+            // The contract resolves the subregistry's address itself, through
+            // the trusted root pinned at construction, so we pass the name
+            // rather than an address. Root has no prefix — its own name in
+            // root storage is "registry".
+            let subregistry_name = self
+                .wasm_name
+                .channel
+                .clone()
+                .unwrap_or_else(|| "registry".to_string());
+            call_args.push(ScVal::String(ScString(
+                subregistry_name.try_into().unwrap(),
+            )));
+            "deploy_with_subregistry"
+        } else {
+            "deploy"
+        };
         let invoke_contract_args = InvokeContractArgs {
             contract_address: contract_address.clone(),
-            function_name: "deploy".try_into().unwrap(),
-            args: [
-                ScVal::String(ScString(self.wasm_name.name.clone().try_into().unwrap())),
-                self.version.clone().map_or(ScVal::Void, |s| {
-                    ScVal::String(ScString(s.try_into().unwrap()))
-                }),
-                ScVal::String(ScString(
-                    self.contract_name.name.clone().try_into().unwrap(),
-                )),
-                ScVal::Address(xdr::ScAddress::Account(AccountId(
-                    xdr::PublicKey::PublicKeyTypeEd25519(Uint256(key.verifying_key().to_bytes())),
-                ))),
-                args,
-                deployer.map_or(ScVal::Void, |muxed_account| {
-                    ScVal::Address(xdr::ScAddress::Account(muxed_account.account_id()))
-                }),
-            ]
-            .try_into()
-            .unwrap(),
+            function_name: function_name.try_into().unwrap(),
+            args: call_args.try_into().unwrap(),
         };
 
         // Get the account sequence number
@@ -190,5 +208,114 @@ impl Cmd {
                 "{return_value:#?} is not a contract address".to_string(),
             )),
         }
+    }
+}
+
+#[cfg(feature = "integration-tests")]
+#[cfg(test)]
+mod tests {
+    use stellar_scaffold_test::RegistryTest;
+
+    fn publish(registry: &RegistryTest, wasm_name: &str, version: &str) {
+        let wasm_path = registry.hello_wasm_v1();
+        registry
+            .registry_cli("publish")
+            .arg("--wasm")
+            .arg(&wasm_path)
+            .arg("--binver")
+            .arg(version)
+            .arg("--wasm-name")
+            .arg(wasm_name)
+            .assert()
+            .success();
+    }
+
+    // --wasm-name points to the unverified subregistry while --contract-name
+    // has no prefix (root). The CLI should route to `deploy_with_subregistry`
+    // on root, passing the unverified registry's address as the extra arg.
+    #[tokio::test]
+    async fn deploys_wasm_from_a_different_registry() {
+        let registry = RegistryTest::new().await;
+
+        publish(&registry, "unverified/hello_xreg", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("unverified/hello_xreg")
+            .arg("--contract-name")
+            .arg("hello_xreg_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Reverse direction: wasm lives in root, contract registers under
+    // unverified. `deploy_with_subregistry` is invoked on unverified, with
+    // root as the subregistry address the XCC reaches back into.
+    #[tokio::test]
+    async fn deploys_from_root_into_a_subregistry() {
+        let registry = RegistryTest::new().await;
+
+        publish(&registry, "hello_reverse", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("hello_reverse")
+            .arg("--contract-name")
+            .arg("unverified/hello_reverse_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Neither side of the deploy is the root: wasm published to an `oz`
+    // subregistry, contract registered under `unverified`. Exercises the
+    // cross-registry path where both registries are subregistries of root.
+    #[tokio::test]
+    async fn deploys_across_two_subregistries() {
+        let registry = RegistryTest::new().await;
+        registry.deploy_named_subregistry("oz").await;
+
+        publish(&registry, "oz/hello_two_subs", "0.0.1");
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("oz/hello_two_subs")
+            .arg("--contract-name")
+            .arg("unverified/hello_two_subs_deployed")
+            .arg("--version")
+            .arg("0.0.1")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .success();
+    }
+
+    // Nothing has been published under this wasm name, so the wasm lookup
+    // on the subregistry must fail. Deploy should exit with a non-zero
+    // status and a message on stderr rather than silently succeed.
+    #[tokio::test]
+    async fn fails_when_wasm_does_not_exist_in_subregistry() {
+        let registry = RegistryTest::new().await;
+
+        registry
+            .registry_cli("deploy")
+            .arg("--wasm-name")
+            .arg("unverified/never_published")
+            .arg("--contract-name")
+            .arg("should_not_exist")
+            .arg("--")
+            .arg("--admin=alice")
+            .assert()
+            .failure();
     }
 }

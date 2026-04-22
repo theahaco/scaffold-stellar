@@ -41,4 +41,8 @@ pub enum Error {
     ProxyInvocationFailed,
     /// Contract to be invoked is compromised
     ProxyContractCompromised,
+    /// Subregistry contract call failed
+    SubRegistryCrossContractCallFailed,
+    /// Subregistry must be a different contract than the current registry
+    SubRegistryIsSelf,
 }

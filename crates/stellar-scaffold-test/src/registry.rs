@@ -115,7 +115,9 @@ impl RegistryTest {
             .unwrap()
             .to_string();
 
-        // Deploy contract using the Stellar CLI library directly with alice account
+        // Deploy contract using the Stellar CLI library directly with alice account.
+        // Omitting `--root` means this is the root registry (the constructor
+        // only auto-deploys the unverified sub when `root` is None).
         let deploy_args = [
             "--wasm-hash",
             &hash,
@@ -130,7 +132,6 @@ impl RegistryTest {
             "alice",
             "--manager",
             &format!("\"{alice_key}\""),
-            "--is-root",
         ];
         let deploy_cmd =
             Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(env, &deploy_args)
@@ -181,6 +182,100 @@ impl RegistryTest {
 
     pub fn hello_wasm_v2(&self) -> PathBuf {
         RandomizedWasm::new("hello_v2.wasm").randomize(&self.env.cwd)
+    }
+
+    /// Deploy a fresh, unmanaged registry instance and register it under
+    /// `name` in the root registry so it can be addressed via `name/…`
+    /// prefixes. Returns the new subregistry's contract id.
+    pub async fn deploy_named_subregistry(&self, name: &str) -> String {
+        let rpc_url = &crate::rpc_url();
+        let network_passphrase = "Standalone Network ; February 2017";
+
+        let wasm_path = RandomizedWasm::new("registry.wasm").randomize(&self.env.cwd);
+        let upload_cmd = Self::parse_cmd_internal::<upload::Cmd>(
+            &self.env,
+            &[
+                "--wasm",
+                wasm_path.to_str().unwrap(),
+                "--source",
+                "alice",
+                "--rpc-url",
+                rpc_url,
+                "--network-passphrase",
+                network_passphrase,
+                "--fee=4000000000",
+            ],
+        )
+        .expect("Failed to parse subregistry upload");
+        let hash = upload_cmd
+            .execute(&upload_cmd.config, false, false)
+            .await
+            .expect("Failed to upload subregistry wasm")
+            .into_result()
+            .expect("no hash returned by 'contract upload'")
+            .to_string();
+
+        // Subregistry: pin the root so `deploy_with_subregistry` on this
+        // contract resolves sibling subregistries through the trusted root.
+        let root_arg = format!("\"{}\"", self.registry_address);
+        let deploy_cmd = Self::parse_cmd_internal::<cli::contract::deploy::wasm::Cmd>(
+            &self.env,
+            &[
+                "--wasm-hash",
+                &hash,
+                "--source",
+                "alice",
+                "--rpc-url",
+                rpc_url,
+                "--network-passphrase",
+                network_passphrase,
+                "--",
+                "--admin",
+                "alice",
+                "--root",
+                &root_arg,
+            ],
+        )
+        .expect("Failed to parse subregistry deploy");
+        let sub_id = deploy_cmd
+            .execute(&deploy_cmd.config, false, false)
+            .await
+            .expect("Failed to deploy subregistry")
+            .into_result()
+            .expect("no contract id returned by 'contract deploy'")
+            .to_string()
+            .trim()
+            .to_string();
+
+        let alice_key = self.alice_address.to_string();
+        let invoke_cmd = Self::parse_cmd_internal::<cli::contract::invoke::Cmd>(
+            &self.env,
+            &[
+                "--id",
+                &self.registry_address,
+                "--source",
+                "alice",
+                "--rpc-url",
+                rpc_url,
+                "--network-passphrase",
+                network_passphrase,
+                "--",
+                "register_contract",
+                "--contract_name",
+                name,
+                "--contract_address",
+                &sub_id,
+                "--owner",
+                &alice_key,
+            ],
+        )
+        .expect("Failed to parse register_contract invoke");
+        invoke_cmd
+            .execute(&invoke_cmd.config, false, false)
+            .await
+            .expect("Failed to register subregistry in root");
+
+        sub_id
     }
 }
 

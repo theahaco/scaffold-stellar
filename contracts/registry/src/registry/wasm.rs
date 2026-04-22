@@ -146,6 +146,21 @@ pub trait Publishable {
         Contract::get_hash(env, &wasm_name.try_into()?, version)
     }
 
+    /// Fetch the hash and version of a Wasm binary from the registry and bump TTL
+    /// This is used for cross contract calls (xcc)
+    fn xcc_hash_and_version(
+        env: &Env,
+        wasm_name: soroban_sdk::String,
+        version: Option<soroban_sdk::String>,
+    ) -> Result<(soroban_sdk::String, soroban_sdk::BytesN<32>), Error> {
+        let wasm_name: NormalizedName = wasm_name.try_into()?;
+        let version = Contract::get_version(env, &wasm_name, version)?;
+        Ok((
+            version.clone(),
+            Contract::get_hash_and_bump(env, &wasm_name, Some(version))?,
+        ))
+    }
+
     /// Most recent version of the published Wasm binary
     fn current_version(
         env: &Env,
