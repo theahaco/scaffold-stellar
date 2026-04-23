@@ -25,6 +25,10 @@ pub struct Cmd {
 
     #[command(flatten)]
     vers: Vers,
+
+    /// Specify package manager, omitting will prompt interactively
+    #[arg(short = 'p', long)]
+    pub package_manager: Option<PackageManager>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -123,7 +127,16 @@ impl Cmd {
             }
         }
 
-        let Some(pkg_manager) = select_pkg_manager(&printer) else {
+        let Some(pkg_manager) = (match &self.package_manager {
+            Some(kind) => {
+                let version = pkg_manager_version(kind.command());
+                Some(PackageManagerSpec {
+                    kind: kind.clone(),
+                    version,
+                })
+            }
+            None => select_pkg_manager(&printer),
+        }) else {
             printer.warnln("Package manager selection cancelled. Run the command again to retry.");
             return Ok(());
         };
@@ -186,7 +199,7 @@ impl Cmd {
             printer.blankln(format!("\t{pm_command} install"));
         }
         printer.blankln(format!("\t{pm_command} start"));
-        printer.blankln(" Happy hacking! 🚀");
+        printer.blankln("\n Happy hacking! 🚀");
         Ok(())
     }
 
