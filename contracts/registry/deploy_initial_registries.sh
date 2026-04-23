@@ -32,8 +32,7 @@ run() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATH=$SCRIPT_DIR/../../target/debug:$PATH
 
-echo $(which stellar-registry)
-echo $(stellar registry fetch-contract-id registry)
+ROOT_REGISTRY=$(stellar registry fetch-contract-id registry)
 
 ADMIN=theahaco
 MANAGER="\"$(stellar keys public-key $ADMIN)\""
@@ -47,7 +46,10 @@ deploy () {
     if existing_id=$(stellar registry fetch-contract-id "$name" 2>/dev/null) && [ -n "$existing_id" ]; then
         echo "Contract '$name' already registered (id: $existing_id); skipping deploy"
     else
-        run stellar registry deploy --contract-name "$name" --wasm-name registry -- --admin $ADMIN --manager "$MANAGER"
+        run stellar registry deploy --contract-name "$name" --wasm-name registry -- \
+                                    --admin $ADMIN \
+                                    --manager "$MANAGER" \
+                                    --root "\"$ROOT_REGISTRY\""
     fi
     run stellar registry create-alias "$name" --force
 }
