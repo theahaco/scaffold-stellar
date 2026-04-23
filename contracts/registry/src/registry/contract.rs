@@ -191,6 +191,11 @@ impl Contract {
             {
                 let contract_name = unverifed(env);
                 let root_contract_id = env.current_contract_address();
+                events::SubRegistry {
+                    name: String::from_str(env, ROOT),
+                    contract_id: root_contract_id.clone(),
+                }
+                .publish(env);
                 let args = vec![
                     env,
                     *admin.as_val(),
@@ -204,18 +209,13 @@ impl Contract {
                     Some(args),
                     root_contract_id.clone(),
                 );
-                Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
-                Self::register_contract_name(env, &name::registry(env), &root_contract_id, admin)?;
                 events::SubRegistry {
                     name: contract_name.to_string(),
                     contract_id: contract_address.clone(),
                 }
                 .publish(env);
-                events::SubRegistry {
-                    name: String::from_str(env, ROOT),
-                    contract_id: root_contract_id,
-                }
-                .publish(env);
+                Self::register_contract_name(env, &contract_name, &contract_address, admin)?;
+                Self::register_contract_name(env, &name::registry(env), &root_contract_id, admin)?;
             }
             Ok(())
         }
