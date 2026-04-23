@@ -165,20 +165,17 @@ impl Cmd {
         let pm_command = pkg_manager.kind.command();
         let install_succeeded = run_install(pm_command, &absolute_project_path, &printer);
 
-        // Build contracts and create contract clients
-        printer.infoln("Building contracts and generating client code...");
-        // Use clap to parse build command with defaults, then configure programmatically
-        let mut build_command = build::Command::parse_from(["build", "--build-clients"]);
+        // Compile contracts only — client generation requires a live network and is handled by `start`
+        printer.infoln("Compiling contracts...");
+        let mut build_command = build::Command::parse_from(["build"]);
         build_command.build.manifest_path = Some(absolute_project_path.join("Cargo.toml"));
-        build_command.build_clients_args.env = Some(build::clients::ScaffoldEnv::Development);
-        build_command.build_clients_args.workspace_root = Some(absolute_project_path.clone());
         let mut build_args = global_args.clone();
         if !(global_args.verbose && global_args.very_verbose) {
             build_args.quiet = true;
         }
 
         if let Err(e) = build_command.run(&build_args).await {
-            printer.warnln(format!("Failed to build contract clients: {e}"));
+            printer.warnln(format!("Failed to compile contracts: {e}"));
         }
 
         // If git is installed, run init and make initial commit

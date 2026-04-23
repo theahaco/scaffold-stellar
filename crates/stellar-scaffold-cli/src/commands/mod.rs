@@ -198,12 +198,13 @@ fn set_package_manager_field(json: &str, value: &str) -> Option<String> {
         let insert_pos = json.rfind('}')?;
         let before = &json[..insert_pos];
         let after = &json[insert_pos..];
-        let comma = if before.trim_end().ends_with(',') {
+        let before_trimmed = before.trim_end();
+        let comma = if before_trimmed.ends_with(',') {
             ""
         } else {
             ","
         };
-        Some(format!("{before}{comma}\n  {replacement}\n{after}"))
+        Some(format!("{before_trimmed}{comma}\n  {replacement}\n{after}"))
     }
 }
 
@@ -343,6 +344,16 @@ mod tests {
         let result = set_package_manager_field(json, "npm@11.0.0").unwrap();
         assert!(result.contains(r#""packageManager": "npm@11.0.0""#));
         assert!(result.contains(r#""name": "foo""#));
+        assert!(serde_json::from_str::<serde_json::Value>(&result).is_ok());
+    }
+
+    #[test]
+    fn set_package_manager_field_inserts_produces_valid_json() {
+        // real-world multi-line package.json with trailing newline before closing brace
+        let json = "{\n  \"name\": \"my-app\",\n  \"version\": \"1.0.0\"\n}";
+        let result = set_package_manager_field(json, "pnpm@9.6.0").unwrap();
+        assert!(serde_json::from_str::<serde_json::Value>(&result).is_ok());
+        assert!(result.contains("\"packageManager\": \"pnpm@9.6.0\""));
     }
 
     #[test]
