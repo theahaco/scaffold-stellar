@@ -207,7 +207,7 @@ fn set_package_manager_field(json: &str, value: &str) -> Option<String> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, clap::ValueEnum)]
 pub enum PackageManager {
     Npm,
     Pnpm,
