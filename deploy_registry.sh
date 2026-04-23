@@ -3,6 +3,34 @@ set -e
 
 PATH=./target/bin:$PATH
 
+DRY_RUN=0
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run|-n)
+            DRY_RUN=1
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--dry-run|-n]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg" >&2
+            echo "Usage: $0 [--dry-run|-n]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+run() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '[dry-run] '
+        printf '%q ' "$@"
+        printf '\n'
+    else
+        "$@"
+    fi
+}
+
 # sha256 -s verified
 #
 
@@ -11,17 +39,24 @@ registry_version() {
          "$(dirname "$0")/contracts/registry/Cargo.toml"
 }
 VERSION=v$(registry_version)
-curl -L https://github.com/theahaco/scaffold-stellar/releases/download/registry-$VERSION/registry_$VERSION.wasm > ./target/stellar/registry_$VERSION.wasm
+WASM_URL="https://github.com/theahaco/scaffold-stellar/releases/download/registry-$VERSION/registry_$VERSION.wasm"
+WASM_PATH="./target/stellar/registry_$VERSION.wasm"
 
-VERIFED=$(sha256 -s v0.5.1)
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] curl -L $WASM_URL > $WASM_PATH"
+else
+    curl -L "$WASM_URL" > "$WASM_PATH"
+fi
+
+VERIFED=$(printf '%s' v0.6.0 | shasum -a 256 | awk '{print $1}')
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 echo "$VERIFED"
 
-stellar contract deploy --alias registry \
-                        --wasm ./target/stellar/registry_$VERSION.wasm \
+run stellar contract deploy --alias registry \
+                        --wasm "$WASM_PATH" \
                         --source "$ADMIN" \
-                        --salt $VERIFED \
+                        --salt "$VERIFED" \
                         -- \
                         --admin "$ADMIN" \
                         --manager "\"$ADDRESS\""
@@ -29,6 +64,6 @@ stellar contract deploy --alias registry \
 
 
 
-just registry publish  --wasm ./target/stellar/registry_$VERSION.wasm \
+run just registry publish  --wasm "$WASM_PATH" \
                          --author "$ADMIN" \
                          --source "$ADMIN"
