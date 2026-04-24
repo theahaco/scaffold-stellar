@@ -48,7 +48,7 @@ else
     curl -L "$WASM_URL" > "$WASM_PATH"
 fi
 
-VERIFED=$(printf '%s' v0.6.0 | shasum -a 256 | awk '{print $1}')
+VERIFED=$(printf '%s' v0.6.1 | shasum -a 256 | awk '{print $1}')
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 echo "$VERIFED"
