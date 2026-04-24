@@ -68,5 +68,9 @@ batch_register () {
 while IFS= read -r name; do
     deploy "$name"
     contracts=$(jq -c --arg k "$name" '.[] | select(has($k)) | .[$k]' "$INITIAL_CONTRACTS")
+    if [ "$(jq 'length' <<<"$contracts")" -eq 0 ]; then
+        echo "No contracts for '$name'; skipping batch-register"
+        continue
+    fi
     batch_register "$name" "$contracts"
 done < <(jq -r '.[] | keys[0]' "$INITIAL_CONTRACTS")
