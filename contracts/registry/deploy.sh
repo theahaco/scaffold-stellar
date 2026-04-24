@@ -2,6 +2,8 @@
 set -e
 
 PATH=./target/bin:$PATH
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR/../.."
 
 DRY_RUN=0
 for arg in "$@"; do
@@ -36,11 +38,12 @@ run() {
 
 registry_version() {
      awk -F'"' '/^version[[:space:]]*=/ { print $2; exit }' \
-         "$(dirname "$0")/contracts/registry/Cargo.toml"
+         "$REPO_ROOT/contracts/registry/Cargo.toml"
 }
 VERSION=v$(registry_version)
 WASM_URL="https://github.com/theahaco/scaffold-stellar/releases/download/registry-$VERSION/registry_$VERSION.wasm"
-WASM_PATH="./target/stellar/registry_$VERSION.wasm"
+WASM_PATH="$REPO_ROOT/target/stellar/registry_$VERSION.wasm"
+
 
 if [ "$DRY_RUN" -eq 1 ]; then
     echo "[dry-run] curl -L $WASM_URL > $WASM_PATH"
@@ -48,10 +51,11 @@ else
     curl -L "$WASM_URL" > "$WASM_PATH"
 fi
 
-VERIFED=$(printf '%s' v0.6.1 | shasum -a 256 | awk '{print $1}')
+
+VERIFED=$(cat "$SCRIPT_DIR/.salt" | shasum -a 256 | awk '{print $1}')
+
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
-echo "$VERIFED"
 
 run stellar contract deploy --alias registry \
                         --wasm "$WASM_PATH" \
@@ -61,8 +65,8 @@ run stellar contract deploy --alias registry \
                         --admin "$ADMIN" \
                         --manager "\"$ADDRESS\""
 
-
-
+echo "sleeping so dynamic table can populate on goldsky"
+sleep 60
 
 run just registry publish  --wasm "$WASM_PATH" \
                          --author "$ADMIN" \
