@@ -52,7 +52,7 @@ else
 fi
 
 
-VERIFED=$(cat "$SCRIPT_DIR/.salt" | shasum -a 256 | awk '{print $1}')
+VERIFED=$(shasum -a 256 < "$SCRIPT_DIR/.salt" | awk '{print $1}')
 
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M

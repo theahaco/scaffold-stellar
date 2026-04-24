@@ -98,7 +98,7 @@ mod generate_id {
     fn futurenet() {
         check(
             FUTURENET,
-            &expect!["CALJTN54DJUMM62UR7C2TR5R7YWYV55A3AD5TV6AI3RYOCXBWISS3B2L"],
+            &expect!["CC6YGVN57L5XC4HDZ7AIUJSURGWGC2EEQDKC6NK4DZ6LUHTZY5WXOTLX"],
         );
     }
 
@@ -106,7 +106,7 @@ mod generate_id {
     fn testnet() {
         check(
             TESTNET,
-            &expect!["CBL2QWXROK7MO2OEMTOOV4DDKE3WEOTO6ZQQXECXTCTETDDEJEC4GZSS"],
+            &expect!["CAAXJETKPYAATU4HVVQUTE2FFBULNFGZNEOC3MS635U5K3GZLAY2HI4M"],
         );
     }
 
@@ -114,7 +114,7 @@ mod generate_id {
     fn mainnet() {
         check(
             MAINNET,
-            &expect!["CC7HX7CXO3E5LDVOQLPTDCKWCBQ4RCQAMOHJA33KP2Z545GHUKMFEUO6"],
+            &expect!["CDU4M3LDIOUJJ5F3YXKJ4EJEP5VPRPG6N2LJ5HOQIMN7MNGL3NS3EGUY"],
         );
     }
 
@@ -122,7 +122,7 @@ mod generate_id {
     fn local() {
         check(
             LOCAL,
-            &expect!["CDPSBJAQHRUPUE5N2QML5XYLH67UQYBKM6QGLL47SYJJJ3GYSKHXK7PI"],
+            &expect!["CA55VGAFPIZHOY2X26KANRJYFBWPEXGNLIEHR7Q5TR2576HKHOFPLBTX"],
         );
     }
 }

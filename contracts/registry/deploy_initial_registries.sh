@@ -37,7 +37,6 @@ ROOT_REGISTRY=$(stellar registry fetch-contract-id registry)
 ADMIN=theahaco
 MANAGER="\"$(stellar keys public-key $ADMIN)\""
 INITIAL_CONTRACTS="$SCRIPT_DIR/initial_contracts.json"
-INITIAL_BATCH="$SCRIPT_DIR/initial_batch.json"
 
 # Deploys a named registry if it isn't already registered. Always ensures the
 # local stellar alias exists.
