@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use clap::{CommandFactory, FromArgMatches, Parser, command};
+use clap::{CommandFactory, FromArgMatches, Parser};
 
 pub mod create_alias;
 pub mod current_version;

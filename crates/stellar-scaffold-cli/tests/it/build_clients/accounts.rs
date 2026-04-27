@@ -50,7 +50,7 @@ soroban_token_contract.client = false
         // check that they're actually funded
         let cmd = stellar_cli::commands::keys::fund::Cmd {
             network: stellar_cli::config::network::Args {
-                rpc_url: Some(rpc_url().to_string()),
+                rpc_url: Some(rpc_url()),
                 network_passphrase: Some("Standalone Network ; February 2017".to_string()),
                 rpc_headers: vec![],
                 network: None,
@@ -58,7 +58,6 @@ soroban_token_contract.client = false
             address: stellar_cli::commands::keys::public_key::Cmd {
                 hd_path: None,
                 locator: locator::Args {
-                    global: false,
                     config_dir: Some(env.config_dir()),
                 },
                 name: stellar_cli::config::UnresolvedMuxedAccount::AliasOrSecret(

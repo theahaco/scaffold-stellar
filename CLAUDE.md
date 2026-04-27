@@ -11,7 +11,7 @@ Scaffold Stellar is a developer toolkit for building dApps and smart contracts o
 ## Common Commands
 
 ```bash
-# Setup development environment (installs stellar-cli v23.3.0)
+# Setup development environment (installs stellar-cli v26.0.0)
 just setup
 
 # Build contracts and optimize registry wasm
