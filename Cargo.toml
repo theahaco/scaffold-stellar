@@ -17,7 +17,7 @@ stellar-registry = { path = "crates/stellar-registry" }
 stellar-scaffold-test = { path = "crates/stellar-scaffold-test" }
 stellar-scaffold-ext-types = { path = "crates/stellar-scaffold-ext-types", version = "0.0.2" }
 
-stellar-cli = { version = "25.1.0", package = "soroban-cli", default-features = false }
+stellar-cli = { version = "26.0.0", package = "soroban-cli", default-features = false }
 soroban-rpc = { package = "stellar-rpc-client", version = "25.0.0" }
 soroban-spec-tools = "25.1.0"
 
