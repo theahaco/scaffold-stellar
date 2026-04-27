@@ -13,7 +13,7 @@ name = "admin-sep"
 version = "0.0.1"
 source = "git+https://github.com/theahaco/admin-sep?rev=46ed159ff38ee81f4b61b5ddb8ca4b6bdf972028#46ed159ff38ee81f4b61b5ddb8ca4b6bdf972028"
 dependencies = [
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -940,7 +940,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -949,7 +949,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2084,7 +2084,7 @@ name = "hello_v1"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -2092,7 +2092,7 @@ name = "hello_v2"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -2100,7 +2100,7 @@ name = "hello_world"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -2108,7 +2108,7 @@ name = "hello_world_v2"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -2116,7 +2116,7 @@ name = "hello_world_v3"
 version = "0.0.0"
 dependencies = [
  "admin-sep",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
 ]
 
 [[package]]
@@ -2307,7 +2307,7 @@ dependencies = [
  "hyper 0.14.32",
  "log",
  "rustls 0.21.12",
- "rustls-native-certs 0.6.3",
+ "rustls-native-certs",
  "tokio",
  "tokio-rustls 0.24.1",
 ]
@@ -2321,7 +2321,6 @@ dependencies = [
  "http 1.4.0",
  "hyper 1.7.0",
  "hyper-util",
- "log",
  "rustls 0.23.35",
  "rustls-pki-types",
  "tokio",
@@ -2348,7 +2347,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -2725,33 +2724,11 @@ dependencies = [
  "beef",
  "futures-util",
  "hyper 0.14.32",
- "jsonrpsee-types 0.20.4",
+ "jsonrpsee-types",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
- "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-core"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "316c96719901f05d1137f19ba598b5fe9c9bc39f4335f67f6be8613921946480"
-dependencies = [
- "async-trait",
- "bytes",
- "futures-util",
- "http 1.4.0",
- "http-body 1.0.1",
- "http-body-util",
- "jsonrpsee-types 0.26.0",
- "pin-project",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tower 0.5.2",
  "tracing",
 ]
 
@@ -2764,37 +2741,14 @@ dependencies = [
  "async-trait",
  "hyper 0.14.32",
  "hyper-rustls 0.24.2",
- "jsonrpsee-core 0.20.4",
- "jsonrpsee-types 0.20.4",
+ "jsonrpsee-core",
+ "jsonrpsee-types",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
  "tower 0.4.13",
  "tracing",
- "url",
-]
-
-[[package]]
-name = "jsonrpsee-http-client"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "790bedefcec85321e007ff3af84b4e417540d5c87b3c9779b9e247d1bcc3dab8"
-dependencies = [
- "base64 0.22.1",
- "http-body 1.0.1",
- "hyper 1.7.0",
- "hyper-rustls 0.27.7",
- "hyper-util",
- "jsonrpsee-core 0.26.0",
- "jsonrpsee-types 0.26.0",
- "rustls 0.23.35",
- "rustls-platform-verifier",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tower 0.5.2",
  "url",
 ]
 
@@ -2810,18 +2764,6 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tracing",
-]
-
-[[package]]
-name = "jsonrpsee-types"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc88ff4688e43cc3fa9883a8a95c6fa27aa2e76c96e610b737b6554d650d7fd5"
-dependencies = [
- "http 1.4.0",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -3162,12 +3104,6 @@ name = "openssl-probe"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
-
-[[package]]
-name = "openssl-probe"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "option-ext"
@@ -3535,7 +3471,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls 0.23.35",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -3572,7 +3508,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tracing",
  "windows-sys 0.60.2",
 ]
@@ -3776,10 +3712,10 @@ dependencies = [
  "hello_world",
  "rand 0.9.2",
  "semver",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
  "soroban-sdk-tools",
  "stellar-registry",
- "stellar-xdr 25.0.0",
+ "stellar-xdr 26.0.0",
 ]
 
 [[package]]
@@ -4025,7 +3961,6 @@ version = "0.23.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "533f54bc6a7d4f647e46ad909549eda97bf5afc1585190ef692b4286b198bd8f"
 dependencies = [
- "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -4040,22 +3975,10 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9aace74cb666635c918e9c12bc0d348266037aa8eb599b5cba565709a8dff00"
 dependencies = [
- "openssl-probe 0.1.6",
+ "openssl-probe",
  "rustls-pemfile",
  "schannel",
- "security-framework 2.11.1",
-]
-
-[[package]]
-name = "rustls-native-certs"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "612460d5f7bea540c490b2b6395d8e34a953e52b491accd6c86c8164c5932a63"
-dependencies = [
- "openssl-probe 0.2.1",
- "rustls-pki-types",
- "schannel",
- "security-framework 3.6.0",
+ "security-framework",
 ]
 
 [[package]]
@@ -4076,33 +3999,6 @@ dependencies = [
  "web-time",
  "zeroize",
 ]
-
-[[package]]
-name = "rustls-platform-verifier"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19787cda76408ec5404443dc8b31795c87cd8fec49762dc75fa727740d34acc1"
-dependencies = [
- "core-foundation 0.10.1",
- "core-foundation-sys",
- "jni",
- "log",
- "once_cell",
- "rustls 0.23.35",
- "rustls-native-certs 0.8.3",
- "rustls-platform-verifier-android",
- "rustls-webpki 0.103.8",
- "security-framework 3.6.0",
- "security-framework-sys",
- "webpki-root-certs 0.26.11",
- "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "rustls-platform-verifier-android"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f"
 
 [[package]]
 name = "rustls-webpki"
@@ -4280,19 +4176,6 @@ checksum = "897b2245f0b511c87893af39b033e5ca9cce68824c4d7e7630b5a1d339658d02"
 dependencies = [
  "bitflags 2.10.0",
  "core-foundation 0.9.4",
- "core-foundation-sys",
- "libc",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework"
-version = "3.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d17b898a6d6948c3a8ee4372c17cb384f90d2e6e912ef00895b14fd7ab54ec38"
-dependencies = [
- "bitflags 2.10.0",
- "core-foundation 0.10.1",
  "core-foundation-sys",
  "libc",
  "security-framework-sys",
@@ -4677,8 +4560,8 @@ dependencies = [
  "humantime",
  "indexmap 2.12.0",
  "itertools 0.10.5",
- "jsonrpsee-core 0.20.4",
- "jsonrpsee-http-client 0.20.4",
+ "jsonrpsee-core",
+ "jsonrpsee-http-client",
  "num-bigint",
  "open",
  "pathdiff",
@@ -4702,10 +4585,10 @@ dependencies = [
  "soroban-sdk 26.0.0-rc.1",
  "soroban-spec 26.0.0-rc.1",
  "soroban-spec-rust 26.0.0-rc.1",
- "soroban-spec-tools 26.0.0",
+ "soroban-spec-tools",
  "soroban-spec-typescript",
  "stellar-asset-spec",
- "stellar-rpc-client 26.0.0-rc.2",
+ "stellar-rpc-client 26.0.0-rc.1",
  "stellar-strkey 0.0.15",
  "stellar-xdr 26.0.0",
  "strsim",
@@ -4894,9 +4777,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-ledger-snapshot"
-version = "25.1.1"
+version = "25.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66d569a1315f05216d024653ad87541aa15d3ff26dad9f8a98719cb53ccf2bf3"
+checksum = "2ca06e6c5029d1285e66219cb387a234224e26969ce8ad2bc2d5017e9395d63b"
 dependencies = [
  "serde",
  "serde_json",
@@ -4922,9 +4805,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-sdk"
-version = "25.1.1"
+version = "25.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "add8d19cfd2c9941bbdc7c8223c3cf9d7ff9af4554ba3bd4ae93e16b19b08aea"
+checksum = "4502f2e018f238a4c5d3212d7d20ea6abcdc6e58babd63b642b693739db30fd1"
 dependencies = [
  "arbitrary",
  "bytes-lit",
@@ -4938,8 +4821,8 @@ dependencies = [
  "serde_json",
  "soroban-env-guest 25.0.1",
  "soroban-env-host 25.0.1",
- "soroban-ledger-snapshot 25.1.1",
- "soroban-sdk-macros 25.1.1",
+ "soroban-ledger-snapshot 25.3.1",
+ "soroban-sdk-macros 25.3.1",
  "stellar-strkey 0.0.16",
  "visibility",
 ]
@@ -4965,9 +4848,9 @@ dependencies = [
 
 [[package]]
 name = "soroban-sdk-macros"
-version = "25.1.1"
+version = "25.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a0107e34575ec704ce29407695462e79e6b0e13ce7af6431b2f15c313e34464"
+checksum = "ca03e9cf61d241cb9afdd6ddf41f6c25698b3f566a875e7009ea799b89e2bf0a"
 dependencies = [
  "darling 0.20.11",
  "heck 0.5.0",
@@ -4977,8 +4860,8 @@ dependencies = [
  "quote",
  "sha2 0.10.9",
  "soroban-env-common 25.0.1",
- "soroban-spec 25.1.1",
- "soroban-spec-rust 25.1.1",
+ "soroban-spec 25.3.1",
+ "soroban-spec-rust 25.3.1",
  "stellar-xdr 25.0.0",
  "syn 2.0.117",
 ]
@@ -5013,7 +4896,7 @@ dependencies = [
  "k256",
  "p256",
  "rand 0.8.5",
- "soroban-sdk 25.1.1",
+ "soroban-sdk 25.3.1",
  "soroban-sdk-tools-macro",
 ]
 
@@ -5048,11 +4931,12 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec"
-version = "25.1.1"
+version = "25.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53a1c9f6ccc6aa78518545e3cf542bd26f11d9085328a2e1c06c90514733fe15"
+checksum = "aa02e07f507cc27406ae0834db4dcf309b78c4cc8776eb3b2d662d66e8859d25"
 dependencies = [
  "base64 0.22.1",
+ "sha2 0.10.9",
  "stellar-xdr 25.0.0",
  "thiserror 1.0.69",
  "wasmparser 0.116.1",
@@ -5089,15 +4973,15 @@ dependencies = [
 
 [[package]]
 name = "soroban-spec-rust"
-version = "25.1.1"
+version = "25.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8247d3c6256b544b2461606c6892351bb22978d751e07c1aea744377053d852"
+checksum = "6835bb510763ef3fa5405e89036e3c8ea6ef5abe55fc52cfe9ac0e38be9d531c"
 dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
  "sha2 0.10.9",
- "soroban-spec 25.1.1",
+ "soroban-spec 25.3.1",
  "stellar-xdr 25.0.0",
  "syn 2.0.117",
  "thiserror 1.0.69",
@@ -5117,24 +5001,6 @@ dependencies = [
  "stellar-xdr 26.0.0",
  "syn 2.0.117",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "soroban-spec-tools"
-version = "25.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d103e30018da2ec352ca1d45b59844369cf8532a437156a5a8dc9af99fb0e1da"
-dependencies = [
- "base64 0.21.7",
- "ethnum",
- "hex",
- "itertools 0.10.5",
- "serde_json",
- "soroban-spec 25.1.1",
- "stellar-strkey 0.0.15",
- "stellar-xdr 25.0.0",
- "thiserror 1.0.69",
- "wasmparser 0.116.1",
 ]
 
 [[package]]
@@ -5277,10 +5143,10 @@ dependencies = [
  "sha2 0.10.9",
  "shlex",
  "soroban-cli",
- "soroban-spec-tools 25.1.0",
+ "soroban-spec-tools",
  "stellar-build",
- "stellar-rpc-client 25.0.0",
- "stellar-strkey 0.0.15",
+ "stellar-rpc-client 25.1.0",
+ "stellar-strkey 0.0.16",
  "thiserror 2.0.18",
  "tokio",
 ]
@@ -5303,28 +5169,28 @@ dependencies = [
  "sha2 0.10.9",
  "shlex",
  "soroban-cli",
- "soroban-spec-tools 25.1.0",
+ "soroban-spec-tools",
  "stellar-build",
  "stellar-registry-build",
- "stellar-rpc-client 25.0.0",
+ "stellar-rpc-client 25.1.0",
  "stellar-scaffold-test",
- "stellar-strkey 0.0.15",
+ "stellar-strkey 0.0.16",
  "thiserror 2.0.18",
  "tokio",
 ]
 
 [[package]]
 name = "stellar-rpc-client"
-version = "25.0.0"
+version = "25.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22c11b19c588a2f46421e142100f8ec38958307a04a16ab34f8c14d23e9b7395"
+checksum = "9a72922387b5c3d48f9978795f1c6a81f3b48467951e3073cdd7a93824ba659f"
 dependencies = [
  "clap",
  "hex",
  "http 1.4.0",
  "itertools 0.10.5",
- "jsonrpsee-core 0.20.4",
- "jsonrpsee-http-client 0.20.4",
+ "jsonrpsee-core",
+ "jsonrpsee-http-client",
  "serde",
  "serde-aux",
  "serde_json",
@@ -5340,16 +5206,16 @@ dependencies = [
 
 [[package]]
 name = "stellar-rpc-client"
-version = "26.0.0-rc.2"
+version = "26.0.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "552320c1293e7adf4a127fa0ec6b42c6acc0ca6405fc208012f0f2fc47a3ecf1"
+checksum = "92627395efaf7ddab9497978fd948345f0d15e2084a217625177e5e04bd42fe9"
 dependencies = [
  "clap",
  "hex",
  "http 1.4.0",
  "itertools 0.10.5",
- "jsonrpsee-core 0.26.0",
- "jsonrpsee-http-client 0.26.0",
+ "jsonrpsee-core",
+ "jsonrpsee-http-client",
  "serde",
  "serde-aux",
  "serde_json",
@@ -5395,13 +5261,13 @@ dependencies = [
  "sha2 0.10.9",
  "shlex",
  "soroban-cli",
- "soroban-spec-tools 25.1.0",
+ "soroban-spec-tools",
  "stellar-build",
- "stellar-rpc-client 25.0.0",
+ "stellar-rpc-client 25.1.0",
  "stellar-scaffold-ext-types",
  "stellar-scaffold-test",
- "stellar-strkey 0.0.15",
- "stellar-xdr 25.0.0",
+ "stellar-strkey 0.0.16",
+ "stellar-xdr 26.0.0",
  "tar",
  "tempfile",
  "thiserror 2.0.18",
@@ -5457,8 +5323,8 @@ dependencies = [
  "clap",
  "reflink-copy",
  "soroban-cli",
- "soroban-sdk 25.1.1",
- "stellar-strkey 0.0.15",
+ "soroban-sdk 25.3.1",
+ "stellar-strkey 0.0.16",
  "tokio",
  "tokio-stream",
  "uuid",
@@ -6523,24 +6389,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "webpki-root-certs"
-version = "0.26.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75c7f0ef91146ebfb530314f5f1d24528d7f0767efbfd31dce919275413e393e"
-dependencies = [
- "webpki-root-certs 1.0.7",
-]
-
-[[package]]
-name = "webpki-root-certs"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f31141ce3fc3e300ae89b78c0dd67f9708061d1d2eda54b8209346fd6be9a92c"
-dependencies = [
- "rustls-pki-types",
-]
-
-[[package]]
 name = "webpki-roots"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6595,7 +6443,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
