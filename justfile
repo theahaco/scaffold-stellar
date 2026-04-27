@@ -100,3 +100,7 @@ clippy *args:
 
 clippy-test:
     just clippy --tests --all-features
+
+# update deterministic contract IDs after changes to `contracts/registry/.salt`
+update-registry-tests:
+    UPDATE_EXPECT=1 cargo test --package stellar-registry-build registry::generate_id

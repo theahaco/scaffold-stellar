@@ -77,49 +77,52 @@ pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Cont
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(network_passphrase, "v0.4.1")
+    contract_id(
+        network_passphrase,
+        include_str!("../../../contracts/registry/.salt").trim(),
+    )
 }
 
 #[cfg(test)]
 mod generate_id {
+    use expect_test::{Expect, expect};
     use stellar_cli::config::network::passphrase::*;
 
-    fn test_contract_id((passphrase, contract_id): (&str, &str)) {
-        assert_eq!(
-            &super::verified_contract_id(passphrase).to_string(),
-            contract_id,
-            "{passphrase}"
-        );
+    /// Run with `UPDATE_EXPECT=1 cargo test` to regenerate the expected contract
+    /// IDs in-place after bumping the registry version or src/registry/.salt
+    fn check(passphrase: &str, expected: &Expect) {
+        expected.assert_eq(&super::verified_contract_id(passphrase).to_string());
     }
+
     #[test]
     fn futurenet() {
-        test_contract_id((
+        check(
             FUTURENET,
-            "CDMAKNALA4EKEA52CP645Y6H5NUM5AZPOPBM5RHOG2SRNHUOAPFHK6P4",
-        ));
+            &expect!["CC6YGVN57L5XC4HDZ7AIUJSURGWGC2EEQDKC6NK4DZ6LUHTZY5WXOTLX"],
+        );
     }
 
     #[test]
     fn testnet() {
-        test_contract_id((
+        check(
             TESTNET,
-            "CCA256DWBJJEEYXAWQHP5N4ZAJ2NW4P5T52LZCGC766Q5XHFVNQBMFZV",
-        ));
+            &expect!["CAAXJETKPYAATU4HVVQUTE2FFBULNFGZNEOC3MS635U5K3GZLAY2HI4M"],
+        );
     }
 
     #[test]
     fn mainnet() {
-        test_contract_id((
+        check(
             MAINNET,
-            "CAYVNQYGQ7IVZBBKMZ46UNRUQIFGBVHVZFCG47CYCMA2SAODDVDVCWMS",
-        ));
+            &expect!["CDU4M3LDIOUJJ5F3YXKJ4EJEP5VPRPG6N2LJ5HOQIMN7MNGL3NS3EGUY"],
+        );
     }
 
     #[test]
     fn local() {
-        test_contract_id((
+        check(
             LOCAL,
-            "CB7GPZFAAJQJYJD63P7HUAVABBSGLRWJB2C35RKR5TQ33AMRSS2XFL3C",
-        ));
+            &expect!["CA55VGAFPIZHOY2X26KANRJYFBWPEXGNLIEHR7Q5TR2576HKHOFPLBTX"],
+        );
     }
 }

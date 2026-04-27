@@ -29,3 +29,6 @@ sha2 = { workspace = true }
 
 dotenvy = "0.15.7"
 # soroban-rpc = "=20.3.3"
+
+[dev-dependencies]
+expect-test = "1.5"
