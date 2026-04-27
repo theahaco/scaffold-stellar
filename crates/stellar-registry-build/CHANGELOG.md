@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-build-v0.0.7...stellar-registry-build-v0.0.8) - 2026-04-27
+
+### Added
+
+- *(registry)* update to new contract id for registry ([#478](https://github.com/theahaco/scaffold-stellar/pull/478))
+
 ## [0.0.7](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-build-v0.0.6...stellar-registry-build-v0.0.7) - 2026-03-19
 
 ### Other

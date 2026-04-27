@@ -5151,7 +5151,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry-build"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "dotenvy",
  "ed25519-dalek",
@@ -5170,7 +5170,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry-cli"
-version = "0.0.20"
+version = "0.0.21"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -5223,7 +5223,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.23"
+version = "0.0.24"
 dependencies = [
  "assert_cmd",
  "assert_fs",

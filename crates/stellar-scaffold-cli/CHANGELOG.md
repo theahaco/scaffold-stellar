@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.24](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.23...stellar-scaffold-cli-v0.0.24) - 2026-04-27
+
+### Fixed
+
+- align deps and struct shapes for stellar-cli 26.0.0 ([#486](https://github.com/theahaco/scaffold-stellar/pull/486))
+- versions and missing changelog ([#477](https://github.com/theahaco/scaffold-stellar/pull/477))
+
+### Other
+
+- make stellar scaffold package manager agnostic ([#345](https://github.com/theahaco/scaffold-stellar/pull/345))
+
 ## [0.0.23](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.22...stellar-scaffold-cli-v0.0.23) - 2026-04-16
 
 ### Other
