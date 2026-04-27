@@ -109,11 +109,11 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - uses: stellar/stellar-cli@v26.0.0
       - name: Download nextest archive
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: nextest-archive
       - name: Download runtime artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: runtime-artifacts
       - name: Extract runtime artifacts
