@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.20...stellar-registry-cli-v0.0.21) - 2026-04-27
+
+### Added
+
+- deploy from external subregistries ([#484](https://github.com/theahaco/scaffold-stellar/pull/484))
+
+### Fixed
+
+- align deps and struct shapes for stellar-cli 26.0.0 ([#486](https://github.com/theahaco/scaffold-stellar/pull/486))
+
 ## [0.0.20](https://github.com/theahaco/scaffold-stellar/compare/stellar-registry-cli-v0.0.19...stellar-registry-cli-v0.0.20) - 2026-04-16
 
 ### Other

@@ -5,7 +5,7 @@ homepage = "https://github.com/theahaco/scaffold-stellar"
 authors = ["Aha Labs <hello@theaha.co>"]
 license = "Apache-2.0"
 readme = "README.md"
-version = "0.0.20"
+version = "0.0.21"
 edition = "2024"
 autobins = false
 repository = "https://github.com/theahaco/scaffold-stellar/tree/main/crates/stellar-registry-cli"
@@ -32,7 +32,7 @@ clap = { workspace = true, features = [
     "string",
 ] }
 stellar-cli = { workspace = true, default-features = false, features = [] }
-stellar-registry-build = { path = "../stellar-registry-build", version = "0.0.7" }
+stellar-registry-build = { path = "../stellar-registry-build", version = "0.0.8" }
 
 
 soroban-spec-tools = { workspace = true }
