@@ -30,6 +30,8 @@ run() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+## build so that we use the latest registry
+cargo build --package stellar-registry-cli
 PATH=$SCRIPT_DIR/../../target/debug:$PATH
 
 ROOT_REGISTRY=$(stellar registry fetch-contract-id registry)
