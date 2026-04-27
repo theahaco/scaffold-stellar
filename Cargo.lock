@@ -4588,7 +4588,7 @@ dependencies = [
  "soroban-spec-tools",
  "soroban-spec-typescript",
  "stellar-asset-spec",
- "stellar-rpc-client 26.0.0-rc.1",
+ "stellar-rpc-client",
  "stellar-strkey 0.0.15",
  "stellar-xdr 26.0.0",
  "strsim",
@@ -5145,8 +5145,8 @@ dependencies = [
  "soroban-cli",
  "soroban-spec-tools",
  "stellar-build",
- "stellar-rpc-client 25.1.0",
- "stellar-strkey 0.0.16",
+ "stellar-rpc-client",
+ "stellar-strkey 0.0.15",
  "thiserror 2.0.18",
  "tokio",
 ]
@@ -5172,35 +5172,10 @@ dependencies = [
  "soroban-spec-tools",
  "stellar-build",
  "stellar-registry-build",
- "stellar-rpc-client 25.1.0",
+ "stellar-rpc-client",
  "stellar-scaffold-test",
- "stellar-strkey 0.0.16",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
-name = "stellar-rpc-client"
-version = "25.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a72922387b5c3d48f9978795f1c6a81f3b48467951e3073cdd7a93824ba659f"
-dependencies = [
- "clap",
- "hex",
- "http 1.4.0",
- "itertools 0.10.5",
- "jsonrpsee-core",
- "jsonrpsee-http-client",
- "serde",
- "serde-aux",
- "serde_json",
- "serde_with",
- "sha2 0.10.9",
  "stellar-strkey 0.0.15",
- "stellar-xdr 25.0.0",
- "termcolor",
- "termcolor_output",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
 ]
 
@@ -5263,10 +5238,10 @@ dependencies = [
  "soroban-cli",
  "soroban-spec-tools",
  "stellar-build",
- "stellar-rpc-client 25.1.0",
+ "stellar-rpc-client",
  "stellar-scaffold-ext-types",
  "stellar-scaffold-test",
- "stellar-strkey 0.0.16",
+ "stellar-strkey 0.0.15",
  "stellar-xdr 26.0.0",
  "tar",
  "tempfile",
@@ -5324,7 +5299,7 @@ dependencies = [
  "reflink-copy",
  "soroban-cli",
  "soroban-sdk 25.3.1",
- "stellar-strkey 0.0.16",
+ "stellar-strkey 0.0.15",
  "tokio",
  "tokio-stream",
  "uuid",

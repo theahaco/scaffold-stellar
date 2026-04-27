@@ -813,11 +813,11 @@ export default new Client.Client({{
         let cmd = cli::contract::upload::Cmd {
             config: self.config(),
             resources: stellar_cli::resources::Args::default(),
-            wasm: stellar_cli::wasm::Args {
-                wasm: wasm_path.to_path_buf(),
-            },
+            wasm: Some(wasm_path.to_path_buf()),
             ignore_checks: false,
             build_only: false,
+            package: None,
+            build_args: cli::contract::build::BuildArgs::default(),
         };
         let hash = cmd
             .execute(
