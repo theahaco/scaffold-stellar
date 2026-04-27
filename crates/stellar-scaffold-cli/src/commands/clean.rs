@@ -163,7 +163,7 @@ impl Cmd {
                         }
 
                         let result = std::process::Command::new("stellar")
-                            .args(["keys", "rm", &account.name])
+                            .args(["keys", "rm", "--force", &account.name])
                             .output();
 
                         match result {
