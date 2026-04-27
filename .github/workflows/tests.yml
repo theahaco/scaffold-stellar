@@ -52,13 +52,13 @@ jobs:
             crates/stellar-scaffold-test/fixtures/soroban-init-boilerplate/target/stellar/local/ \
             | zstd -1 -o runtime-artifacts.tar.zst
       - name: Upload nextest archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: nextest-archive
           path: nextest-archive.tar.zst
           retention-days: 1
       - name: Upload runtime artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: runtime-artifacts
           path: runtime-artifacts.tar.zst
