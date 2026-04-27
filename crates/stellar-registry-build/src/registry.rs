@@ -89,7 +89,7 @@ mod generate_id {
     use stellar_cli::config::network::passphrase::*;
 
     /// Run with `UPDATE_EXPECT=1 cargo test` to regenerate the expected contract
-    /// IDs in-place after bumping the registry version.
+    /// IDs in-place after bumping the registry version or src/registry/.salt
     fn check(passphrase: &str, expected: &Expect) {
         expected.assert_eq(&super::verified_contract_id(passphrase).to_string());
     }

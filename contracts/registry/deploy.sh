@@ -52,7 +52,7 @@ else
 fi
 
 
-VERIFED=$(shasum -a 256 < "$SCRIPT_DIR/.salt" | awk '{print $1}')
+SALT=$(shasum -a 256 < "$SCRIPT_DIR/.salt" | awk '{print $1}')
 
 ADMIN=theahaco
 ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
@@ -60,13 +60,10 @@ ADDRESS=GAMPJROHOAW662FINQ4XQOY2ULX5IEGYXCI4SMZYE75EHQBR6PSTJG3M
 run stellar contract deploy --alias registry \
                         --wasm "$WASM_PATH" \
                         --source "$ADMIN" \
-                        --salt "$VERIFED" \
+                        --salt "$SALT" \
                         -- \
                         --admin "$ADMIN" \
                         --manager "\"$ADDRESS\""
-
-echo "sleeping so dynamic table can populate on goldsky"
-sleep 60
 
 run just registry publish  --wasm "$WASM_PATH" \
                          --author "$ADMIN" \
