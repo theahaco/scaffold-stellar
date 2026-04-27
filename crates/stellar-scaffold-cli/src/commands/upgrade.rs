@@ -351,9 +351,9 @@ impl Cmd {
                 all_features: false,
                 no_default_features: false,
                 out_dir: None,
+                locked: false,
                 print_commands_only: false,
-                meta: Vec::new(),
-                optimize: false,
+                build_args: stellar_cli::commands::contract::build::BuildArgs::default(),
             },
             list: false,
             build_clients: false, // Don't build clients, just contracts

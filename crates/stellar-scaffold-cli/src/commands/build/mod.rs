@@ -300,7 +300,7 @@ impl Command {
                 meta_map.insert("home_domain".to_string(), homepage);
             }
         }
-        cmd.meta.extend(meta_map);
+        cmd.build_args.meta.extend(meta_map);
         Ok(cmd)
     }
 

@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use clap::{CommandFactory, FromArgMatches, Parser, command};
+use clap::{CommandFactory, FromArgMatches, Parser};
 use regex::Regex;
 use stellar_cli;
 

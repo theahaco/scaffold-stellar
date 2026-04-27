@@ -609,7 +609,7 @@ export default new Client.Client({{
         for (name, contract) in contracts.iter().filter(|(_, settings)| settings.client) {
             if let Some(id) = &contract.id {
                 if stellar_strkey::Contract::from_string(id).is_err() {
-                    return Err(Error::InvalidContractID(id.to_string()));
+                    return Err(Error::InvalidContractID(id.clone()));
                 }
                 self.generate_contract_bindings(name, id, None, true)
                     .await?;
@@ -813,11 +813,11 @@ export default new Client.Client({{
         let cmd = cli::contract::upload::Cmd {
             config: self.config(),
             resources: stellar_cli::resources::Args::default(),
-            wasm: stellar_cli::wasm::Args {
-                wasm: wasm_path.to_path_buf(),
-            },
+            wasm: Some(wasm_path.to_path_buf()),
             ignore_checks: false,
             build_only: false,
+            package: None,
+            build_args: cli::contract::build::BuildArgs::default(),
         };
         let hash = cmd
             .execute(
@@ -842,7 +842,7 @@ export default new Client.Client({{
 
         let resolved_line = Self::resolve_line(&re, line, shell, flag)?;
         let parts = split(&resolved_line)
-            .ok_or_else(|| Error::ScriptParseFailure(resolved_line.to_string()))?;
+            .ok_or_else(|| Error::ScriptParseFailure(resolved_line.clone()))?;
 
         let (source_account, command_parts): (Vec<_>, Vec<_>) = parts
             .into_iter()
