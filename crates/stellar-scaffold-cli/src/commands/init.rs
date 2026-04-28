@@ -16,6 +16,10 @@ const TUTORIAL_BRANCH: &str = "tutorial";
 const PNPM_WORKSPACE: &str = r#"packages:
   - "packages/*"
 "#;
+const DENO_CONFIG: &str = r#"{
+  "nodeModulesDir": "auto"
+}
+"#;
 
 /// A command to initialize a new project
 #[derive(Parser, Debug, Clone)]
@@ -141,14 +145,24 @@ impl Cmd {
             return Ok(());
         };
 
-        if pkg_manager.kind == PackageManager::Pnpm {
-            if let Err(e) = write(
-                absolute_project_path.join("pnpm-workspace.yaml"),
-                PNPM_WORKSPACE,
-            ) {
-                printer.warnln(format!("Failed to create pnpm-workspace.yaml: {e}"));
+        match pkg_manager.kind {
+            PackageManager::Pnpm => {
+                if let Err(e) = write(
+                    absolute_project_path.join("pnpm-workspace.yaml"),
+                    PNPM_WORKSPACE,
+                ) {
+                    printer.warnln(format!("Failed to create pnpm-workspace.yaml: {e}"));
+                }
             }
-        } else if pkg_manager.kind != PackageManager::Npm
+            PackageManager::Deno => {
+                if let Err(e) = write(absolute_project_path.join("deno.json"), DENO_CONFIG) {
+                    printer.warnln(format!("Failed to create deno.json: {e}"));
+                }
+            }
+            _ => {}
+        }
+
+        if pkg_manager.kind != PackageManager::Npm
             && let Err(e) = remove_file(absolute_project_path.join("package-lock.json"))
         {
             printer.warnln(format!("Failed to remove package-lock.json: {e}"));

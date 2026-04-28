@@ -218,8 +218,7 @@ pub enum PackageManager {
 }
 
 impl PackageManager {
-    // Deno omitted — uses `deno task` not `deno run`, requires separate implementation
-    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun];
+    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun, Self::Deno];
 
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -261,7 +260,7 @@ impl PackageManager {
             Self::Npm => cmd.args(["install", "--loglevel=error"]),
             Self::Pnpm => cmd.args(["install", "--reporter=silent"]),
             Self::Yarn | Self::Bun => cmd.args(["install", "--silent"]),
-            Self::Deno => cmd.args(["install"]),
+            Self::Deno => cmd.args(["install", "--quiet"]),
         };
         cmd.output()
     }
@@ -275,21 +274,23 @@ impl PackageManager {
             Self::Pnpm => cmd.args(["install", "--ignore-workspace", "--reporter=silent"]),
             // yarn classic: --ignore-workspace-root-check skips workspace root enforcement
             Self::Yarn => cmd.args(["install", "--ignore-workspace-root-check", "--silent"]),
-            // bun only treats dirs as workspace members if listed in package.json workspaces field,
-            // so plain install in a generated temp dir is already workspace-isolated
+            // bun and deno workspaces are opt-in via their config files, so temp dirs are
+            // already isolated without extra flags
             Self::Bun => cmd.args(["install", "--silent"]),
-            Self::Deno => cmd.args(["install"]),
+            Self::Deno => cmd.args(["install", "--quiet"]),
         };
         cmd.output()
     }
 
     pub(crate) fn build(&self, dir: &Path) -> io::Result<Output> {
         let mut cmd = Command::new(self.command());
-        cmd.current_dir(dir).args(["run", "build"]);
+        cmd.current_dir(dir);
         match self {
-            Self::Npm => cmd.arg("--loglevel=error"),
-            Self::Pnpm => cmd.arg("--reporter=silent"),
-            Self::Yarn | Self::Bun | Self::Deno => &mut cmd,
+            Self::Npm => cmd.args(["run", "build", "--loglevel=error"]),
+            Self::Pnpm => cmd.args(["run", "build", "--reporter=silent"]),
+            Self::Yarn | Self::Bun => cmd.args(["run", "build"]),
+            // deno uses `task` not `run` to execute package.json scripts
+            Self::Deno => cmd.args(["task", "build"]),
         };
         cmd.output()
     }
