@@ -218,7 +218,8 @@ pub enum PackageManager {
 }
 
 impl PackageManager {
-    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun, Self::Deno];
+    // Deno omitted — uses `deno task` not `deno run`, requires separate implementation
+    pub const LIST: &'static [Self] = &[Self::Npm, Self::Pnpm, Self::Yarn, Self::Bun];
 
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -235,8 +236,8 @@ impl PackageManager {
             Self::Npm => Self::os_specific_command("npm"),
             Self::Pnpm => Self::os_specific_command("pnpm"),
             Self::Yarn => Self::os_specific_command("yarn"),
-            Self::Bun => "bun",
-            Self::Deno => "deno",
+            // bun and deno ship as native binaries on all platforms, no .cmd wrapper needed
+            Self::Bun | Self::Deno => self.as_str(),
         }
     }
 
@@ -259,8 +260,8 @@ impl PackageManager {
         match self {
             Self::Npm => cmd.args(["install", "--loglevel=error"]),
             Self::Pnpm => cmd.args(["install", "--reporter=silent"]),
-            Self::Yarn => cmd.args(["install", "--silent"]),
-            _ => cmd.args(["install"]),
+            Self::Yarn | Self::Bun => cmd.args(["install", "--silent"]),
+            Self::Deno => cmd.args(["install"]),
         };
         cmd.output()
     }
@@ -274,7 +275,10 @@ impl PackageManager {
             Self::Pnpm => cmd.args(["install", "--ignore-workspace", "--reporter=silent"]),
             // yarn classic: --ignore-workspace-root-check skips workspace root enforcement
             Self::Yarn => cmd.args(["install", "--ignore-workspace-root-check", "--silent"]),
-            _ => cmd.args(["install"]),
+            // bun only treats dirs as workspace members if listed in package.json workspaces field,
+            // so plain install in a generated temp dir is already workspace-isolated
+            Self::Bun => cmd.args(["install", "--silent"]),
+            Self::Deno => cmd.args(["install"]),
         };
         cmd.output()
     }
@@ -285,7 +289,7 @@ impl PackageManager {
         match self {
             Self::Npm => cmd.arg("--loglevel=error"),
             Self::Pnpm => cmd.arg("--reporter=silent"),
-            _ => &mut cmd,
+            Self::Yarn | Self::Bun | Self::Deno => &mut cmd,
         };
         cmd.output()
     }
@@ -393,7 +397,6 @@ mod tests {
         #[case(PackageManager::Pnpm, Some("9.6.0".to_string()))]
         #[case(PackageManager::Yarn, None)]
         #[case(PackageManager::Bun, Some("1.1.0".to_string()))]
-        #[case(PackageManager::Deno, Some("2.0.0".to_string()))]
         fn package_json_round_trip(#[case] pm: PackageManager, #[case] version: Option<String>) {
             let dir = tempfile::tempdir().unwrap();
             let pkg_path = dir.path().join("package.json");
