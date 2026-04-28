@@ -363,4 +363,51 @@ mod tests {
         assert!(result.contains(r#""scripts""#));
         assert!(result.contains(r#""packageManager": "bun@1.0.0""#));
     }
+
+    mod parameterized {
+        use super::*;
+        use rstest::rstest;
+
+        #[rstest]
+        #[case(PackageManager::Npm, "npm")]
+        #[case(PackageManager::Pnpm, "pnpm")]
+        #[case(PackageManager::Yarn, "yarn")]
+        #[case(PackageManager::Bun, "bun")]
+        #[case(PackageManager::Deno, "deno")]
+        fn as_str_matches_name(#[case] pm: PackageManager, #[case] expected: &str) {
+            assert_eq!(pm.as_str(), expected);
+        }
+
+        #[rstest]
+        #[case(PackageManager::Npm)]
+        #[case(PackageManager::Pnpm)]
+        #[case(PackageManager::Yarn)]
+        #[case(PackageManager::Bun)]
+        #[case(PackageManager::Deno)]
+        fn command_contains_name(#[case] pm: PackageManager) {
+            assert!(pm.command().contains(pm.as_str()));
+        }
+
+        #[rstest]
+        #[case(PackageManager::Npm, Some("11.0.0".to_string()))]
+        #[case(PackageManager::Pnpm, Some("9.6.0".to_string()))]
+        #[case(PackageManager::Yarn, None)]
+        #[case(PackageManager::Bun, Some("1.1.0".to_string()))]
+        #[case(PackageManager::Deno, Some("2.0.0".to_string()))]
+        fn package_json_round_trip(#[case] pm: PackageManager, #[case] version: Option<String>) {
+            let dir = tempfile::tempdir().unwrap();
+            let pkg_path = dir.path().join("package.json");
+            std::fs::write(&pkg_path, "{\n  \"name\": \"test-app\"\n}").unwrap();
+
+            let spec = PackageManagerSpec { kind: pm, version };
+            spec.write_to_package_json(dir.path()).unwrap();
+
+            let contents = std::fs::read_to_string(&pkg_path).unwrap();
+            assert!(serde_json::from_str::<serde_json::Value>(&contents).is_ok());
+
+            let recovered = PackageManagerSpec::from_package_json(dir.path()).unwrap();
+            assert_eq!(recovered.kind, spec.kind);
+            assert_eq!(recovered.version, spec.version);
+        }
+    }
 }
