@@ -77,10 +77,7 @@ pub fn contract_id(network_passphrase: &str, salt: &str) -> stellar_strkey::Cont
 }
 
 pub fn verified_contract_id(network_passphrase: &str) -> stellar_strkey::Contract {
-    contract_id(
-        network_passphrase,
-        include_str!("../../../contracts/registry/.salt").trim(),
-    )
+    contract_id(network_passphrase, include_str!("../.salt").trim())
 }
 
 #[cfg(test)]
