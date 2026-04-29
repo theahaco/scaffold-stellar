@@ -1,7 +1,7 @@
 use clap::{Args, Parser};
 use degit::degit;
-use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
+use dialoguer::{Confirm, Select};
 use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file, write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,12 +9,17 @@ use std::{env, io};
 
 use super::{build, generate};
 use crate::commands::{PackageManager, PackageManagerSpec};
+use crate::extension::{ExtensionListStatus, list as list_extensions};
 use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
 const TUTORIAL_BRANCH: &str = "tutorial";
 const PNPM_WORKSPACE: &str = r#"packages:
   - "packages/*"
+"#;
+const DENO_CONFIG: &str = r#"{
+  "nodeModulesDir": "auto"
+}
 "#;
 
 /// A command to initialize a new project
@@ -25,6 +30,14 @@ pub struct Cmd {
 
     #[command(flatten)]
     vers: Vers,
+
+    /// Specify package manager, omitting will prompt interactively
+    #[arg(short = 'p', long)]
+    pub package_manager: Option<PackageManager>,
+
+    /// Accept all defaults and skip interactive prompts
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -108,6 +121,9 @@ impl Cmd {
             )));
         }
 
+        // Check extensions listed in environments.toml and offer to install any that are missing
+        ensure_extensions_installed(&absolute_project_path, &printer, self.yes);
+
         // Copy .env.example to .env
         let example_path = absolute_project_path.join(".env.example");
         let env_path = absolute_project_path.join(".env");
@@ -123,19 +139,38 @@ impl Cmd {
             }
         }
 
-        let Some(pkg_manager) = select_pkg_manager(&printer) else {
+        let Some(pkg_manager) = (match &self.package_manager {
+            Some(kind) => {
+                let version = pkg_manager_version(kind.command());
+                Some(PackageManagerSpec {
+                    kind: kind.clone(),
+                    version,
+                })
+            }
+            None => select_pkg_manager(&printer, self.yes),
+        }) else {
             printer.warnln("Package manager selection cancelled. Run the command again to retry.");
             return Ok(());
         };
 
-        if pkg_manager.kind == PackageManager::Pnpm {
-            if let Err(e) = write(
-                absolute_project_path.join("pnpm-workspace.yaml"),
-                PNPM_WORKSPACE,
-            ) {
-                printer.warnln(format!("Failed to create pnpm-workspace.yaml: {e}"));
+        match pkg_manager.kind {
+            PackageManager::Pnpm => {
+                if let Err(e) = write(
+                    absolute_project_path.join("pnpm-workspace.yaml"),
+                    PNPM_WORKSPACE,
+                ) {
+                    printer.warnln(format!("Failed to create pnpm-workspace.yaml: {e}"));
+                }
             }
-        } else if pkg_manager.kind != PackageManager::Npm
+            PackageManager::Deno => {
+                if let Err(e) = write(absolute_project_path.join("deno.json"), DENO_CONFIG) {
+                    printer.warnln(format!("Failed to create deno.json: {e}"));
+                }
+            }
+            _ => {}
+        }
+
+        if pkg_manager.kind != PackageManager::Npm
             && let Err(e) = remove_file(absolute_project_path.join("package-lock.json"))
         {
             printer.warnln(format!("Failed to remove package-lock.json: {e}"));
@@ -152,20 +187,17 @@ impl Cmd {
         let pm_command = pkg_manager.kind.command();
         let install_succeeded = run_install(pm_command, &absolute_project_path, &printer);
 
-        // Build contracts and create contract clients
-        printer.infoln("Building contracts and generating client code...");
-        // Use clap to parse build command with defaults, then configure programmatically
-        let mut build_command = build::Command::parse_from(["build", "--build-clients"]);
+        // Compile contracts only — client generation requires a live network and is handled by `start`
+        printer.infoln("Compiling contracts...");
+        let mut build_command = build::Command::parse_from(["build"]);
         build_command.build.manifest_path = Some(absolute_project_path.join("Cargo.toml"));
-        build_command.build_clients_args.env = Some(build::clients::ScaffoldEnv::Development);
-        build_command.build_clients_args.workspace_root = Some(absolute_project_path.clone());
         let mut build_args = global_args.clone();
         if !(global_args.verbose && global_args.very_verbose) {
             build_args.quiet = true;
         }
 
         if let Err(e) = build_command.run(&build_args).await {
-            printer.warnln(format!("Failed to build contract clients: {e}"));
+            printer.warnln(format!("Failed to compile contracts: {e}"));
         }
 
         // If git is installed, run init and make initial commit
@@ -186,7 +218,7 @@ impl Cmd {
             printer.blankln(format!("\t{pm_command} install"));
         }
         printer.blankln(format!("\t{pm_command} start"));
-        printer.blankln(" Happy hacking! 🚀");
+        printer.blankln("\n Happy hacking! 🚀");
         Ok(())
     }
 
@@ -271,7 +303,7 @@ fn detect_pkg_managers() -> Vec<PackageManagerSpec> {
 /// Interactively pick a package manager. Shows only installed managers with their
 /// detected versions. Defaults to npm if available, otherwise the first detected.
 /// Returns `None` if the user cancels (Ctrl+C) or no managers are found.
-fn select_pkg_manager(printer: &Print) -> Option<PackageManagerSpec> {
+fn select_pkg_manager(printer: &Print, yes: bool) -> Option<PackageManagerSpec> {
     let detected = detect_pkg_managers();
 
     if detected.is_empty() {
@@ -283,18 +315,18 @@ fn select_pkg_manager(printer: &Print) -> Option<PackageManagerSpec> {
         });
     }
 
-    if detected.len() == 1 {
-        let spec = detected.into_iter().next().unwrap();
-        let label = format_pm_label(&spec);
-        printer.infoln(format!("Using {label} (only package manager detected)"));
-        return Some(spec);
-    }
-
     // Default selection: prefer npm, otherwise use the first detected manager
     let default_index = detected
         .iter()
         .position(|s| s.kind == PackageManager::Npm)
         .unwrap_or(0);
+
+    if yes || detected.len() == 1 {
+        let spec = detected.into_iter().nth(default_index).unwrap();
+        let label = format_pm_label(&spec);
+        printer.infoln(format!("Using {label}"));
+        return Some(spec);
+    }
 
     let labels: Vec<String> = detected.iter().map(format_pm_label).collect();
 
@@ -353,6 +385,116 @@ fn run_install(pm_command: &str, path: &Path, printer: &Print) -> bool {
         Err(e) => {
             printer.warnln(format!("Failed to run {pm_command} install: {e}"));
             false
+        }
+    }
+}
+
+/// Official extensions and their install commands.
+const KNOWN_EXTENSIONS: &[(&str, &str)] =
+    &[("reporter", "cargo install stellar-scaffold-reporter")];
+
+/// Reads `environments.toml` from the cloned project, collects all unique
+/// extensions across every environment, checks which binaries are missing from
+/// PATH, and — if any are absent — offers a single prompt to install known ones
+/// and warns about any others. Non-fatal: warnings are printed on failure.
+fn ensure_extensions_installed(project_path: &Path, printer: &Print, yes: bool) {
+    let env_toml_path = project_path.join("environments.toml");
+    let Ok(toml_str) = std::fs::read_to_string(&env_toml_path) else {
+        return; // no environments.toml, nothing to check
+    };
+
+    let Ok(mut envs) = toml::from_str::<
+        std::collections::HashMap<String, build::env_toml::Environment>,
+    >(&toml_str) else {
+        printer.warnln("Could not parse environments.toml to check extensions");
+        return;
+    };
+
+    // Collect unique extension entries across all environments
+    let mut seen = std::collections::HashSet::new();
+    let unique_entries: Vec<_> = envs
+        .values_mut()
+        .flat_map(|env| env.extensions.drain(..))
+        .filter(|e| seen.insert(e.name.clone()))
+        .collect();
+
+    if unique_entries.is_empty() {
+        return;
+    }
+
+    let missing: Vec<String> = list_extensions(&unique_entries)
+        .into_iter()
+        .filter(|e| matches!(e.status, ExtensionListStatus::MissingBinary))
+        .map(|e| e.name)
+        .collect();
+
+    if missing.is_empty() {
+        return;
+    }
+
+    let (known, unknown): (Vec<_>, Vec<_>) = missing
+        .iter()
+        .partition(|name| KNOWN_EXTENSIONS.iter().any(|(k, _)| k == name));
+
+    if !unknown.is_empty() {
+        printer.warnln(format!(
+            "Missing 3rd party extensions: {}",
+            unknown
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        printer.warnln("Install manually and ensure 'stellar-scaffold-<name>' is on your PATH.");
+    }
+
+    if known.is_empty() {
+        return;
+    }
+
+    printer.infoln(format!(
+        "Missing official extensions: {}",
+        known
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    ));
+
+    let install = yes
+        || Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Install missing extensions?")
+            .default(true)
+            .interact()
+            .unwrap_or(false);
+
+    if !install {
+        printer.warnln("Skipped extension installation. Some features may not work until extensions are installed.");
+        return;
+    }
+
+    for name in &known {
+        let install_cmd = KNOWN_EXTENSIONS
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, cmd)| *cmd)
+            .unwrap();
+
+        printer.infoln(format!("Running: {install_cmd}"));
+        let mut parts = install_cmd.split_whitespace();
+        let bin = parts.next().unwrap();
+        let args: Vec<_> = parts.collect();
+        match Command::new(bin).args(&args).output() {
+            Ok(output) if output.status.success() => {
+                printer.checkln(format!("'{name}' installed"));
+            }
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                printer.warnln(format!("Failed to install '{name}': {}", stderr.trim()));
+            }
+            Err(e) => {
+                printer.warnln(format!("Failed to run '{install_cmd}': {e}"));
+            }
         }
     }
 }

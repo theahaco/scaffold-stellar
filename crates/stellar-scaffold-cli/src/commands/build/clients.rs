@@ -421,7 +421,7 @@ export default new Client.Client({{
                     "--network-passphrase",
                     &network.network_passphrase,
                 ])?;
-                bindings_cmd.execute(self.global_args.quiet).await?;
+                bindings_cmd.execute(true).await?;
 
                 printer.infoln(format!(
                     "Running '{pm_label} install' in {temp_dir_display:?}"
