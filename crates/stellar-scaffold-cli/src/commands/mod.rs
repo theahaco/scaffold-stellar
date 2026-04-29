@@ -199,16 +199,17 @@ fn set_package_manager_field(json: &str, value: &str) -> Option<String> {
         let insert_pos = json.rfind('}')?;
         let before = &json[..insert_pos];
         let after = &json[insert_pos..];
-        let comma = if before.trim_end().ends_with(',') {
+        let before_trimmed = before.trim_end();
+        let comma = if before_trimmed.ends_with(',') {
             ""
         } else {
             ","
         };
-        Some(format!("{before}{comma}\n  {replacement}\n{after}"))
+        Some(format!("{before_trimmed}{comma}\n  {replacement}\n{after}"))
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, clap::ValueEnum)]
 pub enum PackageManager {
     Npm,
     Pnpm,
@@ -235,8 +236,8 @@ impl PackageManager {
             Self::Npm => Self::os_specific_command("npm"),
             Self::Pnpm => Self::os_specific_command("pnpm"),
             Self::Yarn => Self::os_specific_command("yarn"),
-            Self::Bun => "bun",
-            Self::Deno => "deno",
+            // bun and deno ship as native binaries on all platforms, no .cmd wrapper needed
+            Self::Bun | Self::Deno => self.as_str(),
         }
     }
 
@@ -259,8 +260,8 @@ impl PackageManager {
         match self {
             Self::Npm => cmd.args(["install", "--loglevel=error"]),
             Self::Pnpm => cmd.args(["install", "--reporter=silent"]),
-            Self::Yarn => cmd.args(["install", "--silent"]),
-            _ => cmd.args(["install"]),
+            Self::Yarn | Self::Bun => cmd.args(["install", "--silent"]),
+            Self::Deno => cmd.args(["install", "--quiet"]),
         };
         cmd.output()
     }
@@ -274,18 +275,23 @@ impl PackageManager {
             Self::Pnpm => cmd.args(["install", "--ignore-workspace", "--reporter=silent"]),
             // yarn classic: --ignore-workspace-root-check skips workspace root enforcement
             Self::Yarn => cmd.args(["install", "--ignore-workspace-root-check", "--silent"]),
-            _ => cmd.args(["install"]),
+            // bun and deno workspaces are opt-in via their config files, so temp dirs are
+            // already isolated without extra flags
+            Self::Bun => cmd.args(["install", "--silent"]),
+            Self::Deno => cmd.args(["install", "--quiet"]),
         };
         cmd.output()
     }
 
     pub(crate) fn build(&self, dir: &Path) -> io::Result<Output> {
         let mut cmd = Command::new(self.command());
-        cmd.current_dir(dir).args(["run", "build"]);
+        cmd.current_dir(dir);
         match self {
-            Self::Npm => cmd.arg("--loglevel=error"),
-            Self::Pnpm => cmd.arg("--reporter=silent"),
-            _ => &mut cmd,
+            Self::Npm => cmd.args(["run", "build", "--loglevel=error"]),
+            Self::Pnpm => cmd.args(["run", "build", "--reporter=silent"]),
+            Self::Yarn | Self::Bun => cmd.args(["run", "build"]),
+            // deno uses `task` not `run` to execute package.json scripts
+            Self::Deno => cmd.args(["task", "build"]),
         };
         cmd.output()
     }
@@ -344,6 +350,16 @@ mod tests {
         let result = set_package_manager_field(json, "npm@11.0.0").unwrap();
         assert!(result.contains(r#""packageManager": "npm@11.0.0""#));
         assert!(result.contains(r#""name": "foo""#));
+        assert!(serde_json::from_str::<serde_json::Value>(&result).is_ok());
+    }
+
+    #[test]
+    fn set_package_manager_field_inserts_produces_valid_json() {
+        // real-world multi-line package.json with trailing newline before closing brace
+        let json = "{\n  \"name\": \"my-app\",\n  \"version\": \"1.0.0\"\n}";
+        let result = set_package_manager_field(json, "pnpm@9.6.0").unwrap();
+        assert!(serde_json::from_str::<serde_json::Value>(&result).is_ok());
+        assert!(result.contains("\"packageManager\": \"pnpm@9.6.0\""));
     }
 
     #[test]
@@ -352,5 +368,51 @@ mod tests {
         let result = set_package_manager_field(json, "bun@1.0.0").unwrap();
         assert!(result.contains(r#""scripts""#));
         assert!(result.contains(r#""packageManager": "bun@1.0.0""#));
+    }
+
+    mod parameterized {
+        use super::*;
+        use rstest::rstest;
+
+        #[rstest]
+        #[case(PackageManager::Npm, "npm")]
+        #[case(PackageManager::Pnpm, "pnpm")]
+        #[case(PackageManager::Yarn, "yarn")]
+        #[case(PackageManager::Bun, "bun")]
+        #[case(PackageManager::Deno, "deno")]
+        fn as_str_matches_name(#[case] pm: PackageManager, #[case] expected: &str) {
+            assert_eq!(pm.as_str(), expected);
+        }
+
+        #[rstest]
+        #[case(PackageManager::Npm)]
+        #[case(PackageManager::Pnpm)]
+        #[case(PackageManager::Yarn)]
+        #[case(PackageManager::Bun)]
+        #[case(PackageManager::Deno)]
+        fn command_contains_name(#[case] pm: PackageManager) {
+            assert!(pm.command().contains(pm.as_str()));
+        }
+
+        #[rstest]
+        #[case(PackageManager::Npm, Some("11.0.0".to_string()))]
+        #[case(PackageManager::Pnpm, Some("9.6.0".to_string()))]
+        #[case(PackageManager::Yarn, None)]
+        #[case(PackageManager::Bun, Some("1.1.0".to_string()))]
+        fn package_json_round_trip(#[case] pm: PackageManager, #[case] version: Option<String>) {
+            let dir = tempfile::tempdir().unwrap();
+            let pkg_path = dir.path().join("package.json");
+            std::fs::write(&pkg_path, "{\n  \"name\": \"test-app\"\n}").unwrap();
+
+            let spec = PackageManagerSpec { kind: pm, version };
+            spec.write_to_package_json(dir.path()).unwrap();
+
+            let contents = std::fs::read_to_string(&pkg_path).unwrap();
+            assert!(serde_json::from_str::<serde_json::Value>(&contents).is_ok());
+
+            let recovered = PackageManagerSpec::from_package_json(dir.path()).unwrap();
+            assert_eq!(recovered.kind, spec.kind);
+            assert_eq!(recovered.version, spec.version);
+        }
     }
 }
