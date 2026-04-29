@@ -1,7 +1,7 @@
 use clap::{Args, Parser};
 use degit::degit;
-use dialoguer::Select;
 use dialoguer::theme::ColorfulTheme;
+use dialoguer::{Confirm, Select};
 use std::fs::{copy, metadata, read_dir, remove_dir_all, remove_file, write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,6 +9,7 @@ use std::{env, io};
 
 use super::{build, generate};
 use crate::commands::{PackageManager, PackageManagerSpec};
+use crate::extension::{ExtensionListStatus, list as list_extensions};
 use stellar_cli::{commands::global, print::Print};
 
 pub const FRONTEND_TEMPLATE: &str = "theahaco/scaffold-stellar-frontend";
@@ -115,6 +116,9 @@ impl Cmd {
                 absolute_project_path.display()
             )));
         }
+
+        // Check extensions listed in environments.toml and offer to install any that are missing
+        ensure_extensions_installed(&absolute_project_path, &printer);
 
         // Copy .env.example to .env
         let example_path = absolute_project_path.join(".env.example");
@@ -377,6 +381,115 @@ fn run_install(pm_command: &str, path: &Path, printer: &Print) -> bool {
         Err(e) => {
             printer.warnln(format!("Failed to run {pm_command} install: {e}"));
             false
+        }
+    }
+}
+
+/// Official extensions and their install commands.
+const KNOWN_EXTENSIONS: &[(&str, &str)] =
+    &[("reporter", "cargo install stellar-scaffold-reporter")];
+
+/// Reads `environments.toml` from the cloned project, collects all unique
+/// extensions across every environment, checks which binaries are missing from
+/// PATH, and — if any are absent — offers a single prompt to install known ones
+/// and warns about any others. Non-fatal: warnings are printed on failure.
+fn ensure_extensions_installed(project_path: &Path, printer: &Print) {
+    let env_toml_path = project_path.join("environments.toml");
+    let Ok(toml_str) = std::fs::read_to_string(&env_toml_path) else {
+        return; // no environments.toml, nothing to check
+    };
+
+    let Ok(mut envs) = toml::from_str::<
+        std::collections::HashMap<String, build::env_toml::Environment>,
+    >(&toml_str) else {
+        printer.warnln("Could not parse environments.toml to check extensions");
+        return;
+    };
+
+    // Collect unique extension entries across all environments
+    let mut seen = std::collections::HashSet::new();
+    let unique_entries: Vec<_> = envs
+        .values_mut()
+        .flat_map(|env| env.extensions.drain(..))
+        .filter(|e| seen.insert(e.name.clone()))
+        .collect();
+
+    if unique_entries.is_empty() {
+        return;
+    }
+
+    let missing: Vec<String> = list_extensions(&unique_entries)
+        .into_iter()
+        .filter(|e| matches!(e.status, ExtensionListStatus::MissingBinary))
+        .map(|e| e.name)
+        .collect();
+
+    if missing.is_empty() {
+        return;
+    }
+
+    let (known, unknown): (Vec<_>, Vec<_>) = missing
+        .iter()
+        .partition(|name| KNOWN_EXTENSIONS.iter().any(|(k, _)| k == name));
+
+    if !unknown.is_empty() {
+        printer.warnln(format!(
+            "Missing 3rd party extensions: {}",
+            unknown
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        printer.warnln("Install manually and ensure 'stellar-scaffold-<name>' is on your PATH.");
+    }
+
+    if known.is_empty() {
+        return;
+    }
+
+    printer.infoln(format!(
+        "Missing official extensions: {}",
+        known
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    ));
+
+    let install = Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Install missing extensions?")
+        .default(true)
+        .interact()
+        .unwrap_or(false);
+
+    if !install {
+        printer.warnln("Skipped extension installation. Some features may not work until extensions are installed.");
+        return;
+    }
+
+    for name in &known {
+        let install_cmd = KNOWN_EXTENSIONS
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, cmd)| *cmd)
+            .unwrap();
+
+        printer.infoln(format!("Running: {install_cmd}"));
+        let mut parts = install_cmd.split_whitespace();
+        let bin = parts.next().unwrap();
+        let args: Vec<_> = parts.collect();
+        match Command::new(bin).args(&args).output() {
+            Ok(output) if output.status.success() => {
+                printer.checkln(format!("'{name}' installed"));
+            }
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                printer.warnln(format!("Failed to install '{name}': {}", stderr.trim()));
+            }
+            Err(e) => {
+                printer.warnln(format!("Failed to run '{install_cmd}': {e}"));
+            }
         }
     }
 }
