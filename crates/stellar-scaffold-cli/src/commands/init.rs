@@ -34,6 +34,10 @@ pub struct Cmd {
     /// Specify package manager, omitting will prompt interactively
     #[arg(short = 'p', long)]
     pub package_manager: Option<PackageManager>,
+
+    /// Accept all defaults and skip interactive prompts
+    #[arg(short = 'y', long)]
+    pub yes: bool,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -118,7 +122,7 @@ impl Cmd {
         }
 
         // Check extensions listed in environments.toml and offer to install any that are missing
-        ensure_extensions_installed(&absolute_project_path, &printer);
+        ensure_extensions_installed(&absolute_project_path, &printer, self.yes);
 
         // Copy .env.example to .env
         let example_path = absolute_project_path.join(".env.example");
@@ -143,7 +147,7 @@ impl Cmd {
                     version,
                 })
             }
-            None => select_pkg_manager(&printer),
+            None => select_pkg_manager(&printer, self.yes),
         }) else {
             printer.warnln("Package manager selection cancelled. Run the command again to retry.");
             return Ok(());
@@ -299,7 +303,7 @@ fn detect_pkg_managers() -> Vec<PackageManagerSpec> {
 /// Interactively pick a package manager. Shows only installed managers with their
 /// detected versions. Defaults to npm if available, otherwise the first detected.
 /// Returns `None` if the user cancels (Ctrl+C) or no managers are found.
-fn select_pkg_manager(printer: &Print) -> Option<PackageManagerSpec> {
+fn select_pkg_manager(printer: &Print, yes: bool) -> Option<PackageManagerSpec> {
     let detected = detect_pkg_managers();
 
     if detected.is_empty() {
@@ -311,18 +315,18 @@ fn select_pkg_manager(printer: &Print) -> Option<PackageManagerSpec> {
         });
     }
 
-    if detected.len() == 1 {
-        let spec = detected.into_iter().next().unwrap();
-        let label = format_pm_label(&spec);
-        printer.infoln(format!("Using {label} (only package manager detected)"));
-        return Some(spec);
-    }
-
     // Default selection: prefer npm, otherwise use the first detected manager
     let default_index = detected
         .iter()
         .position(|s| s.kind == PackageManager::Npm)
         .unwrap_or(0);
+
+    if yes || detected.len() == 1 {
+        let spec = detected.into_iter().nth(default_index).unwrap();
+        let label = format_pm_label(&spec);
+        printer.infoln(format!("Using {label}"));
+        return Some(spec);
+    }
 
     let labels: Vec<String> = detected.iter().map(format_pm_label).collect();
 
@@ -393,7 +397,7 @@ const KNOWN_EXTENSIONS: &[(&str, &str)] =
 /// extensions across every environment, checks which binaries are missing from
 /// PATH, and — if any are absent — offers a single prompt to install known ones
 /// and warns about any others. Non-fatal: warnings are printed on failure.
-fn ensure_extensions_installed(project_path: &Path, printer: &Print) {
+fn ensure_extensions_installed(project_path: &Path, printer: &Print, yes: bool) {
     let env_toml_path = project_path.join("environments.toml");
     let Ok(toml_str) = std::fs::read_to_string(&env_toml_path) else {
         return; // no environments.toml, nothing to check
@@ -457,11 +461,12 @@ fn ensure_extensions_installed(project_path: &Path, printer: &Print) {
             .join(", ")
     ));
 
-    let install = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt("Install missing extensions?")
-        .default(true)
-        .interact()
-        .unwrap_or(false);
+    let install = yes
+        || Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Install missing extensions?")
+            .default(true)
+            .interact()
+            .unwrap_or(false);
 
     if !install {
         printer.warnln("Skipped extension installation. Some features may not work until extensions are installed.");
