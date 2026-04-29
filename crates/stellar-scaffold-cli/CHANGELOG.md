@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.25](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.24...stellar-scaffold-cli-v0.0.25) - 2026-04-29
+
+### Added
+
+- add version flag ([#492](https://github.com/theahaco/scaffold-stellar/pull/492))
+
+### Other
+
+- Feat/pkg manager improvements ([#491](https://github.com/theahaco/scaffold-stellar/pull/491))
+
 ## [0.0.24](https://github.com/theahaco/scaffold-stellar/compare/stellar-scaffold-cli-v0.0.23...stellar-scaffold-cli-v0.0.24) - 2026-04-27
 
 ### Fixed

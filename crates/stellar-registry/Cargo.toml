@@ -1,6 +1,6 @@
 [package]
 name = "stellar-registry"
-version = "0.0.10"
+version = "0.0.11"
 edition = "2024"
 description = "Stellar cross-contract calls, simplified"
 license = "Apache-2.0"
@@ -13,4 +13,4 @@ crate-type = ["rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stellar-scaffold-macro = { path = "../stellar-scaffold-macro", version = "0.8.14" }
+stellar-scaffold-macro = { path = "../stellar-scaffold-macro", version = "0.8.15" }
