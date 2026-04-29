@@ -27,6 +27,7 @@ const ABOUT: &str = "Build smart contracts with frontend support";
     name = "stellar-scaffold",
     about = ABOUT,
     disable_help_subcommand = true,
+    version = version::long()
 )]
 pub struct Root {
     #[clap(flatten)]
