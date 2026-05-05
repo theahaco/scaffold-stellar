@@ -82,7 +82,7 @@ uuid = { features = ["v4"], version = "1.23.1" }
 rstest = "0.26.1"
 stellar-scaffold-test = { path = "../stellar-scaffold-test" }
 tempfile = "3.27"
-mockito = "0.31"
+mockito = "1.7"
 
 [build-dependencies]
 crate-git-revision = "0.0.6"
