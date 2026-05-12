@@ -1,0 +1,34 @@
+# Per-kind quorum policy for the registry IssueOps pipeline.
+#
+# When a `registry-pilots` member comments `.quorum-check` on an in-review issue,
+# `registry-quorum-check.yml` reads this file and tallies pilot reactions against
+# the policy below. Mirrors the formula used by SCF's pg-atlas:
+#
+#     accepted iff ups >= (min_voters + 2 * downs)
+#
+# So for `min_voters: 3`: 3 ups beats 0 downs; 5 ups beats 1 down; 7 ups beats 2 downs.
+#
+# `require_unanimous: true` overrides the formula: any 👎 vote blocks acceptance,
+# regardless of 👍 count.
+#
+# Edits to this file go through normal PR review — keep the audit trail there.
+
+defaults:
+  team: registry-pilots          # GitHub team slug under the repo's org
+  min_voters: 3                  # minimum (ups + downs) before quorum can resolve
+  require_unanimous: false       # if true, any 👎 blocks acceptance
+
+# Per-kind overrides. The `kind` matches the `registry-intake:<kind>` label
+# applied by the issue form template.
+publish:
+  min_voters: 2
+
+register:
+  min_voters: 2
+
+deploy:
+  min_voters: 3
+
+admin:
+  min_voters: 3
+  require_unanimous: true        # high-sensitivity ops: any 👎 blocks

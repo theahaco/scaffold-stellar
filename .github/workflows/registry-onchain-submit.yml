@@ -1,0 +1,227 @@
+name: Registry On-Chain Submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: GitHub issue number that triggered this submit
+        required: true
+        type: string
+      kind:
+        description: Form kind (publish, register, deploy, admin)
+        required: true
+        type: choice
+        options: [publish, register, deploy, admin]
+      network:
+        description: Stellar network to submit on
+        required: true
+        type: choice
+        options: [testnet, mainnet]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      template: ${{ steps.t.outputs.template }}
+      issue_body: ${{ steps.fetch.outputs.body }}
+    steps:
+      - name: Verify issue is `registry-intake:accepted`
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ inputs.issue_number }}
+        run: |
+          set -euo pipefail
+          LABELS=$(gh issue view "$ISSUE" -R "${{ github.repository }}" --json labels --jq '[.labels[].name]')
+          echo "Labels on #$ISSUE: $LABELS"
+          if ! jq -e 'index("registry-intake:accepted")' <<<"$LABELS" >/dev/null; then
+            echo "::error::Issue #$ISSUE does not carry the \`registry-intake:accepted\` label. Aborting — only quorum-approved intakes can be submitted on-chain."
+            exit 1
+          fi
+          if ! jq -e --arg kind "registry-intake:${{ inputs.kind }}" 'index($kind)' <<<"$LABELS" >/dev/null; then
+            echo "::error::Issue #$ISSUE does not carry the \`registry-intake:${{ inputs.kind }}\` kind label. Dispatched kind does not match the issue's kind."
+            exit 1
+          fi
+
+      - name: Map kind → template
+        id: t
+        run: |
+          case "${{ inputs.kind }}" in
+            publish)  TEMPLATE=registry-publish.yml ;;
+            register) TEMPLATE=registry-register.yml ;;
+            deploy)   TEMPLATE=registry-deploy.yml ;;
+            admin)    TEMPLATE=registry-admin.yml ;;
+          esac
+          echo "template=$TEMPLATE" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch issue body
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ inputs.issue_number }}
+        run: |
+          set -euo pipefail
+          BODY=$(gh issue view "$ISSUE" -R "${{ github.repository }}" --json body --jq '.body')
+          # Encode as base64 to safely round-trip through GITHUB_OUTPUT.
+          B64=$(printf '%s' "$BODY" | base64 -w 0)
+          echo "body=$B64" >> "$GITHUB_OUTPUT"
+
+  submit:
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: registry-${{ inputs.network }}
+    env:
+      STELLAR_NETWORK_PASSPHRASE: ${{ secrets.STELLAR_NETWORK_PASSPHRASE }}
+      STELLAR_RPC_URL:           ${{ vars.STELLAR_RPC_URL }}
+      STELLAR_REGISTRY_CONTRACT_ID: ${{ vars.STELLAR_REGISTRY_CONTRACT_ID }}
+      STELLAR_SOURCE_SECRET:     ${{ secrets.STELLAR_SECRET_KEY }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Decode issue body
+        id: body
+        env:
+          B64: ${{ needs.preflight.outputs.issue_body }}
+        run: |
+          echo "$B64" | base64 -d > /tmp/issue_body.md
+          ls -la /tmp/issue_body.md
+
+      - name: Parse issue body
+        id: parse
+        uses: issue-ops/parser@v5
+        with:
+          body-file: /tmp/issue_body.md
+          issue-form-template: ${{ needs.preflight.outputs.template }}
+
+      - name: Re-validate (defense in depth)
+        id: validate
+        uses: issue-ops/validator@v4
+        with:
+          issue-form-template: ${{ needs.preflight.outputs.template }}
+          parsed-issue-body: ${{ steps.parse.outputs.json }}
+          add-comment: false
+
+      - name: Fail if revalidation regressed
+        if: steps.validate.outputs.result != 'success'
+        run: |
+          echo "::error::Issue body re-validation failed at submit time. The issue may have been edited between approval and dispatch."
+          exit 1
+
+      - name: Build CLI args
+        id: args
+        env:
+          KIND:        ${{ inputs.kind }}
+          PARSED_JSON: ${{ steps.parse.outputs.json }}
+        run: python3 .github/scripts/parse_intake_to_args.py
+
+      - name: Install Stellar CLI
+        uses: stellar/stellar-cli@v26.0.0
+        with:
+          version: "26.0.0"
+
+      - name: Configure Stellar CLI signer
+        run: |
+          set -euo pipefail
+          export XDG_CONFIG_HOME="${RUNNER_TEMP}/xdg-config"
+          mkdir -p "$XDG_CONFIG_HOME"
+          echo "XDG_CONFIG_HOME=$XDG_CONFIG_HOME" >> "$GITHUB_ENV"
+          stellar network add \
+            --rpc-url "$STELLAR_RPC_URL" \
+            --network-passphrase "$STELLAR_NETWORK_PASSPHRASE" \
+            "${{ inputs.network }}"
+          printf '%s\n' "$STELLAR_SOURCE_SECRET" | stellar keys add ci
+
+      - name: Download wasm (if publish from URL)
+        if: steps.args.outputs.download_url != ''
+        env:
+          URL:  ${{ steps.args.outputs.download_url }}
+          DEST: ${{ steps.args.outputs.download_dest }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 -o "$DEST" "$URL"
+          ls -la "$DEST"
+
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Invoke registry method
+        id: tx
+        env:
+          SUBCMD:  ${{ steps.args.outputs.subcommand }}
+          ARGS:    ${{ steps.args.outputs.args }}
+          NETWORK: ${{ inputs.network }}
+        run: |
+          set -euo pipefail
+          # ARGS comes from shlex.join, so eval is safe under env-var passthrough.
+          # We capture stderr+stdout into a log and grep the tx hash. The CLI
+          # prints "Successfully …" on success and the underlying invoke logs
+          # the hash before that.
+          LOG=$(mktemp)
+          set +e
+          eval "cargo run --release -p stellar-registry-cli -- $SUBCMD --source ci --network $NETWORK $ARGS" > >(tee "$LOG") 2> >(tee -a "$LOG" >&2)
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::stellar-registry-cli exited with status $STATUS"
+            tail -200 "$LOG"
+            exit "$STATUS"
+          fi
+          # stellar-cli logs lines like `Signing transaction: …` and `Transaction hash is …`.
+          TX_HASH=$(grep -oE '[0-9a-f]{64}' "$LOG" | tail -n 1 || true)
+          echo "hash=${TX_HASH:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment success on issue
+        if: success()
+        env:
+          ISSUE: ${{ inputs.issue_number }}
+          HASH:  ${{ steps.tx.outputs.hash }}
+          NET:   ${{ inputs.network }}
+        run: |
+          gh issue comment "$ISSUE" -R "${{ github.repository }}" --body \
+            ":zap: **Submitted on-chain.**
+
+            | | |
+            | --- | --- |
+            | **Kind** | \`${{ inputs.kind }}\` |
+            | **Network** | \`$NET\` |
+            | **Tx hash** | \`$HASH\` |
+            | **Signer** | the CI key (registry manager) |
+            | **Run** | https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+
+      - name: Mark submitted
+        if: success()
+        uses: issue-ops/labeler@v4
+        with:
+          action: add
+          create: true
+          issue_number: ${{ inputs.issue_number }}
+          labels: |
+            registry-intake:submitted
+
+      - name: Close issue on success
+        if: success()
+        env:
+          ISSUE: ${{ inputs.issue_number }}
+        run: gh issue close "$ISSUE" -R "${{ github.repository }}" --reason completed
+
+      - name: Comment failure on issue
+        if: failure()
+        env:
+          ISSUE: ${{ inputs.issue_number }}
+        run: |
+          gh issue comment "$ISSUE" -R "${{ github.repository }}" --body \
+            ":x: **On-chain submit failed.** See the [run logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details. The issue has been labeled \`registry-intake:submission-failed\`. A maintainer can re-trigger the submit via the workflow_dispatch UI once the underlying issue is fixed."
+
+      - name: Mark submission-failed
+        if: failure()
+        uses: issue-ops/labeler@v4
+        with:
+          action: add
+          create: true
+          issue_number: ${{ inputs.issue_number }}
+          labels: |
+            registry-intake:submission-failed
