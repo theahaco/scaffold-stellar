@@ -5206,7 +5206,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-registry"
-version = "0.0.10"
+version = "0.0.11"
 dependencies = [
  "stellar-scaffold-macro",
 ]
@@ -5285,7 +5285,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-cli"
-version = "0.0.24"
+version = "0.0.25"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -5344,7 +5344,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-macro"
-version = "0.8.14"
+version = "0.8.15"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5358,7 +5358,7 @@ dependencies = [
 
 [[package]]
 name = "stellar-scaffold-reporter"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_cmd",
  "clap",
