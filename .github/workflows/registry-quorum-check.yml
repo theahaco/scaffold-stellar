@@ -1,0 +1,269 @@
+name: Registry Intake - Quorum Check
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  contents: read
+  actions: write   # required to dispatch registry-onchain-submit.yml on accept
+
+jobs:
+  quorum-check:
+    # Run only on comments for non-PR issues that are currently in-review.
+    if: |
+      github.event.issue.pull_request == null &&
+      contains(github.event.issue.labels.*.name, 'registry-intake:in-review')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look for .quorum-check command
+        id: command
+        uses: github/command@v2
+        with:
+          command: .quorum-check
+          status: ${{ job.status }}
+          allowed_contexts: issue
+          permissions: write,admin
+          # Allowlist resolved by the action via the org-scoped PAT below.
+          # The team slug is read from .github/registry-quorum.yml at the
+          # script step — keep this allowlist in sync with that file.
+          allowlist: ${{ github.repository_owner }}/registry-pilots
+          allowlist_pat: ${{ secrets.READ_ORG_MEMBERS_PAT }}
+          skip_ci: "true"
+          skip_reviews: "true"
+          reaction: eyes
+          skip_completing: "true"
+
+      - name: Checkout repo (for policy file)
+        if: steps.command.outputs.continue == 'true'
+        uses: actions/checkout@v6
+
+      - name: Resolve kind subtype label
+        if: steps.command.outputs.continue == 'true'
+        id: kind
+        env:
+          LABELS_JSON: ${{ toJSON(github.event.issue.labels) }}
+        run: |
+          set -euo pipefail
+          KIND=$(jq -r '
+            .[].name
+            | select(startswith("registry-intake:"))
+            | sub("^registry-intake:"; "")
+            | select(. == "publish" or . == "register" or . == "deploy" or . == "admin")
+          ' <<<"$LABELS_JSON" | head -n 1)
+          if [ -z "${KIND:-}" ]; then
+            echo "::error::No kind subtype label on issue."
+            exit 1
+          fi
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
+
+      - name: Load quorum policy for kind
+        if: steps.command.outputs.continue == 'true'
+        id: policy
+        env:
+          KIND: ${{ steps.kind.outputs.kind }}
+        run: |
+          set -euo pipefail
+          POLICY_FILE=.github/registry-quorum.yml
+          # yq is preinstalled on ubuntu-latest runners.
+          TEAM=$(yq -r ".defaults.team" "$POLICY_FILE")
+          MIN_VOTERS=$(yq -r ".\"$KIND\".min_voters // .defaults.min_voters" "$POLICY_FILE")
+          REQUIRE_UNANIMOUS=$(yq -r ".\"$KIND\".require_unanimous // .defaults.require_unanimous // false" "$POLICY_FILE")
+          echo "team=$TEAM" >> "$GITHUB_OUTPUT"
+          echo "min_voters=$MIN_VOTERS" >> "$GITHUB_OUTPUT"
+          echo "require_unanimous=$REQUIRE_UNANIMOUS" >> "$GITHUB_OUTPUT"
+
+      - name: Tally pilot reactions and decide
+        if: steps.command.outputs.continue == 'true'
+        id: decide
+        uses: actions/github-script@v8
+        env:
+          READ_ORG_MEMBERS_PAT: ${{ secrets.READ_ORG_MEMBERS_PAT }}
+          PILOT_TEAM_SLUG: ${{ steps.policy.outputs.team }}
+          MIN_VOTERS: ${{ steps.policy.outputs.min_voters }}
+          REQUIRE_UNANIMOUS: ${{ steps.policy.outputs.require_unanimous }}
+          KIND: ${{ steps.kind.outputs.kind }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pat = process.env.READ_ORG_MEMBERS_PAT;
+            if (!pat) {
+              core.setFailed('READ_ORG_MEMBERS_PAT secret is not configured');
+              return;
+            }
+            const PILOT_TEAM_SLUG    = process.env.PILOT_TEAM_SLUG;
+            const MIN_VOTERS         = parseInt(process.env.MIN_VOTERS, 10);
+            const REQUIRE_UNANIMOUS  = process.env.REQUIRE_UNANIMOUS === 'true';
+            const KIND               = process.env.KIND;
+
+            const { owner, repo } = context.repo;
+            const issueNumber     = context.issue.number;
+            const GH_API_VERSION  = '2026-03-10';
+
+            async function ghFetch(url) {
+              const res = await fetch(url, {
+                headers: {
+                  Authorization: `Bearer ${pat}`,
+                  Accept: 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': GH_API_VERSION,
+                },
+              });
+              if (!res.ok) throw new Error(`GitHub API error ${res.status} for ${url}`);
+              return res;
+            }
+
+            async function loadPilotMembers() {
+              const members = new Set();
+              let url = `https://api.github.com/orgs/${owner}/teams/${PILOT_TEAM_SLUG}/members?per_page=100`;
+              while (url) {
+                const res  = await ghFetch(url);
+                const page = await res.json();
+                for (const m of page) members.add(m.login);
+                const link = res.headers.get('link') ?? '';
+                const next = link.match(/<([^>]+)>;\s*rel="next"/);
+                url = next ? next[1] : null;
+              }
+              return members;
+            }
+
+            async function loadReactions() {
+              return github.paginate(
+                github.rest.reactions.listForIssue,
+                { owner, repo, issue_number: issueNumber, per_page: 100 }
+              );
+            }
+
+            const [pilotMembers, allReactions] = await Promise.all([
+              loadPilotMembers(),
+              loadReactions(),
+            ]);
+
+            const upSet   = new Set();
+            const downSet = new Set();
+            for (const r of allReactions) {
+              const login = r.user?.login;
+              if (!login || !pilotMembers.has(login)) continue;
+              if (r.content === '+1')      upSet.add(login);
+              else if (r.content === '-1') downSet.add(login);
+            }
+
+            const pilotUps   = [...upSet];
+            const pilotDowns = [...downSet];
+            const ups        = pilotUps.length;
+            const downs      = pilotDowns.length;
+            const total      = ups + downs;
+
+            if (total < MIN_VOTERS) {
+              const needed = MIN_VOTERS - total;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issueNumber,
+                body: `:hourglass: Not enough pilot votes to finalize yet — ${total} of ${MIN_VOTERS} minimum cast (${needed} more needed) for kind \`${KIND}\`.`,
+              });
+              core.setOutput('decided', 'false');
+              return;
+            }
+
+            let accepted;
+            if (REQUIRE_UNANIMOUS) {
+              accepted = downs === 0 && ups >= MIN_VOTERS;
+            } else {
+              const threshold = MIN_VOTERS + 2 * downs;
+              accepted = ups >= threshold;
+            }
+
+            const upList   = pilotUps.map(l   => `@${l}`).join(', ') || '_none_';
+            const downList = pilotDowns.map(l => `@${l}`).join(', ') || '_none_';
+            const policy   = REQUIRE_UNANIMOUS
+              ? `unanimous (any :-1: blocks), min ${MIN_VOTERS} :+1:`
+              : `${MIN_VOTERS} + 2*downs threshold`;
+
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.createLabel({ owner, repo, name, color, description });
+              } catch (e) { if (e.status !== 422) throw e; }
+            }
+            await Promise.all([
+              ensureLabel('registry-intake:accepted', '0e8a16', 'Pilot quorum accepted this intake'),
+              ensureLabel('registry-intake:rejected', 'd93f0b', 'Pilot quorum rejected this intake'),
+            ]);
+
+            // Move from in-review → accepted/rejected.
+            try {
+              await github.rest.issues.removeLabel({
+                owner, repo, issue_number: issueNumber, name: 'registry-intake:in-review',
+              });
+            } catch (_) {}
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number: issueNumber,
+              labels: [accepted ? 'registry-intake:accepted' : 'registry-intake:rejected'],
+            });
+
+            const icon    = accepted ? ':zap:' : ':card_file_box:';
+            const verdict = accepted ? '**Accepted**' : '**Rejected**';
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: issueNumber,
+              body: [
+                `${icon} ${verdict} for kind \`${KIND}\` — ${ups} :+1:, ${downs} :-1: (policy: ${policy})`,
+                ``,
+                `:+1: ${upList}`,
+                `:-1: ${downList}`,
+              ].join('\n'),
+            });
+
+            core.setOutput('decided',  'true');
+            core.setOutput('accepted', String(accepted));
+
+      - name: Reject path → close and lock
+        if: steps.command.outputs.continue == 'true' && steps.decide.outputs.decided == 'true' && steps.decide.outputs.accepted == 'false'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber     = context.issue.number;
+            await github.rest.issues.update({
+              owner, repo, issue_number: issueNumber,
+              state: 'closed', state_reason: 'completed',
+            });
+            await github.rest.issues.lock({
+              owner, repo, issue_number: issueNumber, lock_reason: 'resolved',
+            });
+
+      - name: Read network from issue body (for environment selection)
+        if: steps.command.outputs.continue == 'true' && steps.decide.outputs.accepted == 'true'
+        id: network
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          set -euo pipefail
+          # Issue forms render as markdown headers + values. Pick the line under the
+          # `### Network` heading.
+          NETWORK=$(awk '
+            BEGIN { found = 0 }
+            /^### Network$/ { found = 1; next }
+            found && NF { print; exit }
+          ' <<<"$BODY" | tr -d ' \r\n')
+          if [ "$NETWORK" != "testnet" ] && [ "$NETWORK" != "mainnet" ]; then
+            echo "::error::Could not parse network from issue body (got: '$NETWORK')"
+            exit 1
+          fi
+          echo "network=$NETWORK" >> "$GITHUB_OUTPUT"
+
+      - name: Accept path → dispatch on-chain submit
+        if: steps.command.outputs.continue == 'true' && steps.decide.outputs.accepted == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          KIND:    ${{ steps.kind.outputs.kind }}
+          NETWORK: ${{ steps.network.outputs.network }}
+        run: |
+          set -euo pipefail
+          gh workflow run registry-onchain-submit.yml \
+            -R "${{ github.repository }}" \
+            --ref "${{ github.event.repository.default_branch }}" \
+            --field "issue_number=${ISSUE_NUMBER}" \
+            --field "kind=${KIND}" \
+            --field "network=${NETWORK}"
+          gh issue comment "${ISSUE_NUMBER}" -R "${{ github.repository }}" --body \
+            ":hourglass_flowing_sand: Dispatched [\`registry-onchain-submit\`](https://github.com/${{ github.repository }}/actions/workflows/registry-onchain-submit.yml) for kind=\`${KIND}\` on \`${NETWORK}\`. The workflow will pause at the \`registry-${NETWORK}\` environment for reviewer approval before signing."
