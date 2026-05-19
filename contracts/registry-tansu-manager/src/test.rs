@@ -104,7 +104,7 @@ fn setup() -> Setup {
     env.as_contract(&manager, || {
         env.storage()
             .instance()
-            .set(&crate::Cfg::Registry, &registry);
+            .set(&crate::DataKey::Registry, &registry);
     });
 
     let manager_client = RegistryTansuManagerClient::new(&env, &manager);
@@ -308,6 +308,58 @@ fn proposal_targeting_wrong_address_is_rejected() {
 // Auth-flow guard: the registry's manager-only function must reject calls
 // that come from somewhere other than the manager contract.
 // ---------------------------------------------------------------------------
+
+#[test]
+fn approved_proposal_cannot_be_replayed() {
+    let s = setup();
+    let outcomes = vec![
+        &s.env,
+        OutcomeContract {
+            address: s.registry.clone(),
+            execute_fn: Symbol::new(&s.env, "manager_only"),
+            args: vec![&s.env, 7u32.into_val(&s.env)],
+        },
+    ];
+    plant_proposal(
+        &s.env,
+        &s.tansu,
+        &s.project_key,
+        1,
+        ProposalStatus::Approved,
+        Some(outcomes),
+    );
+
+    s.manager_client.execute(&1);
+    let err = s.manager_client.try_execute(&1).err().unwrap().unwrap();
+    assert_eq!(err, Error::AlreadyExecuted);
+}
+
+#[test]
+fn proposal_targeting_manager_itself_is_rejected() {
+    // An attacker-crafted proposal whose outcome address is the manager
+    // contract (not the registry) must be rejected — otherwise the manager
+    // could be tricked into recursively re-entering itself.
+    let s = setup();
+    let outcomes = vec![
+        &s.env,
+        OutcomeContract {
+            address: s.manager.clone(),
+            execute_fn: Symbol::new(&s.env, "execute"),
+            args: vec![&s.env, 1u32.into_val(&s.env)],
+        },
+    ];
+    plant_proposal(
+        &s.env,
+        &s.tansu,
+        &s.project_key,
+        1,
+        ProposalStatus::Approved,
+        Some(outcomes),
+    );
+
+    let err = s.manager_client.try_execute(&1).err().unwrap().unwrap();
+    assert_eq!(err, Error::OutcomeTargetMismatch);
+}
 
 #[test]
 #[should_panic] // require_auth on the manager address fails for an outside caller
