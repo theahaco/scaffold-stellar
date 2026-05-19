@@ -4,6 +4,7 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, Bytes, BytesN, Env, IntoVal, String,
     Symbol, Val, Vec,
 };
+use soroban_sdk_tools::{contractstorage, InstanceItem, PersistentMap};
 
 #[soroban_sdk_tools::scerr]
 pub enum Error {
@@ -97,12 +98,16 @@ pub struct Proposal {
     pub outcome_contracts: Option<Vec<OutcomeContract>>,
 }
 
-#[contracttype]
-pub enum DataKey {
-    Tansu,
-    ProjectKey,
-    Registry,
-    Executed(u32),
+#[contractstorage(auto_shorten = true)]
+pub struct Storage {
+    /// Tansu DAO contract this manager queries proposals from.
+    tansu: InstanceItem<Address>,
+    /// Tansu workspace key this manager represents.
+    project_key: InstanceItem<Bytes>,
+    /// Registry contract this manager forwards approved outcomes to.
+    registry: InstanceItem<Address>,
+    /// Proposal IDs that have already been executed (replay guard).
+    executed: PersistentMap<u32, bool>,
 }
 
 #[contract]
@@ -111,22 +116,21 @@ pub struct RegistryTansuManager;
 #[contractimpl]
 impl RegistryTansuManager {
     pub fn __constructor(env: Env, tansu: Address, project_key: Bytes, registry: Address) {
-        let s = env.storage().instance();
-        s.set(&DataKey::Tansu, &tansu);
-        s.set(&DataKey::ProjectKey, &project_key);
-        s.set(&DataKey::Registry, &registry);
+        Storage::set_tansu(&env, &tansu);
+        Storage::set_project_key(&env, &project_key);
+        Storage::set_registry(&env, &registry);
     }
 
     pub fn tansu(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Tansu).unwrap()
+        Storage::get_tansu(&env).unwrap()
     }
 
     pub fn project_key(env: Env) -> Bytes {
-        env.storage().instance().get(&DataKey::ProjectKey).unwrap()
+        Storage::get_project_key(&env).unwrap()
     }
 
     pub fn registry(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Registry).unwrap()
+        Storage::get_registry(&env).unwrap()
     }
 
     /// Execute a passed Tansu proposal by forwarding its outcome to the registry.
@@ -138,8 +142,8 @@ impl RegistryTansuManager {
     /// contract is the direct caller (Soroban contract-auth chains for
     /// outgoing invocations; no `authorize_as_current_contract` is needed).
     ///
-    /// Replay-protected: a successful `execute` records `DataKey::Executed(id)`
-    /// permanently; later calls with the same `proposal_id` return
+    /// Replay-protected: a successful `execute` marks the proposal as
+    /// executed; later calls with the same `proposal_id` return
     /// `AlreadyExecuted`.
     ///
     /// Trust: we look up the proposal in Tansu using the stored `project_key`,
@@ -147,14 +151,12 @@ impl RegistryTansuManager {
     /// `project_key` against any field of the returned proposal — Tansu's
     /// storage layout makes that lookup the only path.
     pub fn execute(env: Env, proposal_id: u32) -> Result<Val, Error> {
-        let s = env.storage().persistent();
-        if s.has(&DataKey::Executed(proposal_id)) {
+        if Storage::has_executed(&env, &proposal_id) {
             return Err(Error::AlreadyExecuted);
         }
-        let inst = env.storage().instance();
-        let tansu: Address = inst.get(&DataKey::Tansu).unwrap();
-        let project_key: Bytes = inst.get(&DataKey::ProjectKey).unwrap();
-        let registry: Address = inst.get(&DataKey::Registry).unwrap();
+        let tansu = Storage::get_tansu(&env).unwrap();
+        let project_key = Storage::get_project_key(&env).unwrap();
+        let registry = Storage::get_registry(&env).unwrap();
 
         let proposal: Proposal = env.invoke_contract(
             &tansu,
@@ -177,7 +179,7 @@ impl RegistryTansuManager {
         }
 
         let result: Val = env.invoke_contract(&registry, &oc.execute_fn, oc.args);
-        s.set(&DataKey::Executed(proposal_id), &true);
+        Storage::set_executed(&env, &proposal_id, &true);
         Ok(result)
     }
 }

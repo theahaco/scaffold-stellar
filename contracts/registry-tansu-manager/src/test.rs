@@ -102,9 +102,7 @@ fn setup() -> Setup {
 
     // Patch the manager's stored registry to the real RegistryStub address.
     env.as_contract(&manager, || {
-        env.storage()
-            .instance()
-            .set(&crate::DataKey::Registry, &registry);
+        crate::Storage::set_registry(&env, &registry);
     });
 
     let manager_client = RegistryTansuManagerClient::new(&env, &manager);
