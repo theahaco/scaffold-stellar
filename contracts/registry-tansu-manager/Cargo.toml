@@ -1,0 +1,23 @@
+[package]
+name = "registry-tansu-manager"
+description = "Tansu-DAO-gated manager for the stellar registry."
+version = "0.1.0"
+license = "Apache-2.0"
+edition = "2021"
+publish = false
+repository = "https://github.com/theahaco/scaffold-stellar/tree/main/contracts/registry-tansu-manager"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+soroban-sdk-tools = "0.1.2"
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-sdk-tools = { version = "0.1.2", features = ["testutils"] }
+
+[package.metadata.stellar]
+cargo_inherit = true
