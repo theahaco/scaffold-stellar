@@ -3781,6 +3781,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "registry-tansu-manager"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk 25.3.1",
+ "soroban-sdk-tools",
+]
+
+[[package]]
 name = "relative-path"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
