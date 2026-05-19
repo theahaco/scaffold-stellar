@@ -7,15 +7,15 @@ pub struct Hello;
 
 #[contractimpl]
 impl Hello {
-    pub fn __constructor(env: Env, admin: Address) {
-        env.storage().instance().set(&"admin", &admin);
+    pub fn __constructor(env: &Env, admin: &Address) {
+        env.storage().instance().set(&"admin", admin);
     }
 
-    pub fn admin(env: Env) -> Address {
+    pub fn admin(env: &Env) -> Address {
         env.storage().instance().get(&"admin").unwrap()
     }
 
-    pub fn hello(_env: Env, to: String) -> String {
+    pub fn hello(_env: &Env, to: String) -> String {
         to
     }
 }

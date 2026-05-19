@@ -115,22 +115,22 @@ pub struct RegistryTansuManager;
 
 #[contractimpl]
 impl RegistryTansuManager {
-    pub fn __constructor(env: Env, tansu: Address, project_key: Bytes, registry: Address) {
-        Storage::set_tansu(&env, &tansu);
-        Storage::set_project_key(&env, &project_key);
-        Storage::set_registry(&env, &registry);
+    pub fn __constructor(env: &Env, tansu: &Address, project_key: &Bytes, registry: &Address) {
+        Storage::set_tansu(env, tansu);
+        Storage::set_project_key(env, project_key);
+        Storage::set_registry(env, registry);
     }
 
-    pub fn tansu(env: Env) -> Address {
-        Storage::get_tansu(&env).unwrap()
+    pub fn tansu(env: &Env) -> Address {
+        Storage::get_tansu(env).unwrap()
     }
 
-    pub fn project_key(env: Env) -> Bytes {
-        Storage::get_project_key(&env).unwrap()
+    pub fn project_key(env: &Env) -> Bytes {
+        Storage::get_project_key(env).unwrap()
     }
 
-    pub fn registry(env: Env) -> Address {
-        Storage::get_registry(&env).unwrap()
+    pub fn registry(env: &Env) -> Address {
+        Storage::get_registry(env).unwrap()
     }
 
     /// Execute a passed Tansu proposal by forwarding its outcome to the registry.
@@ -150,18 +150,18 @@ impl RegistryTansuManager {
     /// so a wrong-project proposal cannot resolve. We do not re-verify
     /// `project_key` against any field of the returned proposal — Tansu's
     /// storage layout makes that lookup the only path.
-    pub fn execute(env: Env, proposal_id: u32) -> Result<Val, Error> {
-        if Storage::has_executed(&env, &proposal_id) {
+    pub fn execute(env: &Env, proposal_id: u32) -> Result<Val, Error> {
+        if Storage::has_executed(env, &proposal_id) {
             return Err(Error::AlreadyExecuted);
         }
-        let tansu = Storage::get_tansu(&env).unwrap();
-        let project_key = Storage::get_project_key(&env).unwrap();
-        let registry = Storage::get_registry(&env).unwrap();
+        let tansu = Storage::get_tansu(env).unwrap();
+        let project_key = Storage::get_project_key(env).unwrap();
+        let registry = Storage::get_registry(env).unwrap();
 
         let proposal: Proposal = env.invoke_contract(
             &tansu,
-            &Symbol::new(&env, "get_proposal"),
-            vec![&env, project_key.into_val(&env), proposal_id.into_val(&env)],
+            &Symbol::new(env, "get_proposal"),
+            vec![env, project_key.into_val(env), proposal_id.into_val(env)],
         );
 
         if !matches!(proposal.status, ProposalStatus::Approved) {
@@ -179,7 +179,7 @@ impl RegistryTansuManager {
         }
 
         let result: Val = env.invoke_contract(&registry, &oc.execute_fn, oc.args);
-        Storage::set_executed(&env, &proposal_id, &true);
+        Storage::set_executed(env, &proposal_id, &true);
         Ok(result)
     }
 }

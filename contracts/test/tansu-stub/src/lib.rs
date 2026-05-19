@@ -1,5 +1,5 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
+#![allow(clippy::too_many_arguments, clippy::needless_pass_by_value)]
 
 use soroban_sdk::{
     contract, contractimpl, contracttype, vec, Address, Bytes, BytesN, Env, IntoVal, String,
@@ -97,7 +97,7 @@ pub struct TansuStub;
 impl TansuStub {
     /// Tansu's real `get_proposal(project_key, proposal_id) -> Proposal`.
     /// The stub stores proposals planted via `set_*_proposal` helpers.
-    pub fn get_proposal(env: Env, project_key: Bytes, proposal_id: u32) -> Proposal {
+    pub fn get_proposal(env: &Env, project_key: Bytes, proposal_id: u32) -> Proposal {
         env.storage()
             .persistent()
             .get(&Key::Proposal(project_key, proposal_id))
@@ -111,7 +111,7 @@ impl TansuStub {
     /// `__constructor(admin: Address)` shape of the `hello` example contract.
     /// Use [`set_proposal_outcome`] for any other shape.
     pub fn set_deploy_proposal(
-        env: Env,
+        env: &Env,
         project_key: Bytes,
         proposal_id: u32,
         registry: Address,
@@ -121,22 +121,22 @@ impl TansuStub {
         admin: Address,
         deployer: Option<Address>,
     ) {
-        let init: Option<Vec<Val>> = Some(vec![&env, admin.clone().into_val(&env)]);
+        let init: Option<Vec<Val>> = Some(vec![env, admin.clone().into_val(env)]);
         let args: Vec<Val> = vec![
-            &env,
-            wasm_name.into_val(&env),
-            version.into_val(&env),
-            contract_name.into_val(&env),
-            admin.into_val(&env),
-            init.into_val(&env),
-            deployer.into_val(&env),
+            env,
+            wasm_name.into_val(env),
+            version.into_val(env),
+            contract_name.into_val(env),
+            admin.into_val(env),
+            init.into_val(env),
+            deployer.into_val(env),
         ];
         Self::store(
-            &env,
+            env,
             project_key,
             proposal_id,
             registry,
-            Symbol::new(&env, "deploy"),
+            Symbol::new(env, "deploy"),
             args,
         );
     }
@@ -144,14 +144,14 @@ impl TansuStub {
     /// Plant a fully custom `Approved` proposal — caller supplies the outcome
     /// `(target, fn_name, args)` directly.
     pub fn set_proposal_outcome(
-        env: Env,
+        env: &Env,
         project_key: Bytes,
         proposal_id: u32,
         target: Address,
         fn_name: Symbol,
         args: Vec<Val>,
     ) {
-        Self::store(&env, project_key, proposal_id, target, fn_name, args);
+        Self::store(env, project_key, proposal_id, target, fn_name, args);
     }
 
     fn store(

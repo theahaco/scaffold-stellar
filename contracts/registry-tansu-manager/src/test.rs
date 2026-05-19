@@ -1,3 +1,5 @@
+#![allow(clippy::needless_pass_by_value, clippy::should_panic_without_expect)]
+
 extern crate std;
 
 use soroban_sdk::{
